@@ -1,0 +1,72 @@
+{
+  "hostname": "?",
+  "ca": "-----BEGIN CERTIFICATE-----\nMIIDhzC...pSWttw==\n-----END CERTIFICATE-----",
+  "fields": {
+    "ACChargingPower": {
+      "interval_seconds": 30
+    },
+    "ChargeState": {
+      "interval_seconds": 30
+    },
+    "DCChargingPower": {
+      "interval_seconds": 30
+    },
+    "DriveRail": {
+      "interval_seconds": 30
+    },
+    "FdWindow": {
+      "interval_seconds": 60
+    },
+    "FpWindow": {
+      "interval_seconds": 60
+    },
+    "Gear": {
+      "interval_seconds": 1
+    },
+    "GpsState": {
+      "interval_seconds": 60
+    },
+    "Location": {
+      "interval_seconds": 1
+    },
+    "Locked": {
+      "interval_seconds": 60
+    },
+    "Odometer": {
+      "interval_seconds": 60
+    },
+    "RatedRange": {
+      "interval_seconds": 60
+    },
+    "RdWindow": {
+      "interval_seconds": 60
+    },
+    "RpWindow": {
+      "interval_seconds": 60
+    },
+    "SentryMode": {
+      "interval_seconds": 60
+    },
+    "Soc": {
+      "interval_seconds": 60
+    },
+    "TpmsPressureFl": {
+      "interval_seconds": 60
+    },
+    "TpmsPressureFr": {
+      "interval_seconds": 60
+    },
+    "TpmsPressureRl": {
+      "interval_seconds": 60
+    },
+    "TpmsPressureRr": {
+      "interval_seconds": 60
+    },
+    "VehicleSpeed": {
+      "interval_seconds": 1
+    }
+  },
+  "alert_types": [
+    "service"
+  ]
+}

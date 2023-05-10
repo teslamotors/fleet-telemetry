@@ -1,1 +1,8 @@
+*.out
+coverage.html
+.idea
+.DS_Store
+config_app.json
+certs
 vendor/
+config-local.json

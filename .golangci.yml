@@ -1,0 +1,15 @@
+---
+run:
+  timeout: 4m
+  skip-dirs:
+    - internal
+
+linters:
+  enable:
+    - errcheck
+    - gofmt
+    - gosimple
+    - govet
+    - misspell
+    - staticcheck
+    - unused

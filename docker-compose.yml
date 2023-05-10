@@ -1,0 +1,73 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+    volumes:
+      - ./test/integration/config.json:/etc/tesla/config.json:ro
+      - ./test/integration/test-certs:/etc/tesla/certs/server:ro
+      - /tmp/tesla-telemetry/profile:/tmp/tesla/tesla-telemetry/profile:rw
+    command:
+      - "/fleet-telemetry"
+      - "-config=/etc/tesla/config.json"
+    ports:
+      - "6942:6942"
+      - "4269:4269"
+      - "9090:9090"
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+    depends_on:
+      kafka:
+        condition: service_healthy
+      pubsub:
+        condition: service_started
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.1
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.2.1
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+      - "9101:9101"
+    healthcheck:
+      test: nc -z localhost 9092 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ENABLE_IDEMPOTENCE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  pubsub:
+    image: google/cloud-sdk:415.0.0
+    ports:
+      - '8085:8085'
+    command:
+      [
+        "gcloud",
+        "beta",
+        "emulators",
+        "pubsub",
+        "start",
+        "--host-port",
+        "pubsub:8085"
+      ]
