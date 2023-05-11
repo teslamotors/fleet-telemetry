@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+package telemetry.vehicle_data;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/teslamotors/fleet-telemetry/protos";
+
+enum Field {
+  Unknown = 0;
+  DriveRail = 1;
+  ChargeState = 2;
+  BmsFullchargecomplete = 3;
+  VehicleSpeed = 4;
+  Odometer = 5;
+  PackVoltage = 6;
+  PackCurrent = 7;
+  Soc = 8;
+  DCDCEnable = 9;
+  Gear = 10;
+  IsolationResistance = 11;
+  PedalPosition = 12;
+  BrakePedal = 13;
+  DiState = 14;
+  DiPcbt = 15;
+  DiRpm = 16;
+  DiTorquemotor = 17;
+  DiHeatsinkt = 18;
+  DiVbat = 19;
+  DiMotorcurrent = 20;
+  Location = 21;
+  GpsState = 22;
+  GpsHeading = 23;
+  NumBrickVoltageMax = 24;
+  BrickVoltageMax = 25;
+  NumBrickVoltageMin = 26;
+  BrickVoltageMin = 27;
+  NumModuleTempMax = 28;
+  ModuleTempMax = 29;
+  NumModuleTempMin = 30;
+  ModuleTempMin = 31;
+  RatedRange = 32;
+  Hvil = 33;
+  DCChargingEnergyIn = 34;
+  DCChargingPower = 35;
+  ACChargingEnergyIn = 36;
+  ACChargingPower = 37;
+  ChargeLimitSoc = 38;
+  FastChargerPresent = 39;
+  EstBatteryRange = 40;
+  IdealBatteryRange = 41;
+  BatteryLevel = 42;
+  TimeToFullCharge = 43;
+  ScheduledChargingStartTime = 44;
+  ScheduledChargingPending = 45;
+  ScheduledDepartureTime = 46;
+  PreconditioningEnabled = 47;
+  ScheduledChargingMode = 48;
+  ChargeAmps = 49;
+  ChargeEnableRequest = 50;
+  ChargerPhases = 51;
+  ChargePortColdWeatherMode = 52;
+  ChargeCurrentRequest = 53;
+  ChargeCurrentRequestMax = 54;
+  BatteryHeaterOn = 55;
+  NotEnoughPowerToHeat = 56;
+  SuperchargerSessionTripPlanner = 57;
+  DoorState = 58;
+  Locked = 59;
+  FdWindow = 60;
+  FpWindow = 61;
+  RdWindow = 62;
+  RpWindow = 63;
+  VehicleName = 64;
+  SentryMode = 65;
+  SpeedLimitMode = 66;
+  CurrentLimitMph = 67;
+  Version = 68;
+  TpmsPressureFl = 69;
+  TpmsPressureFr = 70;
+  TpmsPressureRl = 71;
+  TpmsPressureRr = 72;
+  TmpsPressureRe1L0 = 73;
+  TmpsPressureRe1L1 = 74;
+  TmpsPressureRe1R0 = 75;
+  TmpsPressureRe1R1 = 76;
+  TmpsPressureRe2L0 = 77;
+  TmpsPressureRe2L1 = 78;
+  TmpsPressureRe2R0 = 79;
+  TmpsPressureRe2R1 = 80;
+  TpmsLastSeenPressureTimeFl = 81;
+  TpmsLastSeenPressureTimeFr = 82;
+  TpmsLastSeenPressureTimeRl = 83;
+  TpmsLastSeenPressureTimeRr = 84;
+  InsideTemp = 85;
+  OutsideTemp = 86;
+  SeatHeaterLeft = 87;
+  SeatHeaterRight = 88;
+  SeatHeaterRearLeft = 89;
+  SeatHeaterRearRight = 90;
+  SeatHeaterRearCenter = 91;
+  AutoSeatClimateLeft = 92;
+  AutoSeatClimateRight = 93;
+  DriverSeatBelt = 94;
+  PassengerSeatBelt = 95;
+  DriverSeatOccupied = 96;
+  PassengerSeatFoldPosition = 97;
+  LateralAcceleration = 98;
+  LongitudinalAcceleration = 99;
+  CruiseState = 100;
+  CruiseSetSpeed = 101;
+  LifetimeEnergyUsed = 102;
+  LifetimeEnergyUsedDrive = 103;
+  TractorParkBrakeStatus = 104;
+  TrailerParkBrakeStatus = 105;
+  BrakePedalPos = 106;
+}
+
+// ChargingState are the charging options
+enum ChargingState {
+    ChargeStateUnknown = 0;
+    ChargeStateDisconnected = 1;
+    ChargeStateNoPower = 2;
+    ChargeStateStarting = 3;
+    ChargeStateCharging = 4;
+    ChargeStateComplete = 5;
+    ChargeStateStopped = 6;
+}
+
+// ShiftState are the gear options
+enum ShiftState {
+    ShiftStateUnknown = 0;
+    ShiftStateInvalid = 1;
+    ShiftStateP = 2;
+    ShiftStateR = 3;
+    ShiftStateD = 4;
+    ShiftStateN = 5;
+    ShiftStateSNA = 6;
+}
+
+// LocationValue is a Datum value type
+message LocationValue {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+// Value is a dynamic Datum type.  Most Datums are strings and is the default format
+// Note: Fields may have their types updated with different software and vehicle
+// versions to optimize for precision or space
+message Value {
+  oneof value {
+    string string_value = 1;
+    int32 int_value = 2;
+    int64 long_value = 3;
+    float float_value = 4;
+    double double_value = 5;
+    bool boolean_value = 6;
+    LocationValue location_value = 7;
+    ChargingState charging_value = 8;
+    ShiftState shift_state_value = 9;
+  }
+}
+
+// Datum represents a single field and its value
+message Datum {
+  Field key = 1;
+  Value value = 2;
+}
+
+// Payload holds a collection of values, and may not have a vin
+message Payload {
+  repeated Datum data = 1;
+  google.protobuf.Timestamp created_at = 2;
+  string vin = 3;
+}

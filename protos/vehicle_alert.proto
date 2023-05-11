@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package telemetry.vehicle_alerts;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/teslamotors/fleet-telemetry/protos";
+
+
+// VehicleAlerts is a collection of recent alerts.
+message VehicleAlerts {
+  repeated VehicleAlert alerts = 1;
+  google.protobuf.Timestamp created_at = 2;
+  string vin = 3;
+}
+
+// Audience the target audience for the alert.
+enum Audience {
+  Unknown = 0;
+  Customer = 1;
+  Service = 2;
+}
+
+// VehicleAlert is a single alert and is active if ended_at is nil.
+message VehicleAlert {
+  string name = 1;
+  repeated Audience audiences = 2;
+  google.protobuf.Timestamp started_at = 3;
+  google.protobuf.Timestamp ended_at = 4;
+}
