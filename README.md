@@ -191,3 +191,26 @@ docker buildx inspect --bootstrap
 docker buildx build --no-cache --progress=plain --platform linux/amd64 -t <name:tag>(e.x.: fleet-telemetry:local.1.1) -f Dockerfile . --load
 container_id=$(docker create fleet-telemetry:local.1.1)
 docker cp $container_id:/fleet-telemetry /tmp/fleet-telemetry
+
+## Security and privacy considerations
+
+System administrators should apply standard best practices, which are beyond
+the scope of this README.
+
+Moreover, the following application-specific considerations apply:
+
+* Vehicles authenticate to the telemetry server with TLS client certificates
+  and use a variety of security measures designed to prevent unauthorized
+  access to the corresponding private key. However, as a defense-in-depth
+  precaution, backend services should anticipate the possibility that a
+  vehicle's TLS private key may be compromised. Therefore:
+  * Backend systems should sanitize data before using it.
+  * Users should consider threats from actors that may be incentivized to
+    submit falsified data.
+  * Users should filter by vehicle identification number (VIN) using an
+    allowlist if possible.
+* Configuration-signing private keys should be kept offline.
+* Configuration-signing private keys should be kept in an HSM.
+* If telemetry data is compromised, threat actors may be able to make
+  inferences about driver behavior even if explicit location data is not
+  collected. Security policies should be set accordingly.
