@@ -94,7 +94,7 @@ spec:
   type: LoadBalancer
 ```
 
-6. Create an share a vehicle configuration with Tesla
+6. Create and share a vehicle configuration with Tesla
 ```
 {
   "hostname": string - server hostname,
