@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package telemetry.vehicle_metrics;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/teslamotors/fleet-telemetry/protos";
+
+
+// VehicleMetrics is a collection of metrics for a single vehicle.
+message VehicleMetrics {
+  repeated Metric metrics = 1;
+  google.protobuf.Timestamp created_at = 2;
+  string vin = 3;
+}
+
+// Metric is a single metric value with a name, tags, and a value.
+message Metric {
+  string name = 1;
+  map<string, string> tags = 2;
+  double value = 3;
+}

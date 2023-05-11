@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package telemetry.vehicle_error;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/teslamotors/fleet-telemetry/protos";
+
+
+// VehicleErrors is a collection of errors for a single vehicle.
+message VehicleErrors {
+  repeated VehicleError errors = 1;
+  google.protobuf.Timestamp created_at = 2;
+  string vin = 3;
+}
+
+// VehicleError is a single error
+message VehicleError {
+  google.protobuf.Timestamp created_at = 1;
+  string name = 2;
+  map<string, string> tags = 3;
+  string body = 4;
+}
