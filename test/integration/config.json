@@ -1,0 +1,40 @@
+{
+    "host": "app",
+    "port": 6942,
+    "log_level": "info",
+    "json_log_enable": true,
+    "namespace": "tesla_telemetry",
+    "reliable_ack": true,
+    "reliable_ack_workers": 15,
+    "kafka": {
+        "bootstrap.servers": "kafka:9092",
+        "queue.buffering.max.messages": 1000000,
+        "queue.buffering.max.ms": 50,
+        "compression.type": "gzip"
+    },
+    "pubsub": {
+        "gcp_project_id": "test-project-id"
+    },
+    "monitoring": {
+        "prometheus_metrics_port": 9090,
+        "profiler_port": 4269,
+        "profiling_path": "/tmp/tesla/tesla-telemetry/profile"
+    },
+    "rate_limit": {
+        "enabled": true,
+        "message_interval_time": 30,
+        "message_limit": 1000
+    },
+    "records": {
+        "V": [
+            "kafka",
+            "pubsub",
+            "logger"
+        ]
+    },
+    "tls": {
+        "ca_file": "/etc/tesla/certs/server/vehicle_device.CA.cert",
+        "server_cert": "/etc/tesla/certs/server/vehicle_device.app.cert",
+        "server_key": "/etc/tesla/certs/server/vehicle_device.app.key"
+    }
+}
