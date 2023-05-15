@@ -36,5 +36,6 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: tesla/fleet-telemetry:${{ steps.release.outputs.version }}
