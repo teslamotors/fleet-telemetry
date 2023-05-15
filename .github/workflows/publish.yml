@@ -37,4 +37,4 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: teslamotors/fleet-telemetry:${{ steps.release.outputs.version }}
+          tags: tesla/fleet-telemetry:${{ steps.release.outputs.version }}
