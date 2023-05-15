@@ -1,3 +1,7 @@
+![Build Status](https://img.shields.io/github/actions/workflow/status/teslamotors/fleet-telemetry/build.yml?branch=main)
+![Current Version](https://img.shields.io/github/v/tag/teslamotors/fleet-telemetry?label=latest%20tag)
+![DockerHub Tags](https://img.shields.io/docker/v/tesla/fleet-telemetry?label=docker%20tags)
+
 # Tesla Fleet Telemetry
 ---------------------------------
 
