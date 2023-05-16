@@ -1,23 +1,35 @@
 name: Publish Release
 
 on:
-  push:
-    branches: [ "main" ]
-  workflow_run:
-    workflows: ["build.yml"]
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump (major, minor, patch)'
+        required: true
+        default: 'patch'
 
 jobs:
+  validate-input:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate input
+        id: validate
+        run: |
+          if [[ "${{ github.event.inputs.version_bump }}" != "major" && "${{ github.event.inputs.version_bump }}" != "minor" && "${{ github.event.inputs.version_bump }}" != "patch" ]]; then
+            echo "Invalid input for version_bump. Please provide 'major', 'minor', or 'patch'."
+            exit 1
+          fi
+
   release:
+    needs: validate-input
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - id: release
-        uses: rymndhng/release-on-push-action@master
+        uses: rymndhng/release-on-push-action@v0.28.0
         with:
-          bump_version_scheme: patch
+          bump_version_scheme: ${{ github.event.inputs.version_bump }}
           use_github_release_notes: true
           tag_prefix: v
 
