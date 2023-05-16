@@ -60,7 +60,7 @@ Clients establish a websocket connection to push configurable telemetry records.
 ```
 Example: [server_config.json](./examples/server_config.json)
 
-5. Deploy and run the server.  This can be run as a binary via `./fleet-telemetry -config=/etc/fleet-telemetry/config.json` directly on a server, or as a kubernetes deployment.  Example snippet:
+5. Deploy and run the server.  Get the latest docker image information from [docker hub](https://hub.docker.com/r/tesla/fleet-telemetry/tags). This can be run as a binary via `./fleet-telemetry -config=/etc/fleet-telemetry/config.json` directly on a server, or as a kubernetes deployment.  Example snippet:
 ```yaml
 ---
 apiVersion: apps/v1
@@ -79,7 +79,7 @@ spec:
     spec:
       containers:
       - name: fleet-telemetry
-        image: fleet-telemetry:abc123
+        image: tesla/fleet-telemetry:<tag>
         command: ["/fleet-telemetry", "-config=/etc/fleet-telemetry/config.json"]
         ports:
         - containerPort: 443
