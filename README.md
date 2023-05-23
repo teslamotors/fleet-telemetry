@@ -153,7 +153,7 @@ Prometheus or a StatsD interface supporting data store for metrics. This is requ
 ## Protos
 Data is encapsulated into protobuf messages of different types. We do not recommend making changes, but if you need to recompile them you can always do so with:
 
-  1. Install protoc, currently on version 3.21.12: https://grpc.io/docs/protoc-installation/
+  1. Install protoc, currently on version 4.25.0: https://grpc.io/docs/protoc-installation/
   2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
   3. Run make command
   ```sh
