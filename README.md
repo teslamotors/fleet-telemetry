@@ -188,16 +188,6 @@ To run the integration tests:-
 
 `make integration`
 
-## Building binary for linux from mac arm64
-
-```sh
-DOCKER_BUILD_KIT=1 DOCKER_CLI_EXPERIMENTAL=enabled docker buildx version
-docker buildx create --name go-builder --driver docker-container --driver-opt network=host --buildkitd-flags '--allow-insecure-entitlement network.host' --use
-docker buildx inspect --bootstrap
-docker buildx build --no-cache --progress=plain --platform linux/amd64 -t <name:tag>(e.x.: fleet-telemetry:local.1.1) -f Dockerfile . --load
-container_id=$(docker create fleet-telemetry:local.1.1) docker cp $container_id:/fleet-telemetry /tmp/fleet-telemetry
-```
-
 ## Security and privacy considerations
 
 System administrators should apply standard best practices, which are beyond
