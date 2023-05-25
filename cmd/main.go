@@ -48,7 +48,7 @@ func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 		return err
 	}
 
-	server, _, err := streaming.InitVitalsServer(config, mux, producerRules, logger, registry)
+	server, _, err := streaming.InitServer(config, mux, producerRules, logger, registry)
 	if err != nil {
 		return err
 	}

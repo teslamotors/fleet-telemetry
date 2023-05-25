@@ -33,7 +33,7 @@ var _ = Describe("Socket handler test", func() {
 
 		producerRules := make(map[string][]telemetry.Producer)
 		mux := http.NewServeMux()
-		_, s, err := streaming.InitVitalsServer(conf, mux, producerRules, logger, registry)
+		_, s, err := streaming.InitServer(conf, mux, producerRules, logger, registry)
 		Expect(err).To(BeNil())
 
 		srv := httptest.NewServer(http.HandlerFunc(s.ServeBinaryWs(conf, registry)))

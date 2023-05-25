@@ -162,7 +162,7 @@ var _ = Describe("BinarySerializer", func() {
 			msgBytes, err := tt.args.msg.ToBytes()
 			Expect(err).To(BeNil())
 
-			gotRecord, err := bs.Serialize(msgBytes, tt.args.socketID)
+			gotRecord, err := bs.Deserialize(msgBytes, tt.args.socketID)
 			Expect(err).To(BeNil())
 
 			Expect(gotRecord.ReceivedTimestamp).ToNot(Equal(0))
@@ -193,7 +193,7 @@ var _ = Describe("BinarySerializer", func() {
 
 		msgBytes, e := msg.ToBytes()
 		Expect(e).To(BeNil())
-		result, _ := bs.Serialize(msgBytes, "Socket-42")
+		result, _ := bs.Deserialize(msgBytes, "Socket-42")
 		bs.Dispatch(result)
 		Expect(CallbackTester.counter).To(Equal(0))
 
@@ -206,7 +206,7 @@ var _ = Describe("BinarySerializer", func() {
 
 		msgBytes, e = msg.ToBytes()
 		Expect(e).To(BeNil())
-		result, _ = bs.Serialize(msgBytes, "Socket-42")
+		result, _ = bs.Deserialize(msgBytes, "Socket-42")
 		bs.Dispatch(result)
 		Expect(CallbackTester.counter).To(Equal(1))
 	})
@@ -215,7 +215,7 @@ var _ = Describe("BinarySerializer", func() {
 		bs := &telemetry.BinarySerializer{DispatchRules: DispatchRules}
 
 		var unknownError *telemetry.UnknownMessageType
-		_, err := bs.Serialize([]byte("test,1234,type"), "Socket-42")
+		_, err := bs.Deserialize([]byte("test,1234,type"), "Socket-42")
 		Expect(err).ToNot(BeNil())
 		Expect(errors.As(err, &unknownError))
 	})

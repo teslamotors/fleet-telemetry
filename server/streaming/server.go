@@ -26,8 +26,8 @@ var (
 	}
 )
 
-// VitalsServer stores server resources
-type VitalsServer struct {
+// Server stores server resources
+type Server struct {
 	// DispatchRules is a mapping of topics (records type) to their dispatching methods (loaded from Records json)
 	DispatchRules map[string][]telemetry.Producer
 
@@ -38,25 +38,25 @@ type VitalsServer struct {
 	reliableAck bool
 }
 
-// InitVitalsServer initializes the main server
-func InitVitalsServer(c *config.Config, mux *http.ServeMux, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *VitalsServer, error) {
+// InitServer initializes the main server
+func InitServer(c *config.Config, mux *http.ServeMux, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *Server, error) {
 	reliableAck := false
 	if c.Kafka != nil {
 		reliableAck = c.ReliableAck
 	}
 
-	vitalsServer := &VitalsServer{
+	socketServer := &Server{
 		DispatchRules:  producerRules,
 		statsCollector: c.MetricCollector,
 		reliableAck:    reliableAck,
 		logger:         logger,
 	}
 
-	mux.HandleFunc("/", vitalsServer.ServeBinaryWs(c, registry))
-	mux.HandleFunc("/status", vitalsServer.Status())
+	mux.HandleFunc("/", socketServer.ServeBinaryWs(c, registry))
+	mux.HandleFunc("/status", socketServer.Status())
 
 	server := &http.Server{Addr: fmt.Sprintf("%v:%v", c.Host, c.Port), Handler: serveHTTPWithLogs(mux, logger)}
-	return server, vitalsServer, nil
+	return server, socketServer, nil
 }
 
 // serveHTTPWithLogs wraps a handler and logs the request
@@ -75,14 +75,14 @@ func serveHTTPWithLogs(h http.Handler, logger *logrus.Logger) http.Handler {
 }
 
 // Status API
-func (v *VitalsServer) Status() func(w http.ResponseWriter, r *http.Request) {
+func (v *Server) Status() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "ok")
 	}
 }
 
 // ServeBinaryWs serves a http query and upgrades it to a websocket -- only serves binary data coming from the ws
-func (v *VitalsServer) ServeBinaryWs(config *config.Config, registry *SocketRegistry) func(w http.ResponseWriter, r *http.Request) {
+func (v *Server) ServeBinaryWs(config *config.Config, registry *SocketRegistry) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if ws := v.promoteToWebsocket(w, r); ws != nil {
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
@@ -101,7 +101,7 @@ func (v *VitalsServer) ServeBinaryWs(config *config.Config, registry *SocketRegi
 	}
 }
 
-func (v *VitalsServer) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *websocket.Conn {
+func (v *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *websocket.Conn {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {

@@ -35,8 +35,8 @@ func NewBinarySerializer(requestIdentity *RequestIdentity, dispatchRules map[str
 	}
 }
 
-// Serialize transforms a csv byte array into a Record
-func (bs *BinarySerializer) Serialize(msg []byte, socketID string) (record *Record, err error) {
+// Deserialize transforms a csv byte array into a Record
+func (bs *BinarySerializer) Deserialize(msg []byte, socketID string) (record *Record, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panic while serializing binary hermes stream: %v", r)

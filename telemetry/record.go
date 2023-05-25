@@ -32,7 +32,7 @@ func NewRecord(ts *BinarySerializer, msg []byte, socketID string) (*Record, erro
 		return &Record{Serializer: ts}, ErrMessageTooBig
 	}
 
-	rec, err := ts.Serialize(msg, socketID)
+	rec, err := ts.Deserialize(msg, socketID)
 	if err != nil {
 		return rec, err
 	}
