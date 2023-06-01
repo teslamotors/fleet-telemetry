@@ -15,7 +15,8 @@ var _ = Describe("Test application config initialization", func() {
 	It("loads the config properly", func() {
 		expectedConfig := &Config{
 			Host:               "127.0.0.1",
-			Port:               6942,
+			Port:               443,
+			StatusPort:         8080,
 			Namespace:          "tesla_telemetry",
 			TLS:                &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
 			RateLimit:          &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
@@ -43,10 +44,11 @@ var _ = Describe("Test application config initialization", func() {
 
 	It("loads small config properly", func() {
 		expectedConfig := &Config{
-			Host:      "127.0.0.1",
-			Port:      6942,
-			Namespace: "tesla_telemetry",
-			TLS:       &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
+			Host:       "127.0.0.1",
+			Port:       443,
+			StatusPort: 8080,
+			Namespace:  "tesla_telemetry",
+			TLS:        &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
 			Kafka: &confluent.ConfigMap{
 				"bootstrap.servers":            "some.broker1:9093,some.broker1:9093",
 				"ssl.ca.location":              "kafka.ca",

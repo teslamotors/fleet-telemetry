@@ -11,8 +11,9 @@ services:
       - "/fleet-telemetry"
       - "-config=/etc/tesla/config.json"
     ports:
-      - "6942:6942"
+      - "443:443"
       - "4269:4269"
+      - "8080:8080"
       - "9090:9090"
     environment:
       PUBSUB_EMULATOR_HOST: pubsub:8085

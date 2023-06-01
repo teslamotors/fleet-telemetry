@@ -74,38 +74,38 @@ func serveHTTPWithLogs(h http.Handler, logger *logrus.Logger) http.Handler {
 	})
 }
 
-// Status API
-func (v *Server) Status() func(w http.ResponseWriter, r *http.Request) {
+// Status API shows server with mtls config is up
+func (s *Server) Status() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "ok")
+		fmt.Fprint(w, "mtls ok")
 	}
 }
 
 // ServeBinaryWs serves a http query and upgrades it to a websocket -- only serves binary data coming from the ws
-func (v *Server) ServeBinaryWs(config *config.Config, registry *SocketRegistry) func(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeBinaryWs(config *config.Config, registry *SocketRegistry) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if ws := v.promoteToWebsocket(w, r); ws != nil {
+		if ws := s.promoteToWebsocket(w, r); ws != nil {
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
 			requestIdentity, err := extractIdentityFromConnection(ctx, r)
 			if err != nil {
-				v.logger.Errorf("extract_sender_id err: %v", err)
+				s.logger.Errorf("extract_sender_id err: %v", err)
 			}
 
-			socketManager := NewSocketManager(ctx, requestIdentity, ws, config, v.logger)
+			socketManager := NewSocketManager(ctx, requestIdentity, ws, config, s.logger)
 			registry.RegisterSocket(socketManager)
 			defer registry.DeregisterSocket(socketManager)
 
-			binarySerializer := telemetry.NewBinarySerializer(requestIdentity, v.DispatchRules, v.reliableAck, v.logger)
+			binarySerializer := telemetry.NewBinarySerializer(requestIdentity, s.DispatchRules, s.reliableAck, s.logger)
 			socketManager.ProcessTelemetry(binarySerializer)
 		}
 	}
 }
 
-func (v *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *websocket.Conn {
+func (s *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *websocket.Conn {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {
-			v.logger.Errorf("websocket_promotion_error err: %v", err)
+			s.logger.Errorf("websocket_promotion_error err: %v", err)
 		}
 		return nil
 	}

@@ -30,6 +30,9 @@ type Config struct {
 	// Port is the telemetry server port
 	Port int `json:"port,omitempty"`
 
+	// Status Port is used to check whether service is live or not
+	StatusPort int `json:"status_port,omitempty"`
+
 	// TLS contains certificates & CA info for the webserver
 	TLS *TLS `json:"tls,omitempty"`
 

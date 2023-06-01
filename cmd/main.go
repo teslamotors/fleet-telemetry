@@ -39,6 +39,9 @@ func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 	registry := streaming.NewSocketRegistry()
 
 	monitoring.StartProfilerServer(config, mux, logger)
+	if config.StatusPort > 0 {
+		monitoring.StartStatusServer(config, logger)
+	}
 	if config.Monitoring != nil {
 		monitoring.StartServerMetrics(config, logger, registry)
 	}
