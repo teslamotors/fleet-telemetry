@@ -16,10 +16,10 @@
       "message_limit": 1000
   },
   "records": {
-      "A": [
+      "alerts": [
           "logger"
       ],
-      "E": [
+      "errors": [
           "logger"
       ],
       "V": [
