@@ -42,10 +42,10 @@ Clients establish a websocket connection to push configurable telemetry records.
       "message_limit": int - ex.: 1000
   },
   "records": { list of records and their dispatchers
-      "A": [
+      "alerts": [
           "logger"
       ],
-      "E": [
+      "errors": [
           "logger"
       ],
       "V": [
