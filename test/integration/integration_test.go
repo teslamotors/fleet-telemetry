@@ -3,6 +3,7 @@ package integration_test
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -92,18 +93,25 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 		VerifyMessageBody(msg.Value, vehicleName, timestamp)
 	})
 
-	It("returns 200 for status", func() {
-		err := VerifyHTTPSRequest(serviceURL, "status", tlsConfig)
+	It("returns 200 for mtls status", func() {
+		body, err := VerifyHTTPSRequest(serviceURL, "status", tlsConfig)
 		Expect(err).To(BeNil())
+		Expect(string(body)).To(Equal("mtls ok"))
+	})
+
+	It("returns 200 for status", func() {
+		body, err := VerifyHTTPRequest(statusURL, "status")
+		Expect(err).To(BeNil())
+		Expect(string(body)).To(Equal("ok"))
 	})
 
 	It("returns 200 for gc stats", func() {
-		err := VerifyHTTPSRequest(serviceURL, "gc_stats", tlsConfig)
+		_, err := VerifyHTTPSRequest(serviceURL, "gc_stats", tlsConfig)
 		Expect(err).To(BeNil())
 	})
 
 	It("returns 200 for prom metrics", func() {
-		err := VerifyHTTPRequest(prometheusURL, "metrics")
+		_, err := VerifyHTTPRequest(prometheusURL, "metrics")
 		Expect(err).To(BeNil())
 	})
 
@@ -119,7 +127,7 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 })
 
 // VerifyHTTPSRequest validates API returns 200 status code
-func VerifyHTTPSRequest(url string, path string, tlsConfig *tls.Config) error {
+func VerifyHTTPSRequest(url string, path string, tlsConfig *tls.Config) ([]byte, error) {
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
@@ -127,22 +135,22 @@ func VerifyHTTPSRequest(url string, path string, tlsConfig *tls.Config) error {
 	}
 	res, err := client.Get(fmt.Sprintf("https://%s/%s", url, path))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer DeferClose(res.Body)
 	Expect(res.StatusCode).To(Equal(200))
-	return nil
+	return io.ReadAll(res.Body)
 }
 
-// VerifyHTTPSRequest validates API returns 200 status code
-func VerifyHTTPRequest(url string, path string) error {
+// VerifyHTTPRequest validates API returns 200 status code
+func VerifyHTTPRequest(url string, path string) ([]byte, error) {
 	res, err := http.Get(fmt.Sprintf("http://%s/%s", url, path))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer DeferClose(res.Body)
+
 	Expect(res.StatusCode).To(Equal(200))
-	return nil
+	defer res.Body.Close()
+	return io.ReadAll(res.Body)
 }
 
 // VerifyMessageHeaders validates headers returned from kafka/pubsub

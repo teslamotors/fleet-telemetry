@@ -22,7 +22,8 @@ var _ = Describe("Test full application config", func() {
 	BeforeEach(func() {
 		config = &Config{
 			Host:               "127.0.0.1",
-			Port:               6942,
+			Port:               443,
+			StatusPort:         8080,
 			Namespace:          "tesla_telemetry",
 			TLS:                &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
 			RateLimit:          &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
@@ -84,6 +85,15 @@ var _ = Describe("Test full application config", func() {
 			Expect(tls).ToNot(BeNil())
 			Expect(tls.ClientCAs).ToNot(BeNil())
 			Expect(len(tls.ClientCAs.Subjects())).To(Equal(8)) //nolint:staticcheck
+		})
+	})
+
+	Context("configure ports", func() {
+		It("use correct ports", func() {
+			config, err := loadTestApplicationConfig(TestSmallConfig)
+			Expect(err).To(BeNil())
+			Expect(config.Port).To(BeEquivalentTo(443))
+			Expect(config.StatusPort).To(BeEquivalentTo(8080))
 		})
 	})
 

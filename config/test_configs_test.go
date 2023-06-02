@@ -2,7 +2,8 @@ package config
 
 const TestConfig = `{
 	"host": "127.0.0.1",
-	"port": 6942,
+	"port": 443,
+	"status_port": 8080,
 	"log_level": "info",
 	"json_log_enable": true,
 	"namespace": "tesla_telemetry",
@@ -39,7 +40,8 @@ const TestConfig = `{
 const TestSmallConfig = `
 {
 	"host": "127.0.0.1",
-	"port": 6942,
+	"port": 443,
+	"status_port": 8080,
 	"namespace": "tesla_telemetry",
 	"kafka": {
 		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
@@ -62,7 +64,8 @@ const TestSmallConfig = `
 const TestPubsubConfig = `
 {
 	"host": "127.0.0.1",
-	"port": 6942,
+	"port": 443,
+	"status_port": 8080,
 	"pubsub": {
         "gcp_project_id": "some-project-id",
 		"reliable_ack": "true"

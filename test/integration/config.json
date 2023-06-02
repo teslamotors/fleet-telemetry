@@ -1,6 +1,7 @@
 {
     "host": "app",
-    "port": 6942,
+    "port": 443,
+    "status_port": 8080,
     "log_level": "info",
     "json_log_enable": true,
     "namespace": "tesla_telemetry",

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,7 +26,8 @@ const (
 	deviceType = "vehicle_device"
 	deviceID   = "device-1"
 
-	serviceURL    = "app:6942"
+	serviceURL    = "app:443"
+	statusURL     = "app:8080"
 	prometheusURL = "app:9090"
 
 	clientCert = "./test-certs/vehicle_device.device-1.cert"
@@ -108,10 +108,4 @@ func GetTLSConfig() (*tls.Config, error) {
 	}
 
 	return tlsConfig, nil
-}
-
-// DeferClose handles deferred errors while closing connection
-func DeferClose(c io.Closer) {
-	err := c.Close()
-	Expect(err).To(BeNil())
 }
