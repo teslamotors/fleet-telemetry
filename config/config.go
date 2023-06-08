@@ -17,6 +17,7 @@ import (
 
 	"github.com/teslamotors/fleet-telemetry/datastore/googlepubsub"
 	"github.com/teslamotors/fleet-telemetry/datastore/kafka"
+	"github.com/teslamotors/fleet-telemetry/datastore/kinesis"
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -55,6 +56,9 @@ type Config struct {
 
 	// Pubsub is a configuration for the Google Pubsub
 	Pubsub *Pubsub `json:"pubsub,omitempty"`
+
+	// Kinesis is a configuration for the AWS Kinesis
+	Kinesis *Kinesis `json:"kinesis,omitempty"`
 
 	// Namespace defines a prefix for the kafka/pubsub topic
 	Namespace string `json:"namespace,omitempty"`
@@ -98,6 +102,17 @@ type Pubsub struct {
 	ProjectID string `json:"gcp_project_id,omitempty"`
 
 	Publisher *pubsub.Client
+}
+
+// Kinesis config for the AWS Kinesis
+type Kinesis struct {
+	AccessKey string `json:"access_key"`
+
+	DefaultRegion string `json:"default_aws_region"`
+
+	SecretKey string `json:"secret_key"`
+
+	KinesisHost string `json:"kinesis_host"`
 }
 
 //go:embed files/eng_ca.crt
@@ -243,6 +258,15 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 			return nil, err
 		}
 		producers[telemetry.Pubsub] = googleProducer
+	}
+
+	if c.Kinesis != nil {
+		kinesisConfig := c.Kinesis
+		kinesis, err := kinesis.NewProducer(kinesisConfig.AccessKey, kinesisConfig.SecretKey, kinesisConfig.DefaultRegion, kinesisConfig.KinesisHost, c.prometheusEnabled(), c.Namespace, c.MetricCollector, logger)
+		if err != nil {
+			return nil, err
+		}
+		producers[telemetry.Kinesis] = kinesis
 	}
 
 	dispatchProducerRules := make(map[string][]telemetry.Producer)

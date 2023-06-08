@@ -27,19 +27,26 @@ const (
 	kafkaGroup    = "test-kafka-consumer"
 	kafkaBroker   = "kafka:9092"
 	pubsubHost    = "pubsub:8085"
+	kinesisHost   = "http://localhost:4567"
 )
+
+func setEnv(key string, value string) {
+	err := os.Setenv(key, value)
+	Expect(err).To(BeNil())
+}
 
 var _ = Describe("Test vital payload messages", Ordered, func() {
 
 	var (
-		payload        []byte
-		connection     *websocket.Conn
-		vehicleTopic   string
-		pubsubConsumer *TestConsumer
-		kafkaConsumer  *kafka.Consumer
-		tlsConfig      *tls.Config
-		timestamp      *timestamppb.Timestamp
-		logger         *logrus.Logger
+		payload         []byte
+		connection      *websocket.Conn
+		vehicleTopic    string
+		pubsubConsumer  *TestConsumer
+		kinesisConsumer *TestKinesisConsumer
+		kafkaConsumer   *kafka.Consumer
+		tlsConfig       *tls.Config
+		timestamp       *timestamppb.Timestamp
+		logger          *logrus.Logger
 	)
 
 	BeforeAll(func() {
@@ -51,10 +58,15 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 
 		payload = GenerateVehicleMessage(vehicleName, timestamp)
 		connection = CreateWebSocket(tlsConfig)
-		vehicleTopic = "tesla_telemetry_V"
-		err = os.Setenv("PUBSUB_EMULATOR_HOST", pubsubHost)
+
+		kinesisConsumer, err = NewTestKinesisConsumer("tesla_telemetry")
 		Expect(err).To(BeNil())
 
+		vehicleTopic = "tesla_telemetry_V"
+		setEnv("PUBSUB_EMULATOR_HOST", pubsubHost)
+		//setEnv("AWS_ACCESS_KEY_ID", "test-kinesis-key")
+		//setEnv("AWS_SECRET_ACCESS_KEY", "test-kinesis-secret-key")
+		setEnv("AWS_DEFAULT_REGION", "us-west-2")
 		pubsubConsumer, err = NewTestConsumer(projectID, vehicleTopic, subcriptionID, logger)
 		Expect(err).To(BeNil())
 
@@ -71,6 +83,16 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 		pubsubConsumer.ClearSubscriptions()
 		_ = connection.Close()
 		os.Clearenv()
+	})
+	It("reads vehicle data from aws kinesis", func() {
+		err := connection.WriteMessage(websocket.BinaryMessage, payload)
+		Expect(err).To(BeNil())
+		time.Sleep(2 * time.Second)
+		record, err := kinesisConsumer.FetchStreamMessage(vehicleTopic)
+		Expect(err).To(BeNil())
+		// TODO check if possible
+		//VerifyMessageHeaders(msg.Attributes)
+		VerifyMessageBody(record.Data, vehicleName)
 	})
 
 	It("reads vehicle data from consumer", func() {
@@ -90,7 +112,7 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 			headers[string(h.Key)] = string(h.Value)
 		}
 		VerifyMessageHeaders(headers)
-		VerifyMessageBody(msg.Value, vehicleName, timestamp)
+		VerifyMessageBody(msg.Value, vehicleName)
 	})
 
 	It("returns 200 for mtls status", func() {
@@ -122,7 +144,7 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 		msg := pubsubConsumer.FetchPubsubMessage()
 		Expect(msg).NotTo(BeNil())
 		VerifyMessageHeaders(msg.Attributes)
-		VerifyMessageBody(msg.Data, vehicleName, timestamp)
+		VerifyMessageBody(msg.Data, vehicleName)
 	})
 })
 
@@ -161,7 +183,7 @@ func VerifyMessageHeaders(headers map[string]string) {
 }
 
 // VerifyMessageHeaders validates record message returned from kafka/pubsub
-func VerifyMessageBody(body []byte, vehicleName string, timestamp *timestamppb.Timestamp) {
+func VerifyMessageBody(body []byte, vehicleName string) {
 	payload := &protos.Payload{}
 	err := proto.Unmarshal(body, payload)
 	Expect(err).To(BeNil())

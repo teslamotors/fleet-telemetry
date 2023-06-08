@@ -14,6 +14,8 @@ const (
 	Kafka Dispatcher = "kafka"
 	// Logger registers file logger
 	Logger Dispatcher = "logger"
+	// Logger registers file logger
+	Kinesis Dispatcher = "kinesis"
 )
 
 // BuildTopic produces records into the custom topic

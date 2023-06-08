@@ -16,6 +16,12 @@
     "pubsub": {
         "gcp_project_id": "test-project-id"
     },
+    "kinesis": {
+        "url": "kinesis:4567",
+        "access_key": "test-kinesis-key",
+        "secret_key": "test-kinesis-secret-key",
+        "default_aws_region": "us-west-2"
+    },
     "monitoring": {
         "prometheus_metrics_port": 9090,
         "profiler_port": 4269,
@@ -30,7 +36,8 @@
         "V": [
             "kafka",
             "pubsub",
-            "logger"
+            "logger",
+            "kinesis"
         ]
     },
     "tls": {

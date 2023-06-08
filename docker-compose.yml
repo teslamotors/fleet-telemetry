@@ -18,6 +18,8 @@ services:
     environment:
       PUBSUB_EMULATOR_HOST: pubsub:8085
     depends_on:
+      kinesis:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       pubsub:
@@ -57,7 +59,6 @@ services:
       KAFKA_ENABLE_IDEMPOTENCE: "true"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
   pubsub:
     image: google/cloud-sdk:415.0.0
     ports:
@@ -72,3 +73,15 @@ services:
         "--host-port",
         "pubsub:8085"
       ]
+  kinesis:
+    image: saidsef/aws-kinesis-local
+    ports:
+      - 4567:4567
+    healthcheck:
+      test: nc -z localhost 4567 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    environment:
+      - KINESIS_LOCAL_CREATE_STREAMS=tesla_telemetry
