@@ -113,6 +113,8 @@ spec:
 ```
 Example: [client_config.json](./examples/client_config.json)
 
+## Install with Helm Chart
+Please follow this [instruction](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
 
 ### With pubsub
 - Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
