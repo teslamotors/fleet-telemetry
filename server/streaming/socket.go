@@ -3,7 +3,6 @@ package streaming
 import (
 	"bytes"
 	"context"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -107,13 +106,6 @@ func buildRequestContext(ctx context.Context, logger *logrus.Logger) (logInfo ma
 	logInfo["path"] = r.URL.Path
 	logInfo["user_agent"] = r.Header.Get("User-Agent")
 	logInfo["X-Forwarded-For"] = r.Header.Get("X-Forwarded-For")
-
-	if cert, ok := contextInfo["certificate"].(*x509.Certificate); ok {
-		logInfo["client_common_name"] = cert.Subject.CommonName
-		logInfo["client_issuer"] = cert.Issuer.CommonName
-	} else {
-		logger.Errorf("client_info_parse_error %v", logInfo)
-	}
 
 	return
 }
@@ -255,7 +247,7 @@ func (sm *SocketManager) respondToVehicle(record *telemetry.Record, err error) {
 	logInfo := fmt.Sprintf("txid=%v, txtype=%v", record.Txid, record.TxType)
 
 	if err != nil {
-		logInfo = fmt.Sprintf("%s client_id=%s", logInfo, sm.requestInfo["client_common_name"])
+		logInfo = fmt.Sprintf("%s client_id=%s", logInfo, sm.requestIdentity.DeviceID)
 		sm.logger.Errorf("unexpected_record error=%v %v", err, logInfo)
 
 		metrics.StatsIncrement(sm.statsCollector, "unexpected_record_err_total", 1, map[string]string{})
