@@ -38,12 +38,12 @@ func (t *TestCertAndKey) SaveCerts(directory, name string) {
 }
 
 // GenerateServerTestKeyAndCert generates a test server cert/key given a signing CA.
-func GenerateServerTestKeyAndCert(commonName string, parent *TestCertAndKey) (*TestCertAndKey, error) {
-	return GenerateServerTestKeyAndCertWithDate(commonName, parent, time.Now())
+func GenerateServerTestKeyAndCert(commonName string, sanDomains []string, sanIPs []string, parent *TestCertAndKey) (*TestCertAndKey, error) {
+	return GenerateServerTestKeyAndCertWithDate(commonName, sanDomains, sanIPs, parent, time.Now())
 }
 
 // GenerateServerTestKeyAndCertWithDate generates a test server cert/key given a signing CA and given validity date
-func GenerateServerTestKeyAndCertWithDate(commonName string, parent *TestCertAndKey, notBefore time.Time) (*TestCertAndKey, error) {
+func GenerateServerTestKeyAndCertWithDate(commonName string, sanDomains []string, sanIPs []string, parent *TestCertAndKey, notBefore time.Time) (*TestCertAndKey, error) {
 	privateKey, serialNumber, err := GeneratePrivateKeyAndSerialNumber()
 	if err != nil {
 		return nil, err
@@ -64,8 +64,14 @@ func GenerateServerTestKeyAndCertWithDate(commonName string, parent *TestCertAnd
 		IsCA:                  false,
 	}
 	template.DNSNames = append(template.DNSNames, commonName)
-	template.DNSNames = append(template.DNSNames, "localhost")
-	template.IPAddresses = []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("0.0.0.0")}
+	for _, name := range sanDomains {
+		template.DNSNames = append(template.DNSNames, name)
+	}
+
+	for _, ip := range sanIPs {
+		template.IPAddresses = append(template.IPAddresses, net.ParseIP(ip))
+	}
+
 	return makeTestCertAndKey(privateKey, &template, parent.Cert, parent.privateKey)
 }
 
