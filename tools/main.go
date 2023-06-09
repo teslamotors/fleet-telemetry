@@ -24,6 +24,9 @@ var (
 
 	directory  string
 	rootCAName string
+
+	sANIPAddress  string
+	sANDomainName string
 )
 
 func main() {
@@ -62,8 +65,11 @@ func generateCertificateBundle() {
 		log.Fatal(err)
 	}
 
+	sanIPs := strings.Split(sANIPAddress, ",")
+	sanDomains := strings.Split(sANDomainName, ",")
+
 	for _, iServerID := range strings.Split(serverIDs, ",") {
-		serverCert, err := lib.GenerateServerTestKeyAndCert(iServerID, rootCA)
+		serverCert, err := lib.GenerateServerTestKeyAndCert(iServerID, sanDomains, sanIPs, rootCA)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -84,6 +90,8 @@ func generateCertificateBundle() {
 }
 
 func loadFlag(path string) {
+	flag.StringVar(&sANIPAddress, "san-ip-address", "", "IP Address for the Subject Alternative Name, comma delimited list accepted")
+	flag.StringVar(&sANDomainName, "san-domain", "", "DNS name for the Subject Alternative Name, comma delimited list accepted")
 	flag.StringVar(&clientCaName, "client-ca-name", "Tesla Motors Products CA", "this will determine the clientType for the client certificate")
 	flag.StringVar(&serverIDs, "server-ids", "app", "serverIDs of the generated certificate (can be CSV for multiple)")
 	flag.StringVar(&clientIDs, "client-ids", "device-1", "clientIDs of the generated certificate (can be CSV for multiple certs)")
