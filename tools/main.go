@@ -38,7 +38,17 @@ func main() {
 	loadFlag(currentDir + testCertsDirectory)
 	flag.Parse()
 
+	makeCertDir(directory)
 	generateCertificateBundle()
+}
+
+func makeCertDir(dirPath string) {
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		err := os.MkdirAll(dirPath, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func getCertFilename(cert *x509.Certificate) string {
@@ -65,7 +75,11 @@ func generateCertificateBundle() {
 		log.Fatal(err)
 	}
 
-	sanIPs := strings.Split(sANIPAddress, ",")
+	var sanIPs []string
+	sANIPAddress = strings.TrimSpace(sANIPAddress)
+	if len(sANIPAddress) > 0 {
+		sanIPs = strings.Split(sANIPAddress, ",")
+	}
 	sanDomains := strings.Split(sANDomainName, ",")
 
 	for _, iServerID := range strings.Split(serverIDs, ",") {
