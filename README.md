@@ -130,6 +130,10 @@ spec:
 ```
 Example: [client_config.json](./examples/client_config.json)
 
+## Vehicle Compatibility
+
+Vehicles must be running firmware version 2023.20.6 or later.  Some older model S/X are not supported.
+
 ## Backends/dispatchers
 The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)

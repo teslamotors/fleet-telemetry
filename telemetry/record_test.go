@@ -195,7 +195,7 @@ var _ = Describe("Socket handler test", func() {
 			Expect(record).NotTo(BeNil())
 
 			data := &protos.VehicleAlerts{}
-			err = proto.Unmarshal(record.Payload(), data)
+			_ = proto.Unmarshal(record.Payload(), data)
 			Expect(proto.Equal(data, expected)).To(BeTrue())
 		},
 		Entry("for active alert with microsecond timestamp", timestamppb.New(time.Unix(1692044886337, 0)), timestamppb.New(time.Unix(1692044886, 337000000)), true),

@@ -44,7 +44,7 @@ test: install
 test-race: TEST_OPTIONS = -race
 test-race: test
 
-integration:
+integration: generate-certs
 	@echo "** RUNNING INTEGRATION TESTS **"
 	./test/integration/pretest.sh
 	docker-compose -p app -f docker-compose.yml build
