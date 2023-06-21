@@ -29,7 +29,7 @@ var _ = Describe("Test application config initialization", func() {
 				"ssl.key.location":             "kafka.key",
 				"queue.buffering.max.messages": float64(1000000),
 			},
-			Monitoring:    &Monitoring{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/tesla-telemetry/profile/"},
+			Monitoring:    &Monitoring{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/fleet-telemetry/profile"},
 			LogLevel:      "info",
 			JSONLogEnable: true,
 			Records:       map[string][]telemetry.Dispatcher{"FS": {"kafka"}},

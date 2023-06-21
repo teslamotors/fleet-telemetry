@@ -64,9 +64,7 @@ func GenerateServerTestKeyAndCertWithDate(commonName string, sanDomains []string
 		IsCA:                  false,
 	}
 	template.DNSNames = append(template.DNSNames, commonName)
-	for _, name := range sanDomains {
-		template.DNSNames = append(template.DNSNames, name)
-	}
+	template.DNSNames = append(template.DNSNames, sanDomains...)
 
 	for _, ip := range sanIPs {
 		template.IPAddresses = append(template.IPAddresses, net.ParseIP(ip))

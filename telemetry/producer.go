@@ -8,11 +8,13 @@ import (
 type Dispatcher string
 
 const (
-	// Pubsub registers google pubsub dispatcher
+	// Pubsub registers a google pubsub dispatcher
 	Pubsub Dispatcher = "pubsub"
-	// Kafka registers kafka dispatcher
+	// Kafka registers a kafka dispatcher
 	Kafka Dispatcher = "kafka"
-	// Logger registers file logger
+	// Kinesis registers a kinesis publisher
+	Kinesis Dispatcher = "kinesis"
+	// Logger registers a simple logger
 	Logger Dispatcher = "logger"
 )
 
@@ -21,7 +23,7 @@ func BuildTopic(namespace string, record *Record) string {
 	return fmt.Sprintf("%s_%s", namespace, record.TxType)
 }
 
-// Producer handles dispatching vitals received from the vehicle
+// Producer handles dispatching data received from the vehicle
 type Producer interface {
 	Produce(entry *Record)
 }

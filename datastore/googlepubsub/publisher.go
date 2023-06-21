@@ -80,6 +80,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		Attributes: entry.Metadata(),
 	})
 	if _, err = result.Get(ctx); err != nil {
+		p.logger.Errorf("pubsub_err err: %v", err)
 		if p.prometheusEnabled {
 			metrics.StatsIncrement(p.statsCollector, "pubsub_publish_total", 1, map[string]string{"record_type": entry.TxType})
 			metrics.StatsIncrement(p.statsCollector, "pubsub_publish_total_bytes", int64(entry.Length()), map[string]string{"record_type": entry.TxType})
@@ -87,7 +88,6 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 			metrics.StatsIncrement(p.statsCollector, entry.TxType+"_produce", 1, map[string]string{})
 		}
 	} else {
-		p.logger.Errorf("pubsub_err err: %v", err)
 		metrics.StatsIncrement(p.statsCollector, "pubsub_err", 1, map[string]string{})
 	}
 }

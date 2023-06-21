@@ -19,7 +19,7 @@ type TestConsumer struct {
 	sub          *pubsub.Subscription
 }
 
-func NewTestConsumer(projectID, topicID, subID string, logger *logrus.Logger) (*TestConsumer, error) {
+func NewTestPubsubConsumer(projectID, topicID, subID string, logger *logrus.Logger) (*TestConsumer, error) {
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
@@ -92,7 +92,7 @@ func (c *TestConsumer) ClearSubscriptions() {
 	}
 }
 
-func (c *TestConsumer) FetchPubsubMessage() *pubsub.Message {
+func (c *TestConsumer) FetchPubsubMessage() (*pubsub.Message, error) {
 	ctx := context.Background()
 	var mu sync.Mutex
 	var m *pubsub.Message
@@ -108,6 +108,5 @@ func (c *TestConsumer) FetchPubsubMessage() *pubsub.Message {
 		received++
 		cancel()
 	})
-	Expect(err).To(BeNil())
-	return m
+	return m, err
 }

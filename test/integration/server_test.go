@@ -26,7 +26,7 @@ const (
 	deviceType = "vehicle_device"
 	deviceID   = "device-1"
 
-	serviceURL    = "app:443"
+	serviceURL    = "app:4443"
 	statusURL     = "app:8080"
 	prometheusURL = "app:9090"
 

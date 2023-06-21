@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	cloud.google.com/go/pubsub v1.30.0
+	github.com/aws/aws-sdk-go v1.44.278
 	github.com/beefsack/go-rate v0.0.0-20220214233405-116f4ca011a0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.0.2
 	github.com/google/flatbuffers v23.3.3+incompatible
@@ -33,6 +34,7 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.8.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect

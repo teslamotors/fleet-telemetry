@@ -6,18 +6,24 @@ services:
     volumes:
       - ./test/integration/config.json:/etc/tesla/config.json:ro
       - ./test/integration/test-certs:/etc/tesla/certs/server:ro
-      - /tmp/tesla-telemetry/profile:/tmp/tesla/tesla-telemetry/profile:rw
+      - /tmp/fleet-telemetry/:/tmp/fleet-telemetry:rw
     command:
       - "/fleet-telemetry"
       - "-config=/etc/tesla/config.json"
     ports:
-      - "443:443"
+      - "4443:4443"
       - "4269:4269"
       - "8080:8080"
       - "9090:9090"
     environment:
+      # Note these AWS env vars are required for local kinesis, but their values are ignored
+      AWS_DEFAULT_REGION: us-west-2
+      AWS_ACCESS_KEY_ID: ABC123
+      AWS_SECRET_ACCESS_KEY: EFG456
       PUBSUB_EMULATOR_HOST: pubsub:8085
     depends_on:
+      kinesis:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       pubsub:
@@ -72,3 +78,14 @@ services:
         "--host-port",
         "pubsub:8085"
       ]
+
+  kinesis:
+    image: saidsef/aws-kinesis-local
+    ports:
+      - 4567:4567
+    healthcheck:
+      test: nc -z localhost 4567 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10

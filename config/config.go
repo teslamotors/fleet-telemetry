@@ -17,6 +17,7 @@ import (
 
 	"github.com/teslamotors/fleet-telemetry/datastore/googlepubsub"
 	"github.com/teslamotors/fleet-telemetry/datastore/kafka"
+	"github.com/teslamotors/fleet-telemetry/datastore/kinesis"
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -52,6 +53,9 @@ type Config struct {
 	// seen here: https://raw.githubusercontent.com/confluentinc/librdkafka/master/CONFIGURATION.md
 	// we extract the "topic" key as the default topic for the producer
 	Kafka *confluent.ConfigMap `json:"kafka,omitempty"`
+
+	// Kinesis is a configuration for AWS Kinesis
+	Kinesis *Kinesis `json:"kinesis,omitempty"`
 
 	// Pubsub is a configuration for the Google Pubsub
 	Pubsub *Pubsub `json:"pubsub,omitempty"`
@@ -98,6 +102,12 @@ type Pubsub struct {
 	ProjectID string `json:"gcp_project_id,omitempty"`
 
 	Publisher *pubsub.Client
+}
+
+// Kinesis is a configuration for aws Kinesis
+type Kinesis struct {
+	MaxRetries   *int   `json:"max_retries,omitempty"`
+	OverrideHost string `json:"override_host"`
 }
 
 //go:embed files/eng_ca.crt
@@ -229,7 +239,17 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 	producers := make(map[telemetry.Dispatcher]telemetry.Producer)
 	producers[telemetry.Logger] = simple.NewProtoLogger(logger)
 
-	if c.Kafka != nil {
+	requiredDispatchers := make(map[telemetry.Dispatcher]struct{})
+	for _, dispatchRules := range c.Records {
+		for _, dispatchRule := range dispatchRules {
+			requiredDispatchers[dispatchRule] = struct{}{}
+		}
+	}
+
+	if _, ok := requiredDispatchers[telemetry.Kafka]; ok {
+		if c.Kafka == nil {
+			return nil, errors.New("Expected Kafka to be configured")
+		}
 		convertKafkaConfig(c.Kafka)
 		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.ReliableAckWorkers, c.AckChan, c.prometheusEnabled(), c.MetricCollector, logger)
 		if err != nil {
@@ -237,12 +257,31 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 		}
 		producers[telemetry.Kafka] = kafkaProducer
 	}
-	if c.Pubsub != nil {
+
+	if _, ok := requiredDispatchers[telemetry.Pubsub]; ok {
+		if c.Pubsub == nil {
+			return nil, errors.New("Expected Pubsub to be configured")
+		}
 		googleProducer, err := googlepubsub.NewProducer(context.Background(), c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, logger)
 		if err != nil {
 			return nil, err
 		}
 		producers[telemetry.Pubsub] = googleProducer
+	}
+
+	if _, ok := requiredDispatchers[telemetry.Kinesis]; ok {
+		if c.Kinesis == nil {
+			return nil, errors.New("Expected Kinesis to be configured")
+		}
+		maxRetries := 1
+		if c.Kinesis.MaxRetries != nil {
+			maxRetries = *c.Kinesis.MaxRetries
+		}
+		kinesis, err := kinesis.NewProducer(maxRetries, c.Kinesis.OverrideHost, c.prometheusEnabled(), c.Namespace, c.MetricCollector, logger)
+		if err != nil {
+			return nil, err
+		}
+		producers[telemetry.Kinesis] = kinesis
 	}
 
 	dispatchProducerRules := make(map[string][]telemetry.Producer)
