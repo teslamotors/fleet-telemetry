@@ -1,5 +1,5 @@
 # Start by building the application.
-FROM golang:1.20 as build
+FROM golang:1.20.5-bullseye as build
 
 WORKDIR /go/src/fleet-telemetry
 

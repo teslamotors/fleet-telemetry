@@ -6,3 +6,4 @@ config_app.json
 certs
 vendor/
 config-local.json
+temp

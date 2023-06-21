@@ -113,84 +113,74 @@ spec:
 ```
 Example: [client_config.json](./examples/client_config.json)
 
+## Backends/dispatchers
+The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
+1. Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
+2. Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default aws credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
+3. Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
+4. Logger: This is a simple STDOUT logger that serializes the protos to json.
+
 ## Install with Helm Chart
 Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
 
-### With pubsub
-- Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
+## Metrics
+Currently prometheus or a statsd interface is required.  A future version will run without metrics.
 
-
-## Dependencies
-
-Kafka: Telemetry publishes to Kafka as a backend store
-Prometheus or a statsd interface supporting data store for metrics
-
-# Protos
-
+## Protos
 These represent different message types.  
 
 To generate:
-1. install protoc, currently on version 3.21.12: https://grpc.io/docs/protoc-installation/
-2. install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
+1. Install protoc, currently on version 3.21.12: https://grpc.io/docs/protoc-installation/
+2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
 3. Run make command
 ```sh
 make generate-golang
 ```
 
-## Run locally
-```sh
-export PUBSUB_EMULATOR_HOST=0.0.0.0:8085
-go run ./cmd/main.go -config=./config-local.json
-```
+# Testing
 
-## Testing
-
-### Unit Tests
-To run the unit tests:-
-
- `make test`
+## Unit Tests
+To run the unit tests: `make test`
 
 Common Errors:
 
-    ~/fleet-telemetry➜ git:(main) ✗  make test
-    go build github.com/confluentinc/confluent-kafka-go/v2/kafka:
-    # pkg-config --cflags  -- rdkafka
-    Package rdkafka was not found in the pkg-config search path.
-    Perhaps you should add the directory containing `rdkafka.pc'
-    to the PKG_CONFIG_PATH environment variable
-    No package 'rdkafka' found
-    pkg-config: exit status 1
-    make: *** [install] Error 1
-
+```
+~/fleet-telemetry➜ git:(main) ✗  make test
+go build github.com/confluentinc/confluent-kafka-go/v2/kafka:
+# pkg-config --cflags  -- rdkafka
+Package rdkafka was not found in the pkg-config search path.
+Perhaps you should add the directory containing `rdkafka.pc'
+to the PKG_CONFIG_PATH environment variable
+No package 'rdkafka' found
+pkg-config: exit status 1
+make: *** [install] Error 1
+```
 librdkafka is missing, on MAC OS you can install it via `brew install librdkafka pkg-config` or follow instructions here https://github.com/confluentinc/confluent-kafka-go#getting-started
 
-    ~/fleet-telemetry➜ git:(main) ✗  make test
-    go build github.com/confluentinc/confluent-kafka-go/v2/kafka:
-    # pkg-config --cflags  -- rdkafka
-    Package libcrypto was not found in the pkg-config search path.
-    Perhaps you should add the directory containing `libcrypto.pc'
-    to the PKG_CONFIG_PATH environment variable
-    Package 'libcrypto', required by 'rdkafka', not found
-    pkg-config: exit status 1
-    make: *** [install] Error 1
+```
+~/fleet-telemetry➜ git:(main) ✗  make test
+go build github.com/confluentinc/confluent-kafka-go/v2/kafka:
+# pkg-config --cflags  -- rdkafka
+Package libcrypto was not found in the pkg-config search path.
+Perhaps you should add the directory containing `libcrypto.pc'
+to the PKG_CONFIG_PATH environment variable
+Package 'libcrypto', required by 'rdkafka', not found
+pkg-config: exit status 1
+make: *** [install] Error 1
 
-    ~/fleet-telemetry➜ git:(main) ✗  locate libcrypto.pc
-    /opt/homebrew/Cellar/openssl@3/3.0.8/lib/pkgconfig/libcrypto.pc
+~/fleet-telemetry➜ git:(main) ✗  locate libcrypto.pc
+/opt/homebrew/Cellar/openssl@3/3.0.8/lib/pkgconfig/libcrypto.pc
 
-    ~/fleet-telemetry➜ git:(main) ✗  export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/opt/homebrew/Cellar/openssl@3/3.0.8/lib/pkgconfig/
+~/fleet-telemetry➜ git:(main) ✗  export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/opt/homebrew/Cellar/openssl@3/3.0.8/lib/pkgconfig/
+```
+A reference to libcrypto is not set properly. To resolve find the reference to libcrypto by pkgconfig and set et the PKG_CONFIG_PATH accordingly.
 
-Reference to libcrypto is not set properly. To resolve find the reference to libcrypto by pkgconfig and set et the PKG_CONFIG_PATH accordingly.
+## Integration Tests
+(Optional): If you want to recreate fake certs for your test: `make generate-certs`
 
-### Integration Tests
-(Optional): If you want to recreate fake certs for your test, run:-
+To run the integration tests: `make integration`
 
-`make generate-certs`
-
-To run the integration tests:-
-
-`make integration`
-
-## Building binary for linux from mac arm64
+## Building the binary for linux from mac arm64
 
 ```sh
 DOCKER_BUILD_KIT=1 DOCKER_CLI_EXPERIMENTAL=enabled docker buildx version

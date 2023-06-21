@@ -11,7 +11,7 @@ import (
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
-// ProtoLogger simple protobuf logger for incoming vitals payload
+// ProtoLogger is a simple protobuf logger
 type ProtoLogger struct {
 	logger  *logrus.Logger
 	options protojson.MarshalOptions
@@ -53,17 +53,17 @@ func (p *ProtoLogger) GetProtoMessage(entry *telemetry.Record) (proto.Message, e
 	return message, err
 }
 
-// Produce sends the vitals data to the logger
+// Produce sends the data to the logger
 func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 	payload, err := p.GetProtoMessage(entry)
 	if err != nil {
-		p.logger.Errorf("vitals_logger_proto_unmarshal_error %s %v %s\n", entry.Vin, entry.Metadata(), err.Error())
+		p.logger.Errorf("logger_proto_unmarshal_error %s %v %s\n", entry.Vin, entry.Metadata(), err.Error())
 		return
 	}
 	output, err := p.options.Marshal(payload)
 	if err != nil {
-		p.logger.Errorf("vitals_logger_json_unmarshal_error %s %v %s\n", entry.Vin, entry.Metadata(), err.Error())
+		p.logger.Errorf("logger_json_unmarshal_error %s %v %s\n", entry.Vin, entry.Metadata(), err.Error())
 	} else {
-		p.logger.Infof("vitals_logger_json_unmarshal %s %v %s\n", entry.Vin, entry.Metadata(), output)
+		p.logger.Infof("logger_json_unmarshal %s %v %s\n", entry.Vin, entry.Metadata(), output)
 	}
 }

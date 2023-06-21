@@ -35,7 +35,7 @@ var _ = Describe("Test full application config", func() {
 				"ssl.certificate.location": "kafka.crt",
 				"ssl.key.location":         "kafka.key",
 			},
-			Monitoring:    &Monitoring{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/tesla-telemetry/profile/"},
+			Monitoring:    &Monitoring{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/fleet-telemetry/profile/"},
 			LogLevel:      "info",
 			JSONLogEnable: true,
 			Records:       map[string][]telemetry.Dispatcher{"FS": {"kafka"}},
@@ -106,16 +106,29 @@ var _ = Describe("Test full application config", func() {
 			producers, err := config.ConfigureProducers(log)
 			Expect(err).To(BeNil())
 			Expect(producers["FS"]).To(HaveLen(1))
+
 			value, err := config.Kafka.Get("queue.buffering.max.messages", 10)
 			Expect(err).To(BeNil())
 			Expect(value.(int)).To(Equal(1000000))
 		})
 	})
 
-	Context("configurePubsub", func() {
+	Context("configure kinesis", func() {
+		It("returns an error if kinesis isn't included", func() {
+			log, _ := test.NewNullLogger()
+			config.Records = map[string][]telemetry.Dispatcher{"FS": {"kinesis"}}
+
+			producers, err := config.ConfigureProducers(log)
+			Expect(err).To(MatchError("Expected Kinesis to be configured"))
+			Expect(producers).To(BeNil())
+		})
+	})
+
+	Context("configure pubsub", func() {
 		var (
 			pubsubConfig *Config
 		)
+
 		BeforeEach(func() {
 			var err error
 			pubsubConfig, err = loadTestApplicationConfig(TestPubsubConfig)

@@ -1,6 +1,6 @@
 {
     "host": "app",
-    "port": 443,
+    "port": 4443,
     "status_port": 8080,
     "log_level": "info",
     "json_log_enable": true,
@@ -16,10 +16,14 @@
     "pubsub": {
         "gcp_project_id": "test-project-id"
     },
+    "kinesis": {
+        "override_host": "http://kinesis:4567",
+        "max_retries" : 3
+    },
     "monitoring": {
         "prometheus_metrics_port": 9090,
         "profiler_port": 4269,
-        "profiling_path": "/tmp/tesla/tesla-telemetry/profile"
+        "profiling_path": "/tmp/fleet-telemetry/profile"
     },
     "rate_limit": {
         "enabled": true,
@@ -29,6 +33,7 @@
     "records": {
         "V": [
             "kafka",
+            "kinesis",
             "pubsub",
             "logger"
         ]

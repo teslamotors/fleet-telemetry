@@ -19,7 +19,7 @@ const TestConfig = `{
 	"monitoring": {
 		"prometheus_metrics_port": 9090,
 		"profiler_port": 4269,
-		"profiling_path": "/tmp/tesla-telemetry/profile/"
+		"profiling_path": "/tmp/fleet-telemetry/profile"
 	},
 	"rate_limit": {
 		"enabled": true,

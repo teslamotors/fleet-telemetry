@@ -8,9 +8,11 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/pubsub"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -27,19 +29,25 @@ const (
 	kafkaGroup    = "test-kafka-consumer"
 	kafkaBroker   = "kafka:9092"
 	pubsubHost    = "pubsub:8085"
+	kinesisHost   = "http://kinesis:4567"
 )
 
-var _ = Describe("Test vital payload messages", Ordered, func() {
+func setEnv(key string, value string) {
+	err := os.Setenv(key, value)
+	Expect(err).To(BeNil())
+}
 
+var _ = Describe("Test messages", Ordered, func() {
 	var (
-		payload        []byte
-		connection     *websocket.Conn
-		vehicleTopic   string
-		pubsubConsumer *TestConsumer
-		kafkaConsumer  *kafka.Consumer
-		tlsConfig      *tls.Config
-		timestamp      *timestamppb.Timestamp
-		logger         *logrus.Logger
+		vehicleTopic    = "tesla_telemetry_V"
+		payload         []byte
+		connection      *websocket.Conn
+		pubsubConsumer  *TestConsumer
+		kinesisConsumer *TestKinesisConsumer
+		kafkaConsumer   *kafka.Consumer
+		tlsConfig       *tls.Config
+		timestamp       *timestamppb.Timestamp
+		logger          *logrus.Logger
 	)
 
 	BeforeAll(func() {
@@ -51,11 +59,12 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 
 		payload = GenerateVehicleMessage(vehicleName, timestamp)
 		connection = CreateWebSocket(tlsConfig)
-		vehicleTopic = "tesla_telemetry_V"
-		err = os.Setenv("PUBSUB_EMULATOR_HOST", pubsubHost)
+
+		kinesisConsumer, err = NewTestKinesisConsumer(kinesisHost, "tesla_telemetry")
 		Expect(err).To(BeNil())
 
-		pubsubConsumer, err = NewTestConsumer(projectID, vehicleTopic, subcriptionID, logger)
+		setEnv("PUBSUB_EMULATOR_HOST", pubsubHost)
+		pubsubConsumer, err = NewTestPubsubConsumer(projectID, vehicleTopic, subcriptionID, logger)
 		Expect(err).To(BeNil())
 
 		kafkaConsumer, err = kafka.NewConsumer(&kafka.ConfigMap{
@@ -90,7 +99,7 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 			headers[string(h.Key)] = string(h.Value)
 		}
 		VerifyMessageHeaders(headers)
-		VerifyMessageBody(msg.Value, vehicleName, timestamp)
+		VerifyMessageBody(msg.Value, vehicleName)
 	})
 
 	It("returns 200 for mtls status", func() {
@@ -118,11 +127,27 @@ var _ = Describe("Test vital payload messages", Ordered, func() {
 	It("reads vehicle data from google subscriber", func() {
 		err := connection.WriteMessage(websocket.BinaryMessage, payload)
 		Expect(err).To(BeNil())
-		time.Sleep(2 * time.Second)
-		msg := pubsubConsumer.FetchPubsubMessage()
+
+		var msg *pubsub.Message
+		Eventually(func() error {
+			msg, err = pubsubConsumer.FetchPubsubMessage()
+			return err
+		}, time.Second*2, time.Millisecond*100).Should(BeNil())
 		Expect(msg).NotTo(BeNil())
 		VerifyMessageHeaders(msg.Attributes)
-		VerifyMessageBody(msg.Data, vehicleName, timestamp)
+		VerifyMessageBody(msg.Data, vehicleName)
+	})
+
+	It("reads vehicle data from aws kinesis", func() {
+		err := connection.WriteMessage(websocket.BinaryMessage, payload)
+		Expect(err).To(BeNil())
+
+		var record *kinesis.Record
+		Eventually(func() error {
+			record, err = kinesisConsumer.FetchFirstStreamMessage(vehicleTopic)
+			return err
+		}, time.Second*5, time.Millisecond*100).Should(BeNil())
+		VerifyMessageBody(record.Data, vehicleName)
 	})
 })
 
@@ -149,6 +174,8 @@ func VerifyHTTPRequest(url string, path string) ([]byte, error) {
 	}
 
 	Expect(res.StatusCode).To(Equal(200))
+
+	// nolint:errcheck
 	defer res.Body.Close()
 	return io.ReadAll(res.Body)
 }
@@ -161,7 +188,7 @@ func VerifyMessageHeaders(headers map[string]string) {
 }
 
 // VerifyMessageHeaders validates record message returned from kafka/pubsub
-func VerifyMessageBody(body []byte, vehicleName string, timestamp *timestamppb.Timestamp) {
+func VerifyMessageBody(body []byte, vehicleName string) {
 	payload := &protos.Payload{}
 	err := proto.Unmarshal(body, payload)
 	Expect(err).To(BeNil())
