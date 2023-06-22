@@ -82,6 +82,21 @@ var _ = Describe("Test messages", Ordered, func() {
 		os.Clearenv()
 	})
 
+	It("reads vehicle data from aws kinesis", func() {
+		var err error
+		for i := 0; i < 10; i++ {
+			err = connection.WriteMessage(websocket.BinaryMessage, payload)
+			Expect(err).To(BeNil())
+		}
+
+		var record *kinesis.Record
+		Eventually(func() error {
+			record, err = kinesisConsumer.FetchFirstStreamMessage(vehicleTopic)
+			return err
+		}, time.Second*5, time.Millisecond*100).Should(BeNil())
+		VerifyMessageBody(record.Data, vehicleName)
+	})
+
 	It("reads vehicle data from consumer", func() {
 		err := kafkaConsumer.Subscribe(vehicleTopic, nil)
 		Expect(err).To(BeNil())
@@ -136,18 +151,6 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(msg).NotTo(BeNil())
 		VerifyMessageHeaders(msg.Attributes)
 		VerifyMessageBody(msg.Data, vehicleName)
-	})
-
-	It("reads vehicle data from aws kinesis", func() {
-		err := connection.WriteMessage(websocket.BinaryMessage, payload)
-		Expect(err).To(BeNil())
-
-		var record *kinesis.Record
-		Eventually(func() error {
-			record, err = kinesisConsumer.FetchFirstStreamMessage(vehicleTopic)
-			return err
-		}, time.Second*5, time.Millisecond*100).Should(BeNil())
-		VerifyMessageBody(record.Data, vehicleName)
 	})
 })
 
