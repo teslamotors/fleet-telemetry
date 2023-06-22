@@ -57,13 +57,15 @@ generate-certs:
 	go run tools/main.go
 
 generate-golang:
-	protoc --go_out=./ --go_opt=paths=source_relative protos/vehicle_alert.proto
-	protoc --go_out=./ --go_opt=paths=source_relative protos/vehicle_data.proto
-	protoc --go_out=./ --go_opt=paths=source_relative protos/vehicle_error.proto
-	protoc --go_out=./ --go_opt=paths=source_relative protos/vehicle_metric.proto
+	protoc --go_out=./ --go_opt=paths=source_relative protos/*.proto
+
+generate-python:
+	protoc -I=protos --python_out=protos/python/ protos/*.proto
+
+generate-protos: generate-golang generate-python
 
 image-gen:
 	docker build -t $(ALPHA_IMAGE_NAME) .
 	docker save $(ALPHA_IMAGE_NAME) | gzip > $(ALPHA_IMAGE_COMPRESSED_FILENAME).tar.gz
 
-.PHONY: test build vet linters install integration image-gen generate-golang
+.PHONY: test build vet linters install integration image-gen generate-protos generate-golang generate-python
