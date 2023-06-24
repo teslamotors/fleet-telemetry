@@ -6,7 +6,9 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 
+	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -23,7 +25,7 @@ func LoadApplicationConfiguration() (config *Config, logger *logrus.Logger, err 
 	}
 
 	config.configureLogger(logger)
-	config.configureStatsCollector(logger)
+	config.configureMetricsCollector(logger)
 	return config, logger, nil
 }
 
@@ -35,6 +37,9 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 
 	config := &Config{}
 	err = json.NewDecoder(configFile).Decode(&config)
+
+	logger, _ := test.NewNullLogger()
+	config.MetricCollector = metrics.NewCollector(config.Monitoring, logger)
 
 	config.AckChan = make(chan *telemetry.Record)
 	return config, err

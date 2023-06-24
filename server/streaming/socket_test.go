@@ -54,10 +54,10 @@ var _ = Describe("Socket test", func() {
 	})
 
 	It("TestStatsBytesPerRecords", func() {
-		sm.StatsBytesPerRecords("test", 42)
+		sm.ReportMetricBytesPerRecords("test", 42)
 		Expect(sm.RecordsStats["test"]).To(Equal(42))
 
-		sm.StatsBytesPerRecords("test", 42)
+		sm.ReportMetricBytesPerRecords("test", 42)
 		Expect(sm.RecordsStats["test"]).To(Equal(84))
 	})
 

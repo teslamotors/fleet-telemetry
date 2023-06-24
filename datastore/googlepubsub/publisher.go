@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
 
 	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -19,10 +21,23 @@ type Producer struct {
 	pubsubClient      *pubsub.Client
 	projectID         string
 	namespace         string
-	statsCollector    metrics.MetricCollector
+	metricsCollector  metrics.MetricCollector
 	prometheusEnabled bool
 	logger            *logrus.Logger
 }
+
+// Metrics stores metrics reported from this package
+type Metrics struct {
+	notConnectedTotal adapter.Counter
+	publishCount      adapter.Counter
+	publishBytesTotal adapter.Counter
+	errorCount        adapter.Counter
+}
+
+var (
+	metricsRegistry Metrics
+	metricsOnce     sync.Once
+)
 
 func configurePubsub(projectID string) (*pubsub.Client, error) {
 	if projectID == "" {
@@ -40,7 +55,8 @@ func configurePubsub(projectID string) (*pubsub.Client, error) {
 }
 
 // NewProducer establishes the pubsub connection and define the dispatch method
-func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, namespace string, metrics metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, namespace string, metricsCollector metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+	registerMetricsOnce(metricsCollector)
 	pubsubClient, err := configurePubsub(projectID)
 	if err != nil {
 		return nil, fmt.Errorf("pubsub_connect_error %s", err)
@@ -51,7 +67,7 @@ func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, 
 		namespace:         namespace,
 		pubsubClient:      pubsubClient,
 		prometheusEnabled: prometheusEnabled,
-		statsCollector:    metrics,
+		metricsCollector:  metricsCollector,
 		logger:            logger,
 	}, nil
 }
@@ -64,13 +80,13 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 
 	if err != nil {
 		p.logger.Errorf("error creating topic %v", err)
-		metrics.StatsIncrement(p.statsCollector, "pubsub_not_connected_total", 1, map[string]string{})
+		metricsRegistry.notConnectedTotal.Inc(map[string]string{})
 		return
 	}
 
 	if exists, err := pubsubTopic.Exists(ctx); !exists || err != nil {
 		p.logger.Errorf("error checking existing topic %v", err)
-		metrics.StatsIncrement(p.statsCollector, "pubsub_not_connected_total", 1, map[string]string{})
+		metricsRegistry.notConnectedTotal.Inc(map[string]string{})
 		return
 	}
 
@@ -81,14 +97,10 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	})
 	if _, err = result.Get(ctx); err != nil {
 		p.logger.Errorf("pubsub_err err: %v", err)
-		if p.prometheusEnabled {
-			metrics.StatsIncrement(p.statsCollector, "pubsub_publish_total", 1, map[string]string{"record_type": entry.TxType})
-			metrics.StatsIncrement(p.statsCollector, "pubsub_publish_total_bytes", int64(entry.Length()), map[string]string{"record_type": entry.TxType})
-		} else {
-			metrics.StatsIncrement(p.statsCollector, entry.TxType+"_produce", 1, map[string]string{})
-		}
+		metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
+		metricsRegistry.publishBytesTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 	} else {
-		metrics.StatsIncrement(p.statsCollector, "pubsub_err", 1, map[string]string{})
+		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 	}
 }
 
@@ -103,4 +115,34 @@ func (p *Producer) createTopicIfNotExists(ctx context.Context, topic string) (*p
 	}
 
 	return p.pubsubClient.CreateTopic(ctx, topic)
+}
+
+func registerMetricsOnce(metricsCollector metrics.MetricCollector) {
+	metricsOnce.Do(func() { registerMetrics(metricsCollector) })
+}
+
+func registerMetrics(metricsCollector metrics.MetricCollector) {
+	metricsRegistry.notConnectedTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "pubsub_not_connected_total",
+		Help:   "The number of times pubsub has not been connected when attempting to produce.",
+		Labels: []string{},
+	})
+
+	metricsRegistry.publishCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "pubsub_publish_total",
+		Help:   "The number of messages published to pubsub.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.publishBytesTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "pubsub_publish_total_bytes",
+		Help:   "The number of bytes published to pubsub.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.errorCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "pubsub_err",
+		Help:   "The number of errors while publishing to pubsub.",
+		Labels: []string{"record_type"},
+	})
 }

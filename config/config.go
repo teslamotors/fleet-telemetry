@@ -63,7 +63,8 @@ type Config struct {
 	// Namespace defines a prefix for the kafka/pubsub topic
 	Namespace string `json:"namespace,omitempty"`
 
-	Monitoring *Monitoring `json:"monitoring,omitempty"`
+	// Monitoring defines information for metrics
+	Monitoring *metrics.MonitoringConfig `json:"monitoring,omitempty"`
 
 	// LogLevel set the log-level
 	LogLevel string `json:"log_level,omitempty"`
@@ -123,38 +124,6 @@ type TLS struct {
 	ServerKey  string `json:"server_key"`
 }
 
-// Monitoring config for profiler and prometheus
-type Monitoring struct {
-	// PrometheusMetricsPort port to run prometheus on
-	PrometheusMetricsPort int `json:"prometheus_metrics_port,omitempty"`
-
-	// Statsd metrics if you are not using prometheus
-	Statsd *Statsd `json:"statsd,omitempty"`
-
-	// ProfilerPort if non zero enable http profiler om this port
-	ProfilerPort int `json:"profiler_port,omitempty"`
-
-	// ProfilingPath is the variable that enable deep profiling is set
-	ProfilingPath string `json:"profiling_path,omitempty"`
-
-	ProfilerFile *os.File
-}
-
-// Statsd config for metrics
-type Statsd struct {
-	// HostPort host:port of the statsd server
-	HostPort string `json:"host,omitempty"`
-
-	// StatsdPrefix prefix for statsd metrics
-	Prefix string `json:"prefix,omitempty"`
-
-	// StatsSampleRate 0 to 100 percentage to sample stats
-	SampleRate int `json:"sample_rate,omitempty"`
-
-	// StatsFlushPeriod in ms
-	FlushPeriod int `json:"flush_period,omitempty"`
-}
-
 // ExtractServiceTLSConfig return the TLS config needed for stating the mTLS Server
 func (c *Config) ExtractServiceTLSConfig() (*tls.Config, error) {
 	if c.TLS == nil {
@@ -203,28 +172,8 @@ func (c *Config) configureLogger(logger *logrus.Logger) {
 	}
 }
 
-func (c *Config) configureStatsCollector(logger *logrus.Logger) {
-	if c.Monitoring == nil || (c.Monitoring.PrometheusMetricsPort == 0 && c.Monitoring.Statsd == nil) {
-		logger.Infoln("config_skipping_empty_metrics_provider")
-		return
-	}
-
-	var err error
-	if c.Monitoring.PrometheusMetricsPort > 0 {
-		c.MetricCollector = metrics.NewPrometheusCollector(logger, "")
-	} else if c.Monitoring.Statsd != nil {
-		sample, flushDuration := float32(1.0), 100*time.Millisecond
-
-		if c.Monitoring.Statsd.SampleRate != 100 {
-			sample = float32(c.Monitoring.Statsd.SampleRate) / 100
-			flushDuration = time.Duration(c.Monitoring.Statsd.FlushPeriod) * time.Millisecond
-		}
-
-		c.MetricCollector, err = metrics.NewStatsdCollectorWithFlushAndSampleRate(c.Monitoring.Statsd.HostPort, c.Monitoring.Statsd.Prefix, logger, sample, flushDuration)
-		if err != nil {
-			logger.Errorf("skipping_metrics_error error: %v", err)
-		}
-	}
+func (c *Config) configureMetricsCollector(logger *logrus.Logger) {
+	c.MetricCollector = metrics.NewCollector(c.Monitoring, logger)
 }
 
 func (c *Config) prometheusEnabled() bool {

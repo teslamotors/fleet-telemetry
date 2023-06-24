@@ -14,10 +14,10 @@ require (
 	github.com/onsi/gomega v1.24.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.0
+	github.com/smira/go-statsd v1.3.2
 	go.uber.org/automaxprocs v1.5.2
 	google.golang.org/api v0.114.0
 	google.golang.org/protobuf v1.30.0
-	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 )
 
 require (

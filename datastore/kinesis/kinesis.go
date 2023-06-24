@@ -2,6 +2,7 @@ package kinesis
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -10,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -17,13 +19,27 @@ import (
 type Producer struct {
 	kinesis           *kinesis.Kinesis
 	namespace         string
-	statsCollector    metrics.MetricCollector
+	metricsCollector  metrics.MetricCollector
 	prometheusEnabled bool
 	logger            *logrus.Logger
 }
 
+// Metrics stores metrics reported from this package
+type Metrics struct {
+	errorCount   adapter.Counter
+	publishCount adapter.Counter
+	byteTotal    adapter.Counter
+}
+
+var (
+	metricsRegistry Metrics
+	metricsOnce     sync.Once
+)
+
 // NewProducer configures and tests the kinesis connection
-func NewProducer(maxRetries int, overrideHost string, prometheusEnabled bool, namespace string, metrics metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(maxRetries int, overrideHost string, prometheusEnabled bool, namespace string, metricsCollector metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+	registerMetricsOnce(metricsCollector)
+
 	config := &aws.Config{
 		MaxRetries:                    aws.Int(maxRetries),
 		CredentialsChainVerboseErrors: aws.Bool(true),
@@ -48,7 +64,7 @@ func NewProducer(maxRetries int, overrideHost string, prometheusEnabled bool, na
 		kinesis:           service,
 		namespace:         namespace,
 		prometheusEnabled: prometheusEnabled,
-		statsCollector:    metrics,
+		metricsCollector:  metricsCollector,
 		logger:            logger,
 	}, nil
 }
@@ -62,19 +78,40 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		StreamName:   stream,
 		PartitionKey: aws.String(entry.Vin),
 	}
+
 	kinesisRecordOutput, err := p.kinesis.PutRecord(kinesisRecord)
 	if err != nil {
 		p.logger.Errorf("kinesis_err: %v", err)
-		metrics.StatsIncrement(p.statsCollector, "kinesis_err", 1, map[string]string{"record_type": entry.TxType})
+		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
 	}
 
 	p.logger.Debugf("kinesis_publish vin=%s,type=%s,txid=%s,shard_id=%s,sequence_number=%s", entry.Vin, entry.TxType, entry.Txid, *kinesisRecordOutput.ShardId, *kinesisRecordOutput.SequenceNumber)
 
-	if p.prometheusEnabled {
-		metrics.StatsIncrement(p.statsCollector, "kinesis_publish_total", 1, map[string]string{"record_type": entry.TxType})
-		metrics.StatsIncrement(p.statsCollector, "kinesis_publish_total_bytes", int64(entry.Length()), map[string]string{"record_type": entry.TxType})
-	} else {
-		metrics.StatsIncrement(p.statsCollector, entry.TxType+"_produce", 1, map[string]string{})
-	}
+	metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
+	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
+}
+
+func registerMetricsOnce(metricsCollector metrics.MetricCollector) {
+	metricsOnce.Do(func() { registerMetrics(metricsCollector) })
+}
+
+func registerMetrics(metricsCollector metrics.MetricCollector) {
+	metricsRegistry.errorCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kinesis_err",
+		Help:   "The number of errors while producing to Kinesis.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.publishCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kinesis_publish_total",
+		Help:   "The number of messages published to Kinesis.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.byteTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kinesis_publish_total_bytes",
+		Help:   "The number of bytes published to Kinesis.",
+		Labels: []string{"record_type"},
+	})
 }
