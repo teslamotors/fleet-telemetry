@@ -10,9 +10,6 @@ import (
 var _ = Describe("Test dispatcher", func() {
 
 	It("builds topic", func() {
-		record := &telemetry.Record{
-			TxType: "test_device",
-		}
-		Expect(telemetry.BuildTopic("some_namespace", record)).To(Equal("some_namespace_test_device"))
+		Expect(telemetry.BuildTopicName("some_namespace", "test_device")).To(Equal("some_namespace_test_device"))
 	})
 })

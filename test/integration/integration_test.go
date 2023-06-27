@@ -23,13 +23,14 @@ import (
 )
 
 const (
-	vehicleName   = "My Test Vehicle"
-	projectID     = "test-project-id"
-	subcriptionID = "sub-id-1"
-	kafkaGroup    = "test-kafka-consumer"
-	kafkaBroker   = "kafka:9092"
-	pubsubHost    = "pubsub:8085"
-	kinesisHost   = "http://kinesis:4567"
+	vehicleName       = "My Test Vehicle"
+	projectID         = "test-project-id"
+	subcriptionID     = "sub-id-1"
+	kafkaGroup        = "test-kafka-consumer"
+	kafkaBroker       = "kafka:9092"
+	pubsubHost        = "pubsub:8085"
+	kinesisHost       = "http://kinesis:4567"
+	kinesisStreamName = "test_V"
 )
 
 func setEnv(key string, value string) {
@@ -60,7 +61,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		payload = GenerateVehicleMessage(vehicleName, timestamp)
 		connection = CreateWebSocket(tlsConfig)
 
-		kinesisConsumer, err = NewTestKinesisConsumer(kinesisHost, "tesla_telemetry")
+		kinesisConsumer, err = NewTestKinesisConsumer(kinesisHost, kinesisStreamName)
 		Expect(err).To(BeNil())
 
 		setEnv("PUBSUB_EMULATOR_HOST", pubsubHost)
@@ -139,12 +140,17 @@ var _ = Describe("Test messages", Ordered, func() {
 	})
 
 	It("reads vehicle data from aws kinesis", func() {
-		err := connection.WriteMessage(websocket.BinaryMessage, payload)
-		Expect(err).To(BeNil())
+		var err error
+		// We found publishing a few records makes this test consistent, and
+		// no obvious way to enforce delivery with a single message
+		for i := 1; i <= 4; i++ {
+			err = connection.WriteMessage(websocket.BinaryMessage, payload)
+			Expect(err).To(BeNil())
+		}
 
 		var record *kinesis.Record
 		Eventually(func() error {
-			record, err = kinesisConsumer.FetchFirstStreamMessage(vehicleTopic)
+			record, err = kinesisConsumer.FetchFirstStreamMessage(kinesisStreamName)
 			return err
 		}, time.Second*5, time.Millisecond*100).Should(BeNil())
 		VerifyMessageBody(record.Data, vehicleName)

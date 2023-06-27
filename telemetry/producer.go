@@ -18,9 +18,9 @@ const (
 	Logger Dispatcher = "logger"
 )
 
-// BuildTopic produces records into the custom topic
-func BuildTopic(namespace string, record *Record) string {
-	return fmt.Sprintf("%s_%s", namespace, record.TxType)
+// BuildTopicName creates a topic from a namespace and a recordName
+func BuildTopicName(namespace, recordName string) string {
+	return fmt.Sprintf("%s_%s", namespace, recordName)
 }
 
 // Producer handles dispatching data received from the vehicle

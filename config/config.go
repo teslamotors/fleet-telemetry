@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -104,10 +105,11 @@ type Pubsub struct {
 	Publisher *pubsub.Client
 }
 
-// Kinesis is a configuration for aws Kinesis
+// Kinesis is a configuration for aws Kinesis.
 type Kinesis struct {
-	MaxRetries   *int   `json:"max_retries,omitempty"`
-	OverrideHost string `json:"override_host"`
+	MaxRetries   *int              `json:"max_retries,omitempty"`
+	OverrideHost string            `json:"override_host"`
+	Streams      map[string]string `json:"streams,omitempty"`
 }
 
 //go:embed files/eng_ca.crt
@@ -239,10 +241,10 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 	producers := make(map[telemetry.Dispatcher]telemetry.Producer)
 	producers[telemetry.Logger] = simple.NewProtoLogger(logger)
 
-	requiredDispatchers := make(map[telemetry.Dispatcher]struct{})
-	for _, dispatchRules := range c.Records {
+	requiredDispatchers := make(map[telemetry.Dispatcher][]string)
+	for recordName, dispatchRules := range c.Records {
 		for _, dispatchRule := range dispatchRules {
-			requiredDispatchers[dispatchRule] = struct{}{}
+			requiredDispatchers[dispatchRule] = append(requiredDispatchers[dispatchRule], recordName)
 		}
 	}
 
@@ -269,7 +271,7 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 		producers[telemetry.Pubsub] = googleProducer
 	}
 
-	if _, ok := requiredDispatchers[telemetry.Kinesis]; ok {
+	if recordNames, ok := requiredDispatchers[telemetry.Kinesis]; ok {
 		if c.Kinesis == nil {
 			return nil, errors.New("Expected Kinesis to be configured")
 		}
@@ -277,7 +279,8 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 		if c.Kinesis.MaxRetries != nil {
 			maxRetries = *c.Kinesis.MaxRetries
 		}
-		kinesis, err := kinesis.NewProducer(maxRetries, c.Kinesis.OverrideHost, c.prometheusEnabled(), c.Namespace, c.MetricCollector, logger)
+		streamMapping := c.CreateKinesisStreamMapping(recordNames)
+		kinesis, err := kinesis.NewProducer(maxRetries, streamMapping, c.Kinesis.OverrideHost, c.prometheusEnabled(), c.MetricCollector, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -308,4 +311,22 @@ func convertKafkaConfig(input *confluent.ConfigMap) {
 			(*input)[key] = int(i)
 		}
 	}
+}
+
+// CreateKinesisStreamMapping uses the config, overrides with ENV variable names, and finally falls back to namespace based names
+func (c *Config) CreateKinesisStreamMapping(recordNames []string) map[string]string {
+	streamMapping := make(map[string]string)
+	for _, recordName := range recordNames {
+		if c.Kinesis != nil {
+			streamMapping[recordName] = c.Kinesis.Streams[recordName]
+		}
+		envVarStreamName := os.Getenv(fmt.Sprintf("KINESIS_STREAM_%s", strings.ToUpper(recordName)))
+		if envVarStreamName != "" {
+			streamMapping[recordName] = envVarStreamName
+		}
+		if streamMapping[recordName] == "" {
+			streamMapping[recordName] = telemetry.BuildTopicName(c.Namespace, recordName)
+		}
+	}
+	return streamMapping
 }
