@@ -27,34 +27,40 @@ Clients establish a websocket connection to push configurable telemetry records.
   "namespace": string - kafka topic prefix,
   "reliable_ack": bool - for use with reliable datastores, recommend setting to true with kafka,
   "monitoring": {
-      "prometheus_metrics_port": int,
-      "profiler_port": int,
-      "profiling_path": string - out path,
-      "statsd": { if you are not using prometheus
-        "host": string - host:port of the statsd server,
-        "prefix": string - prefix for statsd metrics,
-        "sample_rate": int - 0 to 100 percentage to sample stats,
-        "flush_period": int - ms flush period
-      }
+    "prometheus_metrics_port": int,
+    "profiler_port": int,
+    "profiling_path": string - out path,
+    "statsd": { if you are not using prometheus
+      "host": string - host:port of the statsd server,
+      "prefix": string - prefix for statsd metrics,
+      "sample_rate": int - 0 to 100 percentage to sample stats,
+      "flush_period": int - ms flush period
+    }
   },
+  "kinesis" {
+    "max_retries": 3,
+    "streams": {
+      "V": "custom_stream_name"
+    }
+  }
   "rate_limit": {
-      "enabled": bool,
-      "message_limit": int - ex.: 1000
+    "enabled": bool,
+    "message_limit": int - ex.: 1000
   },
-  "records": { list of records and their dispatchers
-      "alerts": [
-          "logger"
-      ],
-      "errors": [
-          "logger"
-      ],
-      "V": [
-          "logger"
-      ]
+  "records": { list of records and their dispatchers, currently: alerts, errors, and V(vehicle data)
+    "alerts": [
+        "logger"
+    ],
+    "errors": [
+        "logger"
+    ],
+    "V": [
+        "kinesis"
+    ]
   },
   "tls": {
-      "server_cert": string - server cert location,
-      "server_key": string - server key location
+    "server_cert": string - server cert location,
+    "server_key": string - server key location
   }
 }
 ```
@@ -117,6 +123,9 @@ Example: [client_config.json](./examples/client_config.json)
 The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 1. Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 2. Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default aws credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
+  a. By default stream names will be *configured namespace*_*topic_name*  ex.: tesla_V, tesla_errors, tesla_alerts, etc
+  b. Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
+  c. Override stream names with env variables: KINESIS_STREAM_*uppercase topic* ex.: `KINESIS_STREAM_V`
 3. Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 4. Logger: This is a simple STDOUT logger that serializes the protos to json.
 

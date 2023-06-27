@@ -45,7 +45,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 
 // Produce asyncronously sends the record payload to kafka
 func (p *Producer) Produce(entry *telemetry.Record) {
-	topic := telemetry.BuildTopic(p.namespace, entry)
+	topic := telemetry.BuildTopicName(p.namespace, entry.TxType)
 
 	msg := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},

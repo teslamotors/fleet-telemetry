@@ -122,6 +122,20 @@ var _ = Describe("Test full application config", func() {
 			Expect(err).To(MatchError("Expected Kinesis to be configured"))
 			Expect(producers).To(BeNil())
 		})
+
+		It("returns a map", func() {
+			config.Kinesis = &Kinesis{Streams: map[string]string{"V": "mystream_V", "errors": "mystream_errors"}}
+			err := os.Setenv("KINESIS_STREAM_ERRORS", "test_errors")
+			Expect(err).To(BeNil())
+
+			streamMapping := config.CreateKinesisStreamMapping([]string{"V", "errors", "alerts"})
+			Expect(streamMapping).To(Equal(map[string]string{
+				"V":      "mystream_V",
+				"errors": "test_errors",
+				"alerts": "tesla_telemetry_alerts",
+			}))
+			os.Clearenv()
+		})
 	})
 
 	Context("configure pubsub", func() {
