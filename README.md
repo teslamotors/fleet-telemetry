@@ -128,13 +128,13 @@ Example: [client_config.json](./examples/client_config.json)
 
 ## Backends/dispatchers
 The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
-1. Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
-2. Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default aws credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
-  a. By default stream names will be *configured namespace*_*topic_name*  ex.: tesla_V, tesla_errors, tesla_alerts, etc
-  b. Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
-  c. Override stream names with env variables: KINESIS_STREAM_*uppercase topic* ex.: `KINESIS_STREAM_V`
-3. Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
-4. Logger: This is a simple STDOUT logger that serializes the protos to json.
+* Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
+* Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default aws credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
+  * By default stream names will be *configured namespace*_*topic_name*  ex.: tesla_V, tesla_errors, tesla_alerts, etc
+  * Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
+  * Override stream names with env variables: KINESIS_STREAM_*uppercase topic* ex.: `KINESIS_STREAM_V`
+* Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
+* Logger: This is a simple STDOUT logger that serializes the protos to json.
 
 ## Install with Helm Chart
 Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
