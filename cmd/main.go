@@ -27,7 +27,10 @@ func main() {
 			config.Monitoring.ProfilingPath = ""
 		}
 
-		defer func() { _ = config.Monitoring.ProfilerFile.Close() }()
+		defer func() {
+			config.MetricCollector.Shutdown()
+			_ = config.Monitoring.ProfilerFile.Close()
+		}()
 	}
 
 	panic(startServer(config, logger))

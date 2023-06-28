@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 
+	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -35,7 +36,7 @@ var _ = Describe("Test full application config", func() {
 				"ssl.certificate.location": "kafka.crt",
 				"ssl.key.location":         "kafka.key",
 			},
-			Monitoring:    &Monitoring{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/fleet-telemetry/profile/"},
+			Monitoring:    &metrics.MonitoringConfig{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/fleet-telemetry/profile/"},
 			LogLevel:      "info",
 			JSONLogEnable: true,
 			Records:       map[string][]telemetry.Dispatcher{"FS": {"kafka"}},
@@ -176,18 +177,18 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
-	Context("configureStatsCollector", func() {
+	Context("configureMetricsCollector", func() {
 		It("does not fail when TLS is nil ", func() {
 			log, _ := test.NewNullLogger()
 			config = &Config{}
-			config.configureStatsCollector(log)
+			config.configureMetricsCollector(log)
 
 			Expect(config.Monitoring).To(BeNil())
 		})
 
 		It("fails if not reachable", func() {
 			log, _ := test.NewNullLogger()
-			config.configureStatsCollector(log)
+			config.configureMetricsCollector(log)
 			Expect(config.MetricCollector).To(Not(BeNil()))
 		})
 	})

@@ -33,7 +33,7 @@ type Server struct {
 
 	logger *logrus.Logger
 	// Metrics collects metrics for the application
-	statsCollector metrics.MetricCollector
+	metricsCollector metrics.MetricCollector
 
 	reliableAck bool
 }
@@ -46,10 +46,10 @@ func InitServer(c *config.Config, mux *http.ServeMux, producerRules map[string][
 	}
 
 	socketServer := &Server{
-		DispatchRules:  producerRules,
-		statsCollector: c.MetricCollector,
-		reliableAck:    reliableAck,
-		logger:         logger,
+		DispatchRules:    producerRules,
+		metricsCollector: c.MetricCollector,
+		reliableAck:      reliableAck,
+		logger:           logger,
 	}
 
 	mux.HandleFunc("/", socketServer.ServeBinaryWs(c, registry))

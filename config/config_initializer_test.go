@@ -8,6 +8,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter/noop"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter/prometheus"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -29,15 +32,17 @@ var _ = Describe("Test application config initialization", func() {
 				"ssl.key.location":             "kafka.key",
 				"queue.buffering.max.messages": float64(1000000),
 			},
-			Monitoring:    &Monitoring{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/fleet-telemetry/profile"},
-			LogLevel:      "info",
-			JSONLogEnable: true,
-			Records:       map[string][]telemetry.Dispatcher{"FS": {"kafka"}},
+			Monitoring:      &metrics.MonitoringConfig{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/fleet-telemetry/profile"},
+			MetricCollector: prometheus.NewCollector(),
+			LogLevel:        "info",
+			JSONLogEnable:   true,
+			Records:         map[string][]telemetry.Dispatcher{"FS": {"kafka"}},
 		}
 
 		loadedConfig, err := loadTestApplicationConfig(TestConfig)
 		Expect(err).To(BeNil())
 
+		expectedConfig.MetricCollector = loadedConfig.MetricCollector
 		expectedConfig.AckChan = loadedConfig.AckChan
 		Expect(loadedConfig).To(Equal(expectedConfig))
 	})
@@ -56,12 +61,14 @@ var _ = Describe("Test application config initialization", func() {
 				"ssl.key.location":             "kafka.key",
 				"queue.buffering.max.messages": float64(1000000),
 			},
-			Records: map[string][]telemetry.Dispatcher{"FS": {"kafka"}},
+			MetricCollector: noop.NewCollector(),
+			Records:         map[string][]telemetry.Dispatcher{"FS": {"kafka"}},
 		}
 
 		loadedConfig, err := loadTestApplicationConfig(TestSmallConfig)
 		Expect(err).To(BeNil())
 
+		expectedConfig.MetricCollector = loadedConfig.MetricCollector
 		expectedConfig.AckChan = loadedConfig.AckChan
 		Expect(loadedConfig).To(Equal(expectedConfig))
 	})

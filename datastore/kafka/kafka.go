@@ -2,12 +2,14 @@ package kafka
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
 
 	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -16,13 +18,26 @@ type Producer struct {
 	kafkaProducer     *kafka.Producer
 	namespace         string
 	prometheusEnabled bool
-	statsCollector    metrics.MetricCollector
+	metricsCollector  metrics.MetricCollector
 	logger            *logrus.Logger
 }
 
+// Metrics stores metrics reported from this package
+type Metrics struct {
+	produceCount adapter.Counter
+	byteTotal    adapter.Counter
+	errorCount   adapter.Counter
+}
+
+var (
+	metricsRegistry Metrics
+	metricsOnce     sync.Once
+)
+
 // NewProducer establishes the kafka connection and define the dispatch method
 func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers int,
-	ackChan chan (*telemetry.Record), prometheusEnabled bool, statsCollector metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+	ackChan chan (*telemetry.Record), prometheusEnabled bool, metricsCollector metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+	registerMetricsOnce(metricsCollector)
 
 	kafkaProducer, err := kafka.NewProducer(config)
 	if err != nil {
@@ -32,7 +47,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 	producer := &Producer{
 		kafkaProducer:     kafkaProducer,
 		namespace:         namespace,
-		statsCollector:    statsCollector,
+		metricsCollector:  metricsCollector,
 		prometheusEnabled: prometheusEnabled,
 	}
 
@@ -64,12 +79,8 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		return
 	}
 
-	if p.prometheusEnabled {
-		metrics.StatsIncrement(p.statsCollector, "kafka_produce_total", 1, map[string]string{"record_type": entry.TxType})
-		metrics.StatsIncrement(p.statsCollector, "kafka_produce_total_bytes", int64(entry.Length()), map[string]string{"record_type": entry.TxType})
-	} else {
-		metrics.StatsIncrement(p.statsCollector, entry.TxType+"_produce", 1, map[string]string{})
-	}
+	metricsRegistry.produceCount.Inc(map[string]string{"record_type": entry.TxType})
+	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 }
 
 func headersFromRecord(record *telemetry.Record) (headers []kafka.Header) {
@@ -100,5 +111,29 @@ func (p *Producer) handleProducerEvents(ackChan chan (*telemetry.Record)) {
 
 func (p *Producer) logError(err error) {
 	p.logger.Errorf("kafka_err err: %v", err)
-	metrics.StatsIncrement(p.statsCollector, "kafka_err", 1, map[string]string{})
+	metricsRegistry.errorCount.Inc(map[string]string{})
+}
+
+func registerMetricsOnce(metricsCollector metrics.MetricCollector) {
+	metricsOnce.Do(func() { registerMetrics(metricsCollector) })
+}
+
+func registerMetrics(metricsCollector metrics.MetricCollector) {
+	metricsRegistry.produceCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kafka_produce_total",
+		Help:   "The number of records produced to Kafka.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.byteTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kafka_produce_total_bytes",
+		Help:   "The number of bytes produced to Kafka.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.errorCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kafka_err",
+		Help:   "The number of errors while producing to Kafka.",
+		Labels: []string{},
+	})
 }
