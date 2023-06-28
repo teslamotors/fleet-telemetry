@@ -1,6 +1,17 @@
+# build executable and run integration tests
 FROM golang:1.20.5-bullseye
 
-COPY . /go/src/fleet-telemetry
+ENV CGO_ENABLED=1
+
+WORKDIR /go/src/fleet-telemetry
+
+COPY go.* ./
+RUN go mod download
+
+COPY . ./
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+go build -o /go/bin/fleet-telemetry cmd/main.go
 
 WORKDIR /go/src/fleet-telemetry/test/integration
 
