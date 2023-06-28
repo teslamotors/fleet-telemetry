@@ -76,7 +76,7 @@ func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, 
 func (p *Producer) Produce(entry *telemetry.Record) {
 	ctx := context.Background()
 
-	pubsubTopic, err := p.createTopicIfNotExists(ctx, telemetry.BuildTopic(p.namespace, entry))
+	pubsubTopic, err := p.createTopicIfNotExists(ctx, telemetry.BuildTopicName(p.namespace, entry.TxType))
 
 	if err != nil {
 		p.logger.Errorf("error creating topic %v", err)

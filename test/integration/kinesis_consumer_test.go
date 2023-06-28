@@ -13,7 +13,6 @@ import (
 
 var (
 	// The current integration test docker image only supports 1 stream saidsef/aws-kinesis-local
-	txTypes       = []string{"V"}
 	fakeAWSID     = "id"
 	fakeAWSSecret = "secret"
 	fakeAWSToken  = "token"
@@ -21,11 +20,10 @@ var (
 )
 
 type TestKinesisConsumer struct {
-	kineses   *kinesis.Kinesis
-	namespace string
+	kineses *kinesis.Kinesis
 }
 
-func NewTestKinesisConsumer(host, namespace string) (*TestKinesisConsumer, error) {
+func NewTestKinesisConsumer(host, streamName string) (*TestKinesisConsumer, error) {
 	creds := credentials.NewStaticCredentials(fakeAWSID, fakeAWSSecret, fakeAWSToken)
 	awsConfig := aws.NewConfig().WithEndpoint(host).WithCredentialsChainVerboseErrors(true).WithRegion(fakeAWSRegion).WithCredentials(creds)
 	sess, err := session.NewSessionWithOptions(session.Options{Config: *awsConfig})
@@ -34,20 +32,15 @@ func NewTestKinesisConsumer(host, namespace string) (*TestKinesisConsumer, error
 	}
 
 	t := &TestKinesisConsumer{
-		kineses:   kinesis.New(sess, awsConfig),
-		namespace: namespace,
+		kineses: kinesis.New(sess, awsConfig),
 	}
-	for _, txType := range txTypes {
-		err := t.createStreamIfNotExists(txType)
-		if err != nil {
-			return nil, err
-		}
+	if err = t.createStreamIfNotExists(streamName); err != nil {
+		return nil, err
 	}
 	return t, nil
 }
 
-func (t *TestKinesisConsumer) createStreamIfNotExists(txType string) error {
-	stream := aws.String(fmt.Sprintf("%s_%s", t.namespace, txType))
+func (t *TestKinesisConsumer) createStreamIfNotExists(streamName string) error {
 	response, err := t.kineses.ListStreams(&kinesis.ListStreamsInput{
 		Limit: aws.Int64(100),
 	})
@@ -57,7 +50,7 @@ func (t *TestKinesisConsumer) createStreamIfNotExists(txType string) error {
 
 	if len(response.StreamNames) == 0 {
 		_, err := t.kineses.CreateStream(&kinesis.CreateStreamInput{
-			StreamName: stream,
+			StreamName: aws.String(streamName),
 			ShardCount: aws.Int64(1),
 		})
 		if err != nil {
@@ -67,11 +60,11 @@ func (t *TestKinesisConsumer) createStreamIfNotExists(txType string) error {
 	}
 
 	for _, streamName := range response.StreamNames {
-		if strings.Compare(*streamName, *stream) == 0 {
+		if strings.Compare(*streamName, *streamName) == 0 {
 			return nil
 		}
 	}
-	return fmt.Errorf("unable to create stream %v", *stream)
+	return fmt.Errorf("unable to create stream %s", streamName)
 }
 
 func (t *TestKinesisConsumer) FetchFirstStreamMessage(topic string) (*kinesis.Record, error) {

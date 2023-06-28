@@ -5,12 +5,19 @@
 # Tesla Fleet Telemetry
 ---------------------------------
 
-Fleet Telemetry is a simple, scalable, and secure data exchange for device fleets.
+At Tesla we believe that security and privacy is a core tenet of any modern technology. Customers should be able to decide what data they share with third parties, how they share it, and when it can be shared. We've developped a decentralized framework: "Fleet Telemetry" that allows customers to create a secure and direct brige from their Tesla devices to any provider they authorize. Fleet Telemetry is a simple, scalable, and secure data exchange service for devices.
 
-Clients establish a websocket connection to push configurable telemetry records. Telemetry provides clients with ack, error, or rate limit responses.
+Fleet Telemetry is a server reference implementation. The service handles vehicle/device connectivity, receives and stores transmitted data. Once configured, devices establish a websocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
 
 
 ## Configuring and running the service
+
+As a service provider you will need to register a publically available endpoint on the internet so vehicles (or other devices) can connect to it. Tesla devices will rely on mutual TLS (mTLS) websocket to accept creating a connection with the backend. Here's the step you need to follow in order to get the service up and running. The application has been desgined to operate on top of kubernetes but you can run in as a standalone binary if it's what you would like.
+
+### Install on kubernetes with Helm Chart (recommended)
+Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
+
+### Manual install (Skip this if you have installed with Helm on Kubernetes)
 1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name), this will be used in the server and client (vehicle) configuration.
 
 2. Design a simple hosting architecture.  We recommend: Firewall/Loadbalancer -> Fleet Telemetry -> Kafka.
@@ -27,34 +34,40 @@ Clients establish a websocket connection to push configurable telemetry records.
   "namespace": string - kafka topic prefix,
   "reliable_ack": bool - for use with reliable datastores, recommend setting to true with kafka,
   "monitoring": {
-      "prometheus_metrics_port": int,
-      "profiler_port": int,
-      "profiling_path": string - out path,
-      "statsd": { if you are not using prometheus
-        "host": string - host:port of the statsd server,
-        "prefix": string - prefix for statsd metrics,
-        "sample_rate": int - 0 to 100 percentage to sample stats,
-        "flush_period": int - ms flush period
-      }
+    "prometheus_metrics_port": int,
+    "profiler_port": int,
+    "profiling_path": string - out path,
+    "statsd": { if you are not using prometheus
+      "host": string - host:port of the statsd server,
+      "prefix": string - prefix for statsd metrics,
+      "sample_rate": int - 0 to 100 percentage to sample stats,
+      "flush_period": int - ms flush period
+    }
   },
+  "kinesis" {
+    "max_retries": 3,
+    "streams": {
+      "V": "custom_stream_name"
+    }
+  }
   "rate_limit": {
-      "enabled": bool,
-      "message_limit": int - ex.: 1000
+    "enabled": bool,
+    "message_limit": int - ex.: 1000
   },
-  "records": { list of records and their dispatchers
-      "alerts": [
-          "logger"
-      ],
-      "errors": [
-          "logger"
-      ],
-      "V": [
-          "logger"
-      ]
+  "records": { list of records and their dispatchers, currently: alerts, errors, and V(vehicle data)
+    "alerts": [
+        "logger"
+    ],
+    "errors": [
+        "logger"
+    ],
+    "V": [
+        "kinesis"
+    ]
   },
   "tls": {
-      "server_cert": string - server cert location,
-      "server_key": string - server key location
+    "server_cert": string - server cert location,
+    "server_key": string - server key location
   }
 }
 ```
@@ -117,6 +130,9 @@ Example: [client_config.json](./examples/client_config.json)
 The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 1. Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 2. Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default aws credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
+  a. By default stream names will be *configured namespace*_*topic_name*  ex.: tesla_V, tesla_errors, tesla_alerts, etc
+  b. Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
+  c. Override stream names with env variables: KINESIS_STREAM_*uppercase topic* ex.: `KINESIS_STREAM_V`
 3. Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 4. Logger: This is a simple STDOUT logger that serializes the protos to json.
 
@@ -124,18 +140,17 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
 
 ## Metrics
-Currently prometheus or a statsd interface is required.  A future version will run without metrics.
+Prometheus or a statsd interface supporting data store for metrics, this is required you should always monitor your applications.
 
 ## Protos
-These represent different message types.  
+Data is encapsulated into protobuf messages of different types. We do not recommend making changes but if you need to recompile them you can always do so with:
 
-To generate:
-1. Install protoc, currently on version 3.21.12: https://grpc.io/docs/protoc-installation/
-2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
-3. Run make command
-```sh
-make generate-golang
-```
+  1. Install protoc, currently on version 3.21.12: https://grpc.io/docs/protoc-installation/
+  2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
+  3. Run make command
+  ```sh
+  make generate-golang
+  ```
 
 # Testing
 
@@ -190,7 +205,7 @@ docker buildx build --no-cache --progress=plain --platform linux/amd64 -t <name:
 container_id=$(docker create fleet-telemetry:local.1.1) docker cp $container_id:/fleet-telemetry /tmp/fleet-telemetry
 ```
 
-## Security and privacy considerations
+## Security and Privacy considerations
 
 System administrators should apply standard best practices, which are beyond
 the scope of this README.
@@ -212,3 +227,7 @@ Moreover, the following application-specific considerations apply:
 * If telemetry data is compromised, threat actors may be able to make
   inferences about driver behavior even if explicit location data is not
   collected. Security policies should be set accordingly.
+* Tesla strongly encourages providers to only collect data they need, limited to
+  frequency that they need.
+* Providers agree to take full responsibility for privacy risks, as soon as data
+  leave the devices (for more info read our privacy policies).

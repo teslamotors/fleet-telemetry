@@ -18,7 +18,10 @@
     },
     "kinesis": {
         "override_host": "http://kinesis:4567",
-        "max_retries" : 3
+        "max_retries": 3,
+        "streams": {
+            "V": "test_V"
+        }
     },
     "monitoring": {
         "prometheus_metrics_port": 9090,

@@ -18,10 +18,10 @@ import (
 // Producer client to handle kinesis interactions
 type Producer struct {
 	kinesis           *kinesis.Kinesis
-	namespace         string
-	metricsCollector  metrics.MetricCollector
-	prometheusEnabled bool
 	logger            *logrus.Logger
+	prometheusEnabled bool
+	metricsCollector  metrics.MetricCollector
+	streams           map[string]string
 }
 
 // Metrics stores metrics reported from this package
@@ -37,7 +37,7 @@ var (
 )
 
 // NewProducer configures and tests the kinesis connection
-func NewProducer(maxRetries int, overrideHost string, prometheusEnabled bool, namespace string, metricsCollector metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(maxRetries int, streams map[string]string, overrideHost string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	config := &aws.Config{
@@ -62,20 +62,24 @@ func NewProducer(maxRetries int, overrideHost string, prometheusEnabled bool, na
 
 	return &Producer{
 		kinesis:           service,
-		namespace:         namespace,
+		logger:            logger,
 		prometheusEnabled: prometheusEnabled,
 		metricsCollector:  metricsCollector,
-		logger:            logger,
+		streams:           streams,
 	}, nil
 }
 
 // Produce asyncronously sends the record payload to kineses
 func (p *Producer) Produce(entry *telemetry.Record) {
-	stream := aws.String(telemetry.BuildTopic(p.namespace, entry))
 	entry.ProduceTime = time.Now()
+	stream, ok := p.streams[entry.TxType]
+	if !ok {
+		p.logger.Errorf("kinesis_produce_stream_not_configured: %s", entry.TxType)
+		return
+	}
 	kinesisRecord := &kinesis.PutRecordInput{
 		Data:         entry.Payload(),
-		StreamName:   stream,
+		StreamName:   aws.String(stream),
 		PartitionKey: aws.String(entry.Vin),
 	}
 
