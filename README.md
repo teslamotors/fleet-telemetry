@@ -5,14 +5,14 @@
 # Tesla Fleet Telemetry
 ---------------------------------
 
-At Tesla we believe that security and privacy is a core tenet of any modern technology. Customers should be able to decide what data they share with third parties, how they share it, and when it can be shared. We've developped a decentralized framework: "Fleet Telemetry" that allows customers to create a secure and direct brige from their Tesla devices to any provider they authorize. Fleet Telemetry is a simple, scalable, and secure data exchange service for devices.
+At Tesla we believe that security and privacy is a core tenet of any modern technology. Customers should be able to decide what data they share with third parties, how they share it, and when it can be shared. We've developed a decentralized framework: "Fleet Telemetry" that allows customers to create a secure and direct bridge from their Tesla devices to any provider they authorize. Fleet Telemetry is a simple, scalable, and secure data exchange service for devices.
 
-Fleet Telemetry is a server reference implementation. The service handles vehicle/device connectivity, receives and stores transmitted data. Once configured, devices establish a websocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
+Fleet Telemetry is a server reference implementation. The service handles vehicle/device connectivity, and receives and stores transmitted data. Once configured, devices establish a websocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
 
 
 ## Configuring and running the service
 
-As a service provider you will need to register a publically available endpoint on the internet so vehicles (or other devices) can connect to it. Tesla devices will rely on mutual TLS (mTLS) websocket to accept creating a connection with the backend. Here's the step you need to follow in order to get the service up and running. The application has been desgined to operate on top of kubernetes but you can run in as a standalone binary if it's what you would like.
+As a service provider you will need to register a publicly available endpoint on the internet so vehicles (or other devices) can connect to it. Tesla devices will rely on mutual TLS (mTLS) websocket to accept creating a connection with the backend. Here are the steps you need to follow in order to get the service up and running. The application has been designed to operate on top of kubernetes but you can run it as a standalone binary if that's what you would like.
 
 ### Install on kubernetes with Helm Chart (recommended)
 Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
