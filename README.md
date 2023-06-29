@@ -5,26 +5,26 @@
 # Tesla Fleet Telemetry
 ---------------------------------
 
-At Tesla we believe that security and privacy are core tenets of any modern technology. Customers should be able to decide what data they share with third parties, how they share it, and when it can be shared. We've developed a decentralized framework: "Fleet Telemetry" that allows customers to create a secure and direct bridge from their Tesla devices to any provider they authorize. Fleet Telemetry is a simple, scalable, and secure data exchange service for vehicles and other devices.
+At Tesla, we believe that security and privacy are core tenets of any modern technology. Customers should be able to decide what data they share with third parties, how they share it, and when it can be shared. We've developed Fleet Telemetry, a decentralized framework that allows customers to create a secure and direct bridge from their Tesla devices to any provider they authorize. Fleet Telemetry is a simple, scalable, and secure data exchange service for vehicles and other devices.
 
-Fleet Telemetry is a server reference implementation. The service handles device connectivity, receives, and stores transmitted data. Once configured, devices establish a websocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
+Fleet Telemetry is a server reference implementation. The service handles device connectivity as well as receiving and storing transmitted data. Once configured, devices establish a WebSocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
 
 
 ## Configuring and running the service
 
-As a service provider you will need to register a publically available endpoint to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) websocket to create a connection with the backend. The application has been designed to operate on top of kubernetes but you can run it as a standalone binary if you prefer.
+As a service provider, you will need to register a publically available endpoint to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend. The application has been designed to operate on top of Kubernetes, but you can run it as a standalone binary if you prefer.
 
-### Install on kubernetes with Helm Chart (recommended)
+### Install on Kubernetes with Helm Chart (recommended)
 Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
 
-### Manual install (Skip this if you have installed with Helm on Kubernetes)
-1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name), this will be used in the server and client (vehicle) configuration.
+### Manual install (skip this if you have installed with Helm on Kubernetes)
+1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name). This will be used in the server and client (vehicle) configuration.
 
-2. Design a simple hosting architecture.  We recommend: Firewall/Loadbalancer -> Fleet Telemetry -> Kafka.
+2. Design a simple hosting architecture. We recommend: Firewall/Loadbalancer -> Fleet Telemetry -> Kafka.
 
 3. Ensure mTLS connections are terminated on the Fleet Telemetry service.
 
-4. Configure the Server
+4. Configure the server
 ```
 {
   "host": string - hostname,
@@ -78,7 +78,7 @@ Please follow these [instructions](https://github.com/teslamotors/helm-charts/bl
 ```
 Example: [server_config.json](./examples/server_config.json)
 
-5. Deploy and run the server.  Get the latest docker image information from [docker hub](https://hub.docker.com/r/tesla/fleet-telemetry/tags). This can be run as a binary via `./fleet-telemetry -config=/etc/fleet-telemetry/config.json` directly on a server, or as a kubernetes deployment.  Example snippet:
+5. Deploy and run the server. Get the latest docker image information from our [docker hub](https://hub.docker.com/r/tesla/fleet-telemetry/tags). This can be run as a binary via `./fleet-telemetry -config=/etc/fleet-telemetry/config.json` directly on a server, or as a Kubernetes deployment. Example snippet:
 ```yaml
 ---
 apiVersion: apps/v1
@@ -116,7 +116,7 @@ spec:
   type: LoadBalancer
 ```
 
-6. Create and share a vehicle configuration with Tesla
+6. Create and share a vehicle configuration with Tesla.
 ```
 {
   "hostname": string - server hostname,
@@ -142,10 +142,10 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
 
 ## Metrics
-Prometheus or a statsd interface supporting data store for metrics, this is required you should always monitor your applications.
+Prometheus or a StatsD interface supporting data store for metrics. This is required for monitoring your applications.
 
 ## Protos
-Data is encapsulated into protobuf messages of different types. We do not recommend making changes but if you need to recompile them you can always do so with:
+Data is encapsulated into protobuf messages of different types. We do not recommend making changes, but if you need to recompile them you can always do so with:
 
   1. Install protoc, currently on version 3.21.12: https://grpc.io/docs/protoc-installation/
   2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
@@ -172,7 +172,7 @@ No package 'rdkafka' found
 pkg-config: exit status 1
 make: *** [install] Error 1
 ```
-librdkafka is missing, on MAC OS you can install it via `brew install librdkafka pkg-config` or follow instructions here https://github.com/confluentinc/confluent-kafka-go#getting-started
+librdkafka is missing, on macOS you can install it via `brew install librdkafka pkg-config` or follow instructions here https://github.com/confluentinc/confluent-kafka-go#getting-started
 
 ```
 ~/fleet-telemetry➜ git:(main) ✗  make test
@@ -197,7 +197,7 @@ A reference to libcrypto is not set properly. To resolve find the reference to l
 
 To run the integration tests: `make integration`
 
-## Building the binary for linux from mac arm64
+## Building the binary for Linux from Mac ARM64
 
 ```sh
 DOCKER_BUILD_KIT=1 DOCKER_CLI_EXPERIMENTAL=enabled docker buildx version
