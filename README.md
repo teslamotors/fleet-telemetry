@@ -5,14 +5,14 @@
 # Tesla Fleet Telemetry
 ---------------------------------
 
-At Tesla we believe that security and privacy are core tenets of any modern technology. Customers should be able to decide what data they share with third parties, how they share it, and when it can be shared. We've developed a decentralized framework: "Fleet Telemetry" that allows customers to create a secure and direct bridge from their Tesla devices to any provider they authorize. Fleet Telemetry is a simple, scalable, and secure data exchange service for devices.
+At Tesla we believe that security and privacy are core tenets of any modern technology. Customers should be able to decide what data they share with third parties, how they share it, and when it can be shared. We've developed a decentralized framework: "Fleet Telemetry" that allows customers to create a secure and direct bridge from their Tesla devices to any provider they authorize. Fleet Telemetry is a simple, scalable, and secure data exchange service for vehicles and other devices.
 
-Fleet Telemetry is a server reference implementation. The service handles vehicle/device connectivity, receives and stores transmitted data. Once configured, devices establish a websocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
+Fleet Telemetry is a server reference implementation. The service handles device connectivity, receives, and stores transmitted data. Once configured, devices establish a websocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
 
 
 ## Configuring and running the service
 
-As a service provider you will need to register a publically available endpoint on the internet so vehicles (or other devices) can connect to it. Tesla devices will rely on mutual TLS (mTLS) websocket to accept creating a connection with the backend. Here are the steps you need to follow in order to get the service up and running. The application has been designed to operate on top of kubernetes but you can run it as a standalone binary if you prefer.
+As a service provider you will need to register a publically available endpoint to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) websocket to create a connection with the backend. The application has been designed to operate on top of kubernetes but you can run it as a standalone binary if you prefer.
 
 ### Install on kubernetes with Helm Chart (recommended)
 Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
@@ -44,12 +44,16 @@ Please follow these [instructions](https://github.com/teslamotors/helm-charts/bl
       "flush_period": int - ms flush period
     }
   },
-  "kinesis" {
+  "kafka": { //librdkafka kafka config, seen here: https://raw.githubusercontent.com/confluentinc/librdkafka/master/CONFIGURATION.md
+    "bootstrap.servers": "kafka:9092",
+    "queue.buffering.max.messages": 1000000
+  },
+  "kinesis": {
     "max_retries": 3,
     "streams": {
       "V": "custom_stream_name"
     }
-  }
+  },
   "rate_limit": {
     "enabled": bool,
     "message_limit": int - ex.: 1000
@@ -62,7 +66,8 @@ Please follow these [instructions](https://github.com/teslamotors/helm-charts/bl
         "logger"
     ],
     "V": [
-        "kinesis"
+        "kinesis",
+        "kafka"
     ]
   },
   "tls": {
@@ -130,14 +135,11 @@ Example: [client_config.json](./examples/client_config.json)
 The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 * Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default aws credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
-  * By default stream names will be *configured namespace*_*topic_name*  ex.: tesla_V, tesla_errors, tesla_alerts, etc
+  * By default stream names will be \*configured namespace\*_\*topic_name\*  ex.: tesla_V, tesla_errors, tesla_alerts, etc
   * Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
-  * Override stream names with env variables: KINESIS_STREAM_*uppercase topic* ex.: `KINESIS_STREAM_V`
+  * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
-
-## Install with Helm Chart
-Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
 
 ## Metrics
 Prometheus or a statsd interface supporting data store for metrics, this is required you should always monitor your applications.
