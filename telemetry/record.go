@@ -3,6 +3,9 @@ package telemetry
 import (
 	"fmt"
 	"time"
+
+	"github.com/teslamotors/fleet-telemetry/protos"
+	"google.golang.org/protobuf/proto"
 )
 
 // SizeLimit maximum incoming payload size from the vehicle
@@ -36,7 +39,8 @@ func NewRecord(ts *BinarySerializer, msg []byte, socketID string) (*Record, erro
 	if err != nil {
 		return rec, err
 	}
-	return rec, nil
+	err = rec.injectPayloadWithVin()
+	return rec, err
 }
 
 // Ack returns a ack response from the serializer
@@ -93,5 +97,39 @@ func (record *Record) Dispatch() {
 func (record *Record) ensureEncoded() {
 	if record.RawBytes == nil && record.Serializer != nil && record.Serializer.Logger() != nil {
 		record.Serializer.Logger().Error("record_RawBytes_blank")
+	}
+}
+
+func (record *Record) injectPayloadWithVin() error {
+	switch record.TxType {
+	case "alerts":
+		message := &protos.VehicleAlerts{}
+		err := proto.Unmarshal(record.Payload(), message)
+		if err != nil {
+			return err
+		}
+		message.Vin = record.Vin
+		record.PayloadBytes, err = proto.Marshal(message)
+		return err
+	case "errors":
+		message := &protos.VehicleErrors{}
+		err := proto.Unmarshal(record.Payload(), message)
+		if err != nil {
+			return err
+		}
+		message.Vin = record.Vin
+		record.PayloadBytes, err = proto.Marshal(message)
+		return err
+	case "V":
+		message := &protos.Payload{}
+		err := proto.Unmarshal(record.Payload(), message)
+		if err != nil {
+			return err
+		}
+		message.Vin = record.Vin
+		record.PayloadBytes, err = proto.Marshal(message)
+		return err
+	default:
+		return nil
 	}
 }
