@@ -50,7 +50,6 @@ func generatePayload(vehicleName string, timestamp *timestamppb.Timestamp) []byt
 		},
 	})
 	payload, err := proto.Marshal(&protos.Payload{
-		Vin:       deviceID,
 		Data:      data,
 		CreatedAt: timestamp,
 	})
