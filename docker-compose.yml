@@ -3,6 +3,7 @@ services:
   app:
     build:
       context: .
+      dockerfile: Dockerfile.integration
     volumes:
       - ./test/integration/config.json:/etc/tesla/config.json:ro
       - ./test/integration/test-certs:/etc/tesla/certs/server:ro
