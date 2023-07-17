@@ -12,12 +12,12 @@ Fleet Telemetry is a server reference implementation. The service handles device
 
 ## Configuring and running the service
 
-As a service provider, you will need to register a publically available endpoint to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend. The application has been designed to operate on top of Kubernetes, but you can run it as a standalone binary if you prefer.
+As a service provider, you will need to register a publicly available endpoint to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend. The application has been designed to operate on top of Kubernetes, but you can run it as a standalone binary if you prefer.
 
 ### Install on Kubernetes with Helm Chart (recommended)
 Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
 
-### Manual install (skip this if you have installed with Helm on Kubernetes)
+### Install manually (skip this if you have installed with Helm on Kubernetes)
 1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name). This will be used in the server and client (vehicle) configuration.
 
 2. Design a simple hosting architecture. We recommend: Firewall/Loadbalancer -> Fleet Telemetry -> Kafka.
@@ -134,8 +134,8 @@ Example: [client_config.json](./examples/client_config.json)
 ## Backends/dispatchers
 The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
-* Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default aws credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
-  * By default stream names will be \*configured namespace\*_\*topic_name\*  ex.: tesla_V, tesla_errors, tesla_alerts, etc
+* Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default AWS credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
+  * By default, stream names will be \*configured namespace\*_\*topic_name\*  ex.: `tesla_V`, `tesla_errors`, `tesla_alerts`, etc
   * Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
@@ -230,6 +230,6 @@ Moreover, the following application-specific considerations apply:
   inferences about driver behavior even if explicit location data is not
   collected. Security policies should be set accordingly.
 * Tesla strongly encourages providers to only collect data they need, limited to
-  frequency that they need.
+  the frequency they need.
 * Providers agree to take full responsibility for privacy risks, as soon as data
   leave the devices (for more info read our privacy policies).

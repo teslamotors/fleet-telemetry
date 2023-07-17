@@ -58,7 +58,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 	return producer, nil
 }
 
-// Produce asyncronously sends the record payload to kafka
+// Produce asynchronously sends the record payload to kafka
 func (p *Producer) Produce(entry *telemetry.Record) {
 	topic := telemetry.BuildTopicName(p.namespace, entry.TxType)
 

@@ -26,7 +26,7 @@ var (
 	metricsOnce     sync.Once
 )
 
-// StartServerMetrics initilizes metrics server on http
+// StartServerMetrics initializes the metrics server on http
 func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *streaming.SocketRegistry) {
 	registerMetricsOnce(config.MetricCollector)
 

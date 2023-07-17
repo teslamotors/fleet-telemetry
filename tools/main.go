@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/teslamotors/fleet-telemetry/messages"
-	lib "github.com/teslamotors/fleet-telemetry/tools/lib"
+	"github.com/teslamotors/fleet-telemetry/tools/lib"
 )
 
 const (

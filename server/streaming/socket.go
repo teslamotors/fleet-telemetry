@@ -264,7 +264,7 @@ func (sm *SocketManager) processRecord(record *telemetry.Record) {
 	metricsRegistry.dispatchCount.Inc(map[string]string{"record_type": record.TxType})
 }
 
-// respondToVehicle sends a ack message to the client to acknowledge that the records have been transmitted
+// respondToVehicle sends an ack message to the client to acknowledge that the records have been transmitted
 func (sm *SocketManager) respondToVehicle(record *telemetry.Record, err error) {
 	var response []byte
 	logInfo := fmt.Sprintf("txid=%v, txtype=%v", record.Txid, record.TxType)

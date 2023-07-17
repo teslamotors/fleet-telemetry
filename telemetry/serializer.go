@@ -73,7 +73,7 @@ func (bs *BinarySerializer) Deserialize(msg []byte, socketID string) (record *Re
 	return record, err
 }
 
-// Ack returns a ack response
+// Ack returns an ack response
 func (bs *BinarySerializer) Ack(record *Record) []byte {
 	ackMessage := messages.StreamAckMessage{TXID: []byte(record.Txid), MessageTopic: []byte(record.TxType)}
 	b, _ := ackMessage.ToBytes()

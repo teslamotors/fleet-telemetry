@@ -69,7 +69,7 @@ func NewProducer(maxRetries int, streams map[string]string, overrideHost string,
 	}, nil
 }
 
-// Produce asyncronously sends the record payload to kineses
+// Produce asynchronously sends the record payload to kineses
 func (p *Producer) Produce(entry *telemetry.Record) {
 	entry.ProduceTime = time.Now()
 	stream, ok := p.streams[entry.TxType]
