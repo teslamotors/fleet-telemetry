@@ -31,7 +31,7 @@ func NewTestPubsubConsumer(projectID, topicID, subID string, logger *logrus.Logg
 		return nil, err
 	}
 
-	sub, err := createSubcriptionfNotExists(ctx, subID, topicID, client, logger)
+	sub, err := createSubscriptionIfNotExists(ctx, subID, topicID, client, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func NewTestPubsubConsumer(projectID, topicID, subID string, logger *logrus.Logg
 
 }
 
-func createSubcriptionfNotExists(ctx context.Context, subID string, topicID string, pubsubClient *pubsub.Client, logger *logrus.Logger) (*pubsub.Subscription, error) {
+func createSubscriptionIfNotExists(ctx context.Context, subID string, topicID string, pubsubClient *pubsub.Client, logger *logrus.Logger) (*pubsub.Subscription, error) {
 	topic, err := createTopicIfNotExists(ctx, topicID, pubsubClient)
 	if err != nil {
 		return nil, err

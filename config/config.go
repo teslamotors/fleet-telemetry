@@ -47,7 +47,7 @@ type Config struct {
 	// ReliableAck if true, the server will send an ack back to the client only when the message has been stored in a datastore
 	ReliableAck bool `json:"reliable_ack,omitempty"`
 
-	// ReliableAckWorkers is the number of workers that will handle the acknoledgment
+	// ReliableAckWorkers is the number of workers that will handle the acknowledgment
 	ReliableAckWorkers int `json:"reliable_ack_workers,omitempty"`
 
 	// Kafka is a configuration for the standard librdkafka configuration properties
@@ -79,7 +79,7 @@ type Config struct {
 	// MetricCollector collects metrics for the application
 	MetricCollector metrics.MetricCollector
 
-	// AckChan is a channel used to push acknoledgment from the datastore to connected clients
+	// AckChan is a channel used to push acknowledgment from the datastore to connected clients
 	AckChan chan (*telemetry.Record)
 }
 
@@ -185,7 +185,7 @@ func (c *Config) prometheusEnabled() bool {
 	return false
 }
 
-// ConfigureProducers validates and estabilishes connections to the producers (kakfa/pubsub/logger)
+// ConfigureProducers validates and establishes connections to the producers (kafka/pubsub/logger)
 func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemetry.Producer, error) {
 	producers := make(map[telemetry.Dispatcher]telemetry.Producer)
 	producers[telemetry.Logger] = simple.NewProtoLogger(logger)

@@ -25,7 +25,7 @@ import (
 const (
 	vehicleName       = "My Test Vehicle"
 	projectID         = "test-project-id"
-	subcriptionID     = "sub-id-1"
+	subscriptionID    = "sub-id-1"
 	kafkaGroup        = "test-kafka-consumer"
 	kafkaBroker       = "kafka:9092"
 	pubsubHost        = "pubsub:8085"
@@ -65,7 +65,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(err).To(BeNil())
 
 		setEnv("PUBSUB_EMULATOR_HOST", pubsubHost)
-		pubsubConsumer, err = NewTestPubsubConsumer(projectID, vehicleTopic, subcriptionID, logger)
+		pubsubConsumer, err = NewTestPubsubConsumer(projectID, vehicleTopic, subscriptionID, logger)
 		Expect(err).To(BeNil())
 
 		kafkaConsumer, err = kafka.NewConsumer(&kafka.ConfigMap{

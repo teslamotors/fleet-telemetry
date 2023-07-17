@@ -8,7 +8,7 @@ import (
 type Dispatcher string
 
 const (
-	// Pubsub registers a google pubsub dispatcher
+	// Pubsub registers a Google pubsub dispatcher
 	Pubsub Dispatcher = "pubsub"
 	// Kafka registers a kafka dispatcher
 	Kafka Dispatcher = "kafka"

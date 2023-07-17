@@ -18,7 +18,7 @@ func (s *statusServer) Status() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StartStatusServer initilizes status server on http
+// StartStatusServer initializes the status server on http
 func StartStatusServer(config *config.Config, logger *logrus.Logger) {
 	statusServer := &statusServer{}
 	mux := http.NewServeMux()

@@ -63,7 +63,7 @@ func (p *profileServer) gcStats(config *config.Config) func(w http.ResponseWrite
 	}
 }
 
-// StartProfilerServer initilizes profiler on http
+// StartProfilerServer initializes the profiler on http
 func StartProfilerServer(config *config.Config, mux *http.ServeMux, logger *logrus.Logger) {
 	profileServer := &profileServer{}
 	mux.HandleFunc("/gc_stats", profileServer.gcStats(config))

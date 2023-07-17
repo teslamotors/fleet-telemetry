@@ -43,7 +43,7 @@ func NewRecord(ts *BinarySerializer, msg []byte, socketID string) (*Record, erro
 	return rec, err
 }
 
-// Ack returns a ack response from the serializer
+// Ack returns an ack response from the serializer
 func (record *Record) Ack() []byte {
 	return record.Serializer.Ack(record)
 }
@@ -57,7 +57,7 @@ func (record *Record) Error(err error) []byte {
 func (record *Record) Metadata() map[string]string {
 	metadata := make(map[string]string)
 	metadata["vin"] = record.Vin
-	metadata["recievedat"] = fmt.Sprint(record.ReceivedTimestamp)
+	metadata["receivedat"] = fmt.Sprint(record.ReceivedTimestamp)
 	metadata["timestamp"] = fmt.Sprint(record.Timestamp)
 	metadata["txid"] = record.Txid
 	metadata["txtype"] = record.TxType

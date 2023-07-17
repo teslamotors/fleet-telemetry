@@ -21,7 +21,7 @@ type MonitoringConfig struct {
 	// Statsd metrics if you are not using prometheus
 	Statsd *StatsdConfig `json:"statsd,omitempty"`
 
-	// ProfilerPort if non zero enable http profiler om this port
+	// ProfilerPort if non-zero enable http profiler on this port
 	ProfilerPort int `json:"profiler_port,omitempty"`
 
 	// ProfilingPath is the variable that enable deep profiling is set
