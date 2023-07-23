@@ -31,7 +31,7 @@ services:
         condition: service_started
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.2.1
+    image: confluentinc/cp-zookeeper:7.2.6
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -41,7 +41,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:7.2.1
+    image: confluentinc/cp-kafka:7.2.6
     hostname: kafka
     container_name: kafka
     depends_on:
