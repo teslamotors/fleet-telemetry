@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -24,6 +25,7 @@ import (
 
 const (
 	vehicleName       = "My Test Vehicle"
+	location          = "(37.412374 S, 122.145867 E)"
 	projectID         = "test-project-id"
 	subscriptionID    = "sub-id-1"
 	kafkaGroup        = "test-kafka-consumer"
@@ -32,6 +34,8 @@ const (
 	kinesisHost       = "http://kinesis:4567"
 	kinesisStreamName = "test_V"
 )
+
+var expectedLocation = &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}
 
 func setEnv(key string, value string) {
 	err := os.Setenv(key, value)
@@ -58,7 +62,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		timestamp = timestamppb.Now()
 
-		payload = GenerateVehicleMessage(vehicleName, timestamp)
+		payload = GenerateVehicleMessage(vehicleName, location, timestamp)
 		connection = CreateWebSocket(tlsConfig)
 
 		kinesisConsumer, err = NewTestKinesisConsumer(kinesisHost, kinesisStreamName)
@@ -86,7 +90,7 @@ var _ = Describe("Test messages", Ordered, func() {
 	It("reads vehicle data from consumer", func() {
 		err := kafkaConsumer.Subscribe(vehicleTopic, nil)
 		Expect(err).NotTo(HaveOccurred())
-		err = connection.WriteMessage(websocket.BinaryMessage, GenerateVehicleMessage(vehicleName, timestamp))
+		err = connection.WriteMessage(websocket.BinaryMessage, GenerateVehicleMessage(vehicleName, location, timestamp))
 		Expect(err).NotTo(HaveOccurred())
 		msg, err := kafkaConsumer.ReadMessage(10 * time.Second)
 		Expect(err).NotTo(HaveOccurred())
@@ -199,8 +203,19 @@ func VerifyMessageBody(body []byte, vehicleName string) {
 	err := proto.Unmarshal(body, payload)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(payload.GetVin()).To(Equal(deviceID))
-	Expect(payload.GetData()).To(HaveLen(1))
-	datum := payload.GetData()[0]
+	data := payload.GetData()
+	Expect(data).To(HaveLen(2))
+
+	// Make the test more predictable
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].Key < data[j].Key
+	})
+
+	datum := data[0]
+	Expect(datum.GetKey()).To(Equal(protos.Field_Location))
+	Expect(datum.GetValue().GetLocationValue()).To(Equal(expectedLocation))
+
+	datum = data[1]
 	Expect(datum.GetKey()).To(Equal(protos.Field_VehicleName))
 	Expect(datum.GetValue().GetStringValue()).To(Equal(vehicleName))
 }

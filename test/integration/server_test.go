@@ -35,17 +35,24 @@ const (
 	caClient   = "./test-certs/vehicle_device.CA.cert"
 )
 
-func GenerateVehicleMessage(vehicleName string, timestamp *timestamppb.Timestamp) []byte {
-	return tesla.FlatbuffersStreamToBytes([]byte(senderID), []byte("V"), []byte(txid), generatePayload(vehicleName, timestamp), 1, []byte(messageID), []byte(deviceType), []byte(deviceID), uint64(time.Now().UnixMilli()))
+func GenerateVehicleMessage(vehicleName, location string, timestamp *timestamppb.Timestamp) []byte {
+	return tesla.FlatbuffersStreamToBytes([]byte(senderID), []byte("V"), []byte(txid), generatePayload(vehicleName, location, timestamp), 1, []byte(messageID), []byte(deviceType), []byte(deviceID), uint64(time.Now().UnixMilli()))
 }
 
-func generatePayload(vehicleName string, timestamp *timestamppb.Timestamp) []byte {
+func generatePayload(vehicleName, location string, timestamp *timestamppb.Timestamp) []byte {
 	var data []*protos.Datum
 	data = append(data, &protos.Datum{
 		Key: protos.Field_VehicleName,
 		Value: &protos.Value{
 			Value: &protos.Value_StringValue{
 				StringValue: vehicleName,
+			},
+		},
+	}, &protos.Datum{
+		Key: protos.Field_Location,
+		Value: &protos.Value{
+			Value: &protos.Value_StringValue{
+				StringValue: location,
 			},
 		},
 	})
