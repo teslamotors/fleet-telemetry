@@ -151,7 +151,7 @@ Data is encapsulated into protobuf messages of different types. We do not recomm
   2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
   3. Run make command
   ```sh
-  make generate-golang
+  make generate-protos
   ```
 
 # Testing
