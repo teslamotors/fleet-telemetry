@@ -24,12 +24,12 @@ var _ = Describe("Proto Logger", func() {
 	DescribeTable("Proto Parsing",
 		func(txType string, input proto.Message, verifyOutput func(proto.Message) bool) {
 			payloadBytes, err := proto.Marshal(input)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			output, err := protoLogger.GetProtoMessage(&telemetry.Record{
 				TxType:       txType,
 				PayloadBytes: payloadBytes,
 			})
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(verifyOutput(output)).To(BeTrue())
 		},
 		Entry("for txType alerts", "alerts", &protos.VehicleAlerts{Vin: "testAlertVin"}, func(msg proto.Message) bool {

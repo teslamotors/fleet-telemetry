@@ -57,10 +57,10 @@ var _ = Describe("Test full application config", func() {
 
 		It("fails when pem file is invalid", func() {
 			tmpCA, err := os.CreateTemp(GinkgoT().TempDir(), "tmpCA")
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = io.WriteString(tmpCA, "-----BEGIN CERTIFICATE-----\nFAKECA\n-----END CERTIFICATE-----")
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			config.TLS.CAFile = tmpCA.Name()
 
 			_, err = config.ExtractServiceTLSConfig()
@@ -71,10 +71,10 @@ var _ = Describe("Test full application config", func() {
 			config.TLS.CAFile = ""
 
 			tls, err := config.ExtractServiceTLSConfig()
-			Expect(err).To(BeNil())
-			Expect(tls).ToNot(BeNil())
-			Expect(tls.ClientCAs).ToNot(BeNil())
-			Expect(len(tls.ClientCAs.Subjects())).To(Equal(14)) //nolint:staticcheck
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tls).NotTo(BeNil())
+			Expect(tls.ClientCAs).NotTo(BeNil())
+			Expect(tls.ClientCAs.Subjects()).To(HaveLen(14)) //nolint:staticcheck
 		})
 
 		It("uses eng CA", func() {
@@ -82,17 +82,17 @@ var _ = Describe("Test full application config", func() {
 			config.UseDefaultEngCA = true
 
 			tls, err := config.ExtractServiceTLSConfig()
-			Expect(err).To(BeNil())
-			Expect(tls).ToNot(BeNil())
-			Expect(tls.ClientCAs).ToNot(BeNil())
-			Expect(len(tls.ClientCAs.Subjects())).To(Equal(8)) //nolint:staticcheck
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tls).NotTo(BeNil())
+			Expect(tls.ClientCAs).NotTo(BeNil())
+			Expect(tls.ClientCAs.Subjects()).To(HaveLen(8)) //nolint:staticcheck
 		})
 	})
 
 	Context("configure ports", func() {
 		It("use correct ports", func() {
 			config, err := loadTestApplicationConfig(TestSmallConfig)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(config.Port).To(BeEquivalentTo(443))
 			Expect(config.StatusPort).To(BeEquivalentTo(8080))
 		})
@@ -102,14 +102,14 @@ var _ = Describe("Test full application config", func() {
 		It("converts floats to int", func() {
 			log, _ := test.NewNullLogger()
 			config, err := loadTestApplicationConfig(TestSmallConfig)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
 			producers, err := config.ConfigureProducers(log)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(producers["FS"]).To(HaveLen(1))
 
 			value, err := config.Kafka.Get("queue.buffering.max.messages", 10)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(value.(int)).To(Equal(1000000))
 		})
 	})
@@ -127,7 +127,7 @@ var _ = Describe("Test full application config", func() {
 		It("returns a map", func() {
 			config.Kinesis = &Kinesis{Streams: map[string]string{"V": "mystream_V", "errors": "mystream_errors"}}
 			err := os.Setenv("KINESIS_STREAM_ERRORS", "test_errors")
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
 			streamMapping := config.CreateKinesisStreamMapping([]string{"V", "errors", "alerts"})
 			Expect(streamMapping).To(Equal(map[string]string{
@@ -147,7 +147,7 @@ var _ = Describe("Test full application config", func() {
 		BeforeEach(func() {
 			var err error
 			pubsubConfig, err = loadTestApplicationConfig(TestPubsubConfig)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -172,7 +172,7 @@ var _ = Describe("Test full application config", func() {
 			log, _ := test.NewNullLogger()
 			_ = os.Setenv("PUBSUB_EMULATOR_HOST", "some_url")
 			producers, err := pubsubConfig.ConfigureProducers(log)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(producers["FS"]).NotTo(BeNil())
 		})
 	})
@@ -189,7 +189,7 @@ var _ = Describe("Test full application config", func() {
 		It("fails if not reachable", func() {
 			log, _ := test.NewNullLogger()
 			config.configureMetricsCollector(log)
-			Expect(config.MetricCollector).To(Not(BeNil()))
+			Expect(config.MetricCollector).NotTo(BeNil())
 		})
 	})
 

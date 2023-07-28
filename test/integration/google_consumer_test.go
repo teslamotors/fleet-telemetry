@@ -88,7 +88,7 @@ func (c *TestConsumer) ClearSubscriptions() {
 			break
 		}
 		err = sub.Delete(ctx)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 	}
 }
 

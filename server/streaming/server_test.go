@@ -34,7 +34,7 @@ var _ = Describe("Socket handler test", func() {
 		producerRules := make(map[string][]telemetry.Producer)
 		mux := http.NewServeMux()
 		_, s, err := streaming.InitServer(conf, mux, producerRules, logger, registry)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		srv := httptest.NewServer(http.HandlerFunc(s.ServeBinaryWs(conf, registry)))
 		u, _ := url.Parse(srv.URL)
@@ -42,13 +42,13 @@ var _ = Describe("Socket handler test", func() {
 
 		dialer := &websocket.Dialer{HandshakeTimeout: 1 * time.Second}
 		conn, _, err := dialer.Dial(u.String(), req.Header)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = conn.WriteMessage(websocket.BinaryMessage, []byte(""))
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		_, _, _ = conn.ReadMessage()
 		_ = conn.Close()

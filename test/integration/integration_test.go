@@ -35,7 +35,7 @@ const (
 
 func setEnv(key string, value string) {
 	err := os.Setenv(key, value)
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 }
 
 var _ = Describe("Test messages", Ordered, func() {
@@ -55,25 +55,25 @@ var _ = Describe("Test messages", Ordered, func() {
 		logger = logrus.New()
 		var err error
 		tlsConfig, err = GetTLSConfig()
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		timestamp = timestamppb.Now()
 
 		payload = GenerateVehicleMessage(vehicleName, timestamp)
 		connection = CreateWebSocket(tlsConfig)
 
 		kinesisConsumer, err = NewTestKinesisConsumer(kinesisHost, kinesisStreamName)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		setEnv("PUBSUB_EMULATOR_HOST", pubsubHost)
 		pubsubConsumer, err = NewTestPubsubConsumer(projectID, vehicleTopic, subscriptionID, logger)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		kafkaConsumer, err = kafka.NewConsumer(&kafka.ConfigMap{
 			"bootstrap.servers": kafkaBroker,
 			"group.id":          kafkaGroup,
 			"auto.offset.reset": "earliest",
 		})
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterAll(func() {
@@ -85,11 +85,11 @@ var _ = Describe("Test messages", Ordered, func() {
 
 	It("reads vehicle data from consumer", func() {
 		err := kafkaConsumer.Subscribe(vehicleTopic, nil)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		err = connection.WriteMessage(websocket.BinaryMessage, GenerateVehicleMessage(vehicleName, timestamp))
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		msg, err := kafkaConsumer.ReadMessage(10 * time.Second)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		Expect(msg).NotTo(BeNil())
 		Expect(*msg.TopicPartition.Topic).To(Equal(vehicleTopic))
@@ -105,29 +105,29 @@ var _ = Describe("Test messages", Ordered, func() {
 
 	It("returns 200 for mtls status", func() {
 		body, err := VerifyHTTPSRequest(serviceURL, "status", tlsConfig)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(string(body)).To(Equal("mtls ok"))
 	})
 
 	It("returns 200 for status", func() {
 		body, err := VerifyHTTPRequest(statusURL, "status")
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(string(body)).To(Equal("ok"))
 	})
 
 	It("returns 200 for gc stats", func() {
 		_, err := VerifyHTTPSRequest(serviceURL, "gc_stats", tlsConfig)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("returns 200 for prom metrics", func() {
 		_, err := VerifyHTTPRequest(prometheusURL, "metrics")
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("reads vehicle data from google subscriber", func() {
 		err := connection.WriteMessage(websocket.BinaryMessage, payload)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		var msg *pubsub.Message
 		Eventually(func() error {
@@ -145,7 +145,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		// no obvious way to enforce delivery with a single message
 		for i := 1; i <= 4; i++ {
 			err = connection.WriteMessage(websocket.BinaryMessage, payload)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 		}
 
 		var record *kinesis.Record
@@ -197,9 +197,9 @@ func VerifyMessageHeaders(headers map[string]string) {
 func VerifyMessageBody(body []byte, vehicleName string) {
 	payload := &protos.Payload{}
 	err := proto.Unmarshal(body, payload)
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 	Expect(payload.GetVin()).To(Equal(deviceID))
-	Expect(len(payload.GetData())).To(Equal(1))
+	Expect(payload.GetData()).To(HaveLen(1))
 	datum := payload.GetData()[0]
 	Expect(datum.GetKey()).To(Equal(protos.Field_VehicleName))
 	Expect(datum.GetValue().GetStringValue()).To(Equal(vehicleName))
