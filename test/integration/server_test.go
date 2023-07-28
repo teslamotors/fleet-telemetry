@@ -53,7 +53,7 @@ func generatePayload(vehicleName string, timestamp *timestamppb.Timestamp) []byt
 		Data:      data,
 		CreatedAt: timestamp,
 	})
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 	return payload
 }
 
@@ -67,7 +67,7 @@ func CreateWebSocket(tlsConfig *tls.Config) *websocket.Conn {
 		TLSClientConfig:  tlsConfig,
 	}
 	c, _, err := tlsDialer.Dial(u.String(), http.Header{})
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 	return c
 }
 

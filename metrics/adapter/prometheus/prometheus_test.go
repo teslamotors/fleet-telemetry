@@ -20,7 +20,7 @@ import (
 
 func dclose(closer io.Closer) {
 	err := closer.Close()
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 }
 
 var _ = Describe("Prometheus Metric Adapter", Ordered, func() {
@@ -43,10 +43,10 @@ var _ = Describe("Prometheus Metric Adapter", Ordered, func() {
 
 		getMetrics = func() string {
 			resp, err := httpClient.Get(fmt.Sprintf("http://localhost:%d/metrics", port))
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			body, err := io.ReadAll(resp.Body)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 			defer dclose(resp.Body)
 
 			return string(body)

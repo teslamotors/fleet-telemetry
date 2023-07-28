@@ -31,9 +31,9 @@ var _ = Describe("Socket handler test", func() {
 		_, _ = rand.Read(raw)
 
 		record, err := telemetry.NewRecord(serializer, raw, "")
-		Expect(record).To(Not(BeNil()))
-		Expect(err).To(Not(BeNil()))
-		Expect(record.Serializer).To(Not(BeNil()))
+		Expect(err).To(HaveOccurred())
+		Expect(record).NotTo(BeNil())
+		Expect(record.Serializer).NotTo(BeNil())
 	})
 	It("includes vin in body", func() {
 		logger, _ := test.NewNullLogger()
@@ -48,16 +48,16 @@ var _ = Describe("Socket handler test", func() {
 		)
 		message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: generatePayload("cybertruck", "42", nil)}
 		recordMsg, err := message.ToBytes()
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		record, err := telemetry.NewRecord(serializer, recordMsg, "1")
-		Expect(record).To(Not(BeNil()))
-		Expect(err).To(BeNil())
-		Expect(record.Serializer).To(Not(BeNil()))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(record).NotTo(BeNil())
+		Expect(record.Serializer).NotTo(BeNil())
 
 		data := &protos.Payload{}
 		err = proto.Unmarshal(record.Payload(), data)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(data.Vin).To(Equal("42"))
 	})
 })
@@ -77,6 +77,6 @@ func generatePayload(vehicleName string, vin string, timestamp *timestamppb.Time
 		Data:      data,
 		CreatedAt: timestamp,
 	})
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 	return payload
 }

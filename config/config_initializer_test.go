@@ -40,7 +40,7 @@ var _ = Describe("Test application config initialization", func() {
 		}
 
 		loadedConfig, err := loadTestApplicationConfig(TestConfig)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		expectedConfig.MetricCollector = loadedConfig.MetricCollector
 		expectedConfig.AckChan = loadedConfig.AckChan
@@ -66,7 +66,7 @@ var _ = Describe("Test application config initialization", func() {
 		}
 
 		loadedConfig, err := loadTestApplicationConfig(TestSmallConfig)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		expectedConfig.MetricCollector = loadedConfig.MetricCollector
 		expectedConfig.AckChan = loadedConfig.AckChan
@@ -81,10 +81,10 @@ var _ = Describe("Test application config initialization", func() {
 
 func loadTestApplicationConfig(configStr string) (*Config, error) {
 	appConfig, err := os.CreateTemp(os.TempDir(), "config")
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 
 	_, err = appConfig.Write([]byte(configStr))
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 	Expect(appConfig.Close()).To(BeNil())
 
 	return loadApplicationConfig(appConfig.Name())

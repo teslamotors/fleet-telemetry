@@ -160,16 +160,16 @@ var _ = Describe("BinarySerializer", func() {
 			bs := telemetry.NewBinarySerializer(&telemetry.RequestIdentity{DeviceID: tt.fields.DeviceID, SenderID: tt.fields.SenderID}, tt.fields.DispatchRules, false, logger)
 
 			msgBytes, err := tt.args.msg.ToBytes()
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
 			gotRecord, err := bs.Deserialize(msgBytes, tt.args.socketID)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
-			Expect(gotRecord.ReceivedTimestamp).ToNot(Equal(0))
+			Expect(gotRecord.ReceivedTimestamp).NotTo(Equal(0))
 
 			gotRecord.ReceivedTimestamp = 0
 			tt.wantRecord.Serializer = bs
-			Expect(len(gotRecord.RawBytes)).ToNot(Equal(0))
+			Expect(gotRecord.RawBytes).NotTo(BeEmpty())
 			Expect(reflect.DeepEqual(gotRecord.RawBytes, msgBytes)).To(BeFalse())
 
 			tt.wantRecord.RawBytes = gotRecord.RawBytes
@@ -216,7 +216,7 @@ var _ = Describe("BinarySerializer", func() {
 
 		var unknownError *telemetry.UnknownMessageType
 		_, err := bs.Deserialize([]byte("test,1234,type"), "Socket-42")
-		Expect(err).ToNot(BeNil())
+		Expect(err).To(HaveOccurred())
 		Expect(errors.As(err, &unknownError))
 	})
 
@@ -226,7 +226,7 @@ var _ = Describe("BinarySerializer", func() {
 
 		ackBytes := bs.Ack(msg)
 		result, err := messages.StreamAckMessageFromBytes(ackBytes)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(string(result.TXID)).To(Equal("1234"))
 		Expect(string(result.MessageTopic)).To(Equal("test-topic"))
 	})
@@ -238,7 +238,7 @@ var _ = Describe("BinarySerializer", func() {
 
 		errBytes := bs.Error(e, msg)
 		result, err := messages.StreamMessageFromBytes(errBytes)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(string(result.TXID)).To(Equal("1234"))
 		Expect(string(result.Payload)).To(Equal("a bug"))
 	})

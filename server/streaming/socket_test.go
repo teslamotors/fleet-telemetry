@@ -69,7 +69,7 @@ var _ = Describe("Socket test", func() {
 			msg := sm.ListenToWriteChannel()
 			Expect(msg.MsgType).To(Equal(2))
 			strMsg, err := messages.StreamMessageFromBytes(msg.Msg)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(string(strMsg.Payload)).To(Equal("incorrect message format"))
 		})
 
@@ -79,7 +79,7 @@ var _ = Describe("Socket test", func() {
 			msg := sm.ListenToWriteChannel()
 			Expect(msg.MsgType).To(Equal(2))
 			envelope, _, err := tesla.FlatbuffersEnvelopeFromBytes(msg.Msg)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(envelope.MessageType()).To(Equal(tesla.MessageFlatbuffersStreamAck))
 			lastLogEntry := hook.LastEntry()
 			Expect(lastLogEntry.Message).To(ContainSubstring("unknown_message_type_error"))
@@ -88,14 +88,14 @@ var _ = Describe("Socket test", func() {
 		It("returns error for unknown topic and unmatched sender", func() {
 			record := messages.StreamMessage{TXID: []byte("1234"), MessageTopic: []byte("canlogs"), Payload: []byte("data")}
 			recordMsg, err := record.ToBytes()
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
 			sm.ParseAndProcessRecord(serializer, recordMsg)
 			msg := sm.ListenToWriteChannel()
 			Expect(msg.MsgType).To(Equal(2))
 
 			streamMessage, err := messages.StreamMessageFromBytes(msg.Msg)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(string(streamMessage.Payload)).To(Equal("incorrect message format"))
 			firstEntry := hook.Entries[0]
 			Expect(firstEntry.Message).To(ContainSubstring("unexpected_sender_id"))
@@ -106,7 +106,7 @@ var _ = Describe("Socket test", func() {
 		It("topic is verified and no matching sender", func() {
 			record := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("SOMEOTHERVIN"), MessageTopic: []byte("D4"), Payload: []byte("data")}
 			recordMsg, err := record.ToBytes()
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
 			sm.ParseAndProcessRecord(serializer, recordMsg)
 			Expect(hook.Entries).To(HaveLen(0))
@@ -115,7 +115,7 @@ var _ = Describe("Socket test", func() {
 		It("topic is not verified, but sender matches", func() {
 			record := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("canlogs"), Payload: []byte("data")}
 			recordMsg, err := record.ToBytes()
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
 			sm.ParseAndProcessRecord(serializer, recordMsg)
 
@@ -123,7 +123,7 @@ var _ = Describe("Socket test", func() {
 			Expect(msg.MsgType).To(Equal(2))
 
 			streamMessage, err := messages.StreamAckMessageFromBytes(msg.Msg)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(hook.Entries).To(HaveLen(0))
 
 			Expect(string(streamMessage.MessageTopic)).To(Equal("canlogs"))
