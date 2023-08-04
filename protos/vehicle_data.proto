@@ -126,6 +126,10 @@ enum Field {
   RoofColor = 116;
   ChargePort = 117;
   ChargePortLatch = 118;
+  Experimental_1 = 119;
+  Experimental_2 = 120;
+  Experimental_3 = 121;
+  Experimental_4 = 122;
 }
 
 // ChargingState are the charging options
