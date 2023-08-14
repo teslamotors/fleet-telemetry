@@ -7,10 +7,15 @@ import (
 
 	"github.com/teslamotors/fleet-telemetry/protos"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// SizeLimit maximum incoming payload size from the vehicle
-const SizeLimit = 1000000 // 1mb
+const (
+	// SizeLimit maximum incoming payload size from the vehicle
+	SizeLimit = 1000000 // 1mb
+	// https://github.com/protocolbuffers/protobuf-go/blob/6d0a5dbd95005b70501b4cc2c5124dab07a1f4a0/encoding/protojson/well_known_types.go#L591
+	maxSecondsInDuration = 315576000000
+)
 
 // Record is a structs that represents the telemetry records vehicles send to the backend
 // vin is used as kafka produce partitioning key by default, can be configured to random
@@ -110,6 +115,7 @@ func (record *Record) applyRecordTransforms() error {
 			return err
 		}
 		message.Vin = record.Vin
+		transformTimestamp(message)
 		record.PayloadBytes, err = proto.Marshal(message)
 		return err
 	case "errors":
@@ -174,4 +180,21 @@ func ParseLocation(s string) (*protos.LocationValue, error) {
 		Latitude:  lat,
 		Longitude: lon,
 	}, nil
+}
+
+func transformTimestamp(message *protos.VehicleAlerts) {
+	for _, alert := range message.Alerts {
+		alert.StartedAt = convertTimestamp(alert.StartedAt)
+		alert.EndedAt = convertTimestamp(alert.EndedAt)
+	}
+}
+
+func convertTimestamp(input *timestamppb.Timestamp) *timestamppb.Timestamp {
+	if input == nil {
+		return nil
+	}
+	if input.GetSeconds() < maxSecondsInDuration {
+		return input
+	}
+	return timestamppb.New(time.UnixMilli(input.GetSeconds()))
 }

@@ -2,8 +2,10 @@ package telemetry_test
 
 import (
 	"crypto/rand"
-	"github.com/sirupsen/logrus"
 	"sort"
+	"time"
+
+	"github.com/sirupsen/logrus"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -152,26 +154,75 @@ var _ = Describe("Socket handler test", func() {
 		second := data.Data[1]
 		Expect(second.Key).To(Equal(protos.Field_VehicleName))
 	})
-})
 
-var _ = DescribeTable("ParseLocation",
-	func(locStr string, expected *protos.LocationValue, errRegex string) {
-		loc, err := telemetry.ParseLocation(locStr)
-		if errRegex == "" {
+	DescribeTable("handleAlerts",
+		func(payloadTimestamp *timestamppb.Timestamp, expectedTimestamp *timestamppb.Timestamp, isActive bool) {
+			alert := &protos.VehicleAlert{
+				Name:      "name1",
+				StartedAt: payloadTimestamp,
+			}
+			expectedAlert := &protos.VehicleAlert{
+				Name:      "name1",
+				StartedAt: expectedTimestamp,
+			}
+
+			if !isActive {
+				alert.EndedAt = payloadTimestamp
+				expectedAlert.EndedAt = expectedTimestamp
+			}
+
+			alerts := &protos.VehicleAlerts{
+				Vin: "42",
+				Alerts: []*protos.VehicleAlert{
+					alert,
+				}}
+
+			expected := &protos.VehicleAlerts{
+				Vin: "42",
+				Alerts: []*protos.VehicleAlert{
+					expectedAlert,
+				}}
+
+			msg, err := proto.Marshal(alerts)
 			Expect(err).NotTo(HaveOccurred())
-		} else {
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(MatchRegexp(errRegex))
-		}
-		Expect(loc).To(Equal(clone(expected)))
-	},
-	Entry("for a bogus string", "Abhishek is NOT a location", nil, "input does not match format"),
-	Entry("for a broken location", "(37.412374 Q, 122.145867 W)", nil, "invalid location format.*"),
-	Entry("for a valid loc, NW", "(37.412374 N, 122.145867 W)", &protos.LocationValue{Latitude: 37.412374, Longitude: -122.145867}, ""),
-	Entry("for a valid loc, NE", "(37.412374 N, 122.145867 E)", &protos.LocationValue{Latitude: 37.412374, Longitude: 122.145867}, ""),
-	Entry("for a valid loc, SW", "(37.412374 S, 122.145867 W)", &protos.LocationValue{Latitude: -37.412374, Longitude: -122.145867}, ""),
-	Entry("for a valid loc, SE", "(37.412374 S, 122.145867 E)", &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}, ""),
-)
+
+			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("alerts"), Payload: msg}
+			recordMsg, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(record).NotTo(BeNil())
+
+			data := &protos.VehicleAlerts{}
+			err = proto.Unmarshal(record.Payload(), data)
+			Expect(proto.Equal(data, expected)).To(BeTrue())
+		},
+		Entry("for active alert with microsecond timestamp", timestamppb.New(time.Unix(1692044886337, 0)), timestamppb.New(time.Unix(1692044886, 337000000)), true),
+		Entry("for inactive alert with microsecond timestamp", timestamppb.New(time.Unix(1692044886337, 0)), timestamppb.New(time.Unix(1692044886, 337000000)), false),
+		Entry("for active alert with regular timestamp", timestamppb.New(time.Unix(1600000000, 337000000)), timestamppb.New(time.Unix(1600000000, 337000000)), true),
+		Entry("for inactive alert with regular timestamp", timestamppb.New(time.Unix(1600000000, 337000000)), timestamppb.New(time.Unix(1600000000, 337000000)), false),
+	)
+
+	DescribeTable("ParseLocation",
+		func(locStr string, expected *protos.LocationValue, errRegex string) {
+			loc, err := telemetry.ParseLocation(locStr)
+			if errRegex == "" {
+				Expect(err).NotTo(HaveOccurred())
+			} else {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(MatchRegexp(errRegex))
+			}
+			Expect(loc).To(Equal(clone(expected)))
+		},
+		Entry("for a bogus string", "Abhishek is NOT a location", nil, "input does not match format"),
+		Entry("for a broken location", "(37.412374 Q, 122.145867 W)", nil, "invalid location format.*"),
+		Entry("for a valid loc, NW", "(37.412374 N, 122.145867 W)", &protos.LocationValue{Latitude: 37.412374, Longitude: -122.145867}, ""),
+		Entry("for a valid loc, NE", "(37.412374 N, 122.145867 E)", &protos.LocationValue{Latitude: 37.412374, Longitude: 122.145867}, ""),
+		Entry("for a valid loc, SW", "(37.412374 S, 122.145867 W)", &protos.LocationValue{Latitude: -37.412374, Longitude: -122.145867}, ""),
+		Entry("for a valid loc, SE", "(37.412374 S, 122.145867 E)", &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}, ""),
+	)
+})
 
 func generatePayload(vehicleName string, vin string, timestamp *timestamppb.Timestamp, extraData ...*protos.Datum) []byte {
 	var data []*protos.Datum
