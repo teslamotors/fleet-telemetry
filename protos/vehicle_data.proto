@@ -130,6 +130,8 @@ enum Field {
   Experimental_2 = 120;
   Experimental_3 = 121;
   Experimental_4 = 122;
+  GuestModeEnabled = 123;
+  PinToDriveEnabled = 124;
 }
 
 // ChargingState are the charging options
