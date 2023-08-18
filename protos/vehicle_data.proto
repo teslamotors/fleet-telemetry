@@ -132,6 +132,15 @@ enum Field {
   Experimental_4 = 122;
   GuestModeEnabled = 123;
   PinToDriveEnabled = 124;
+  PairedPhoneKeyAndKeyFobQty = 125;
+  CruiseFollowDistance = 126;
+  AutomaticBlindSpotCamera = 127;
+  BlindSpotCollisionWarningChime = 128;
+  SpeedLimitWarning = 129;
+  ForwardCollisionWarning = 130;
+  LaneDepartureAvoidance = 131;
+  EmergencyLaneDepartureAvoidance = 132;
+  AutomaticEmergencyBrakingOff = 133;
 }
 
 // ChargingState are the charging options
