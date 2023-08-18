@@ -24,131 +24,140 @@ const (
 type Field int32
 
 const (
-	Field_Unknown                        Field = 0
-	Field_DriveRail                      Field = 1
-	Field_ChargeState                    Field = 2
-	Field_BmsFullchargecomplete          Field = 3
-	Field_VehicleSpeed                   Field = 4
-	Field_Odometer                       Field = 5
-	Field_PackVoltage                    Field = 6
-	Field_PackCurrent                    Field = 7
-	Field_Soc                            Field = 8
-	Field_DCDCEnable                     Field = 9
-	Field_Gear                           Field = 10
-	Field_IsolationResistance            Field = 11
-	Field_PedalPosition                  Field = 12
-	Field_BrakePedal                     Field = 13
-	Field_DiState                        Field = 14
-	Field_DiPcbt                         Field = 15
-	Field_DiRpm                          Field = 16
-	Field_DiTorquemotor                  Field = 17
-	Field_DiHeatsinkt                    Field = 18
-	Field_DiVbat                         Field = 19
-	Field_DiMotorcurrent                 Field = 20
-	Field_Location                       Field = 21
-	Field_GpsState                       Field = 22
-	Field_GpsHeading                     Field = 23
-	Field_NumBrickVoltageMax             Field = 24
-	Field_BrickVoltageMax                Field = 25
-	Field_NumBrickVoltageMin             Field = 26
-	Field_BrickVoltageMin                Field = 27
-	Field_NumModuleTempMax               Field = 28
-	Field_ModuleTempMax                  Field = 29
-	Field_NumModuleTempMin               Field = 30
-	Field_ModuleTempMin                  Field = 31
-	Field_RatedRange                     Field = 32
-	Field_Hvil                           Field = 33
-	Field_DCChargingEnergyIn             Field = 34
-	Field_DCChargingPower                Field = 35
-	Field_ACChargingEnergyIn             Field = 36
-	Field_ACChargingPower                Field = 37
-	Field_ChargeLimitSoc                 Field = 38
-	Field_FastChargerPresent             Field = 39
-	Field_EstBatteryRange                Field = 40
-	Field_IdealBatteryRange              Field = 41
-	Field_BatteryLevel                   Field = 42
-	Field_TimeToFullCharge               Field = 43
-	Field_ScheduledChargingStartTime     Field = 44
-	Field_ScheduledChargingPending       Field = 45
-	Field_ScheduledDepartureTime         Field = 46
-	Field_PreconditioningEnabled         Field = 47
-	Field_ScheduledChargingMode          Field = 48
-	Field_ChargeAmps                     Field = 49
-	Field_ChargeEnableRequest            Field = 50
-	Field_ChargerPhases                  Field = 51
-	Field_ChargePortColdWeatherMode      Field = 52
-	Field_ChargeCurrentRequest           Field = 53
-	Field_ChargeCurrentRequestMax        Field = 54
-	Field_BatteryHeaterOn                Field = 55
-	Field_NotEnoughPowerToHeat           Field = 56
-	Field_SuperchargerSessionTripPlanner Field = 57
-	Field_DoorState                      Field = 58
-	Field_Locked                         Field = 59
-	Field_FdWindow                       Field = 60
-	Field_FpWindow                       Field = 61
-	Field_RdWindow                       Field = 62
-	Field_RpWindow                       Field = 63
-	Field_VehicleName                    Field = 64
-	Field_SentryMode                     Field = 65
-	Field_SpeedLimitMode                 Field = 66
-	Field_CurrentLimitMph                Field = 67
-	Field_Version                        Field = 68
-	Field_TpmsPressureFl                 Field = 69
-	Field_TpmsPressureFr                 Field = 70
-	Field_TpmsPressureRl                 Field = 71
-	Field_TpmsPressureRr                 Field = 72
-	Field_TmpsPressureRe1L0              Field = 73
-	Field_TmpsPressureRe1L1              Field = 74
-	Field_TmpsPressureRe1R0              Field = 75
-	Field_TmpsPressureRe1R1              Field = 76
-	Field_TmpsPressureRe2L0              Field = 77
-	Field_TmpsPressureRe2L1              Field = 78
-	Field_TmpsPressureRe2R0              Field = 79
-	Field_TmpsPressureRe2R1              Field = 80
-	Field_TpmsLastSeenPressureTimeFl     Field = 81
-	Field_TpmsLastSeenPressureTimeFr     Field = 82
-	Field_TpmsLastSeenPressureTimeRl     Field = 83
-	Field_TpmsLastSeenPressureTimeRr     Field = 84
-	Field_InsideTemp                     Field = 85
-	Field_OutsideTemp                    Field = 86
-	Field_SeatHeaterLeft                 Field = 87
-	Field_SeatHeaterRight                Field = 88
-	Field_SeatHeaterRearLeft             Field = 89
-	Field_SeatHeaterRearRight            Field = 90
-	Field_SeatHeaterRearCenter           Field = 91
-	Field_AutoSeatClimateLeft            Field = 92
-	Field_AutoSeatClimateRight           Field = 93
-	Field_DriverSeatBelt                 Field = 94
-	Field_PassengerSeatBelt              Field = 95
-	Field_DriverSeatOccupied             Field = 96
-	Field_PassengerSeatFoldPosition      Field = 97
-	Field_LateralAcceleration            Field = 98
-	Field_LongitudinalAcceleration       Field = 99
-	Field_CruiseState                    Field = 100
-	Field_CruiseSetSpeed                 Field = 101
-	Field_LifetimeEnergyUsed             Field = 102
-	Field_LifetimeEnergyUsedDrive        Field = 103
-	Field_TractorParkBrakeStatus         Field = 104
-	Field_TrailerParkBrakeStatus         Field = 105
-	Field_BrakePedalPos                  Field = 106
-	Field_RouteLastUpdated               Field = 107
-	Field_RouteLine                      Field = 108
-	Field_MilesToArrival                 Field = 109
-	Field_MinutesToArrival               Field = 110
-	Field_OriginLocation                 Field = 111
-	Field_DestinationLocation            Field = 112
-	Field_CarType                        Field = 113
-	Field_Trim                           Field = 114
-	Field_ExteriorColor                  Field = 115
-	Field_RoofColor                      Field = 116
-	Field_ChargePort                     Field = 117
-	Field_ChargePortLatch                Field = 118
-	Field_Experimental_1                 Field = 119
-	Field_Experimental_2                 Field = 120
-	Field_Experimental_3                 Field = 121
-	Field_Experimental_4                 Field = 122
-	Field_GuestModeEnabled               Field = 123
-	Field_PinToDriveEnabled              Field = 124
+	Field_Unknown                         Field = 0
+	Field_DriveRail                       Field = 1
+	Field_ChargeState                     Field = 2
+	Field_BmsFullchargecomplete           Field = 3
+	Field_VehicleSpeed                    Field = 4
+	Field_Odometer                        Field = 5
+	Field_PackVoltage                     Field = 6
+	Field_PackCurrent                     Field = 7
+	Field_Soc                             Field = 8
+	Field_DCDCEnable                      Field = 9
+	Field_Gear                            Field = 10
+	Field_IsolationResistance             Field = 11
+	Field_PedalPosition                   Field = 12
+	Field_BrakePedal                      Field = 13
+	Field_DiState                         Field = 14
+	Field_DiPcbt                          Field = 15
+	Field_DiRpm                           Field = 16
+	Field_DiTorquemotor                   Field = 17
+	Field_DiHeatsinkt                     Field = 18
+	Field_DiVbat                          Field = 19
+	Field_DiMotorcurrent                  Field = 20
+	Field_Location                        Field = 21
+	Field_GpsState                        Field = 22
+	Field_GpsHeading                      Field = 23
+	Field_NumBrickVoltageMax              Field = 24
+	Field_BrickVoltageMax                 Field = 25
+	Field_NumBrickVoltageMin              Field = 26
+	Field_BrickVoltageMin                 Field = 27
+	Field_NumModuleTempMax                Field = 28
+	Field_ModuleTempMax                   Field = 29
+	Field_NumModuleTempMin                Field = 30
+	Field_ModuleTempMin                   Field = 31
+	Field_RatedRange                      Field = 32
+	Field_Hvil                            Field = 33
+	Field_DCChargingEnergyIn              Field = 34
+	Field_DCChargingPower                 Field = 35
+	Field_ACChargingEnergyIn              Field = 36
+	Field_ACChargingPower                 Field = 37
+	Field_ChargeLimitSoc                  Field = 38
+	Field_FastChargerPresent              Field = 39
+	Field_EstBatteryRange                 Field = 40
+	Field_IdealBatteryRange               Field = 41
+	Field_BatteryLevel                    Field = 42
+	Field_TimeToFullCharge                Field = 43
+	Field_ScheduledChargingStartTime      Field = 44
+	Field_ScheduledChargingPending        Field = 45
+	Field_ScheduledDepartureTime          Field = 46
+	Field_PreconditioningEnabled          Field = 47
+	Field_ScheduledChargingMode           Field = 48
+	Field_ChargeAmps                      Field = 49
+	Field_ChargeEnableRequest             Field = 50
+	Field_ChargerPhases                   Field = 51
+	Field_ChargePortColdWeatherMode       Field = 52
+	Field_ChargeCurrentRequest            Field = 53
+	Field_ChargeCurrentRequestMax         Field = 54
+	Field_BatteryHeaterOn                 Field = 55
+	Field_NotEnoughPowerToHeat            Field = 56
+	Field_SuperchargerSessionTripPlanner  Field = 57
+	Field_DoorState                       Field = 58
+	Field_Locked                          Field = 59
+	Field_FdWindow                        Field = 60
+	Field_FpWindow                        Field = 61
+	Field_RdWindow                        Field = 62
+	Field_RpWindow                        Field = 63
+	Field_VehicleName                     Field = 64
+	Field_SentryMode                      Field = 65
+	Field_SpeedLimitMode                  Field = 66
+	Field_CurrentLimitMph                 Field = 67
+	Field_Version                         Field = 68
+	Field_TpmsPressureFl                  Field = 69
+	Field_TpmsPressureFr                  Field = 70
+	Field_TpmsPressureRl                  Field = 71
+	Field_TpmsPressureRr                  Field = 72
+	Field_TmpsPressureRe1L0               Field = 73
+	Field_TmpsPressureRe1L1               Field = 74
+	Field_TmpsPressureRe1R0               Field = 75
+	Field_TmpsPressureRe1R1               Field = 76
+	Field_TmpsPressureRe2L0               Field = 77
+	Field_TmpsPressureRe2L1               Field = 78
+	Field_TmpsPressureRe2R0               Field = 79
+	Field_TmpsPressureRe2R1               Field = 80
+	Field_TpmsLastSeenPressureTimeFl      Field = 81
+	Field_TpmsLastSeenPressureTimeFr      Field = 82
+	Field_TpmsLastSeenPressureTimeRl      Field = 83
+	Field_TpmsLastSeenPressureTimeRr      Field = 84
+	Field_InsideTemp                      Field = 85
+	Field_OutsideTemp                     Field = 86
+	Field_SeatHeaterLeft                  Field = 87
+	Field_SeatHeaterRight                 Field = 88
+	Field_SeatHeaterRearLeft              Field = 89
+	Field_SeatHeaterRearRight             Field = 90
+	Field_SeatHeaterRearCenter            Field = 91
+	Field_AutoSeatClimateLeft             Field = 92
+	Field_AutoSeatClimateRight            Field = 93
+	Field_DriverSeatBelt                  Field = 94
+	Field_PassengerSeatBelt               Field = 95
+	Field_DriverSeatOccupied              Field = 96
+	Field_PassengerSeatFoldPosition       Field = 97
+	Field_LateralAcceleration             Field = 98
+	Field_LongitudinalAcceleration        Field = 99
+	Field_CruiseState                     Field = 100
+	Field_CruiseSetSpeed                  Field = 101
+	Field_LifetimeEnergyUsed              Field = 102
+	Field_LifetimeEnergyUsedDrive         Field = 103
+	Field_TractorParkBrakeStatus          Field = 104
+	Field_TrailerParkBrakeStatus          Field = 105
+	Field_BrakePedalPos                   Field = 106
+	Field_RouteLastUpdated                Field = 107
+	Field_RouteLine                       Field = 108
+	Field_MilesToArrival                  Field = 109
+	Field_MinutesToArrival                Field = 110
+	Field_OriginLocation                  Field = 111
+	Field_DestinationLocation             Field = 112
+	Field_CarType                         Field = 113
+	Field_Trim                            Field = 114
+	Field_ExteriorColor                   Field = 115
+	Field_RoofColor                       Field = 116
+	Field_ChargePort                      Field = 117
+	Field_ChargePortLatch                 Field = 118
+	Field_Experimental_1                  Field = 119
+	Field_Experimental_2                  Field = 120
+	Field_Experimental_3                  Field = 121
+	Field_Experimental_4                  Field = 122
+	Field_GuestModeEnabled                Field = 123
+	Field_PinToDriveEnabled               Field = 124
+	Field_PairedPhoneKeyAndKeyFobQty      Field = 125
+	Field_CruiseFollowDistance            Field = 126
+	Field_AutomaticBlindSpotCamera        Field = 127
+	Field_BlindSpotCollisionWarningChime  Field = 128
+	Field_SpeedLimitWarning               Field = 129
+	Field_ForwardCollisionWarning         Field = 130
+	Field_LaneDepartureAvoidance          Field = 131
+	Field_EmergencyLaneDepartureAvoidance Field = 132
+	Field_AutomaticEmergencyBrakingOff    Field = 133
 )
 
 // Enum value maps for Field.
@@ -279,133 +288,151 @@ var (
 		122: "Experimental_4",
 		123: "GuestModeEnabled",
 		124: "PinToDriveEnabled",
+		125: "PairedPhoneKeyAndKeyFobQty",
+		126: "CruiseFollowDistance",
+		127: "AutomaticBlindSpotCamera",
+		128: "BlindSpotCollisionWarningChime",
+		129: "SpeedLimitWarning",
+		130: "ForwardCollisionWarning",
+		131: "LaneDepartureAvoidance",
+		132: "EmergencyLaneDepartureAvoidance",
+		133: "AutomaticEmergencyBrakingOff",
 	}
 	Field_value = map[string]int32{
-		"Unknown":                        0,
-		"DriveRail":                      1,
-		"ChargeState":                    2,
-		"BmsFullchargecomplete":          3,
-		"VehicleSpeed":                   4,
-		"Odometer":                       5,
-		"PackVoltage":                    6,
-		"PackCurrent":                    7,
-		"Soc":                            8,
-		"DCDCEnable":                     9,
-		"Gear":                           10,
-		"IsolationResistance":            11,
-		"PedalPosition":                  12,
-		"BrakePedal":                     13,
-		"DiState":                        14,
-		"DiPcbt":                         15,
-		"DiRpm":                          16,
-		"DiTorquemotor":                  17,
-		"DiHeatsinkt":                    18,
-		"DiVbat":                         19,
-		"DiMotorcurrent":                 20,
-		"Location":                       21,
-		"GpsState":                       22,
-		"GpsHeading":                     23,
-		"NumBrickVoltageMax":             24,
-		"BrickVoltageMax":                25,
-		"NumBrickVoltageMin":             26,
-		"BrickVoltageMin":                27,
-		"NumModuleTempMax":               28,
-		"ModuleTempMax":                  29,
-		"NumModuleTempMin":               30,
-		"ModuleTempMin":                  31,
-		"RatedRange":                     32,
-		"Hvil":                           33,
-		"DCChargingEnergyIn":             34,
-		"DCChargingPower":                35,
-		"ACChargingEnergyIn":             36,
-		"ACChargingPower":                37,
-		"ChargeLimitSoc":                 38,
-		"FastChargerPresent":             39,
-		"EstBatteryRange":                40,
-		"IdealBatteryRange":              41,
-		"BatteryLevel":                   42,
-		"TimeToFullCharge":               43,
-		"ScheduledChargingStartTime":     44,
-		"ScheduledChargingPending":       45,
-		"ScheduledDepartureTime":         46,
-		"PreconditioningEnabled":         47,
-		"ScheduledChargingMode":          48,
-		"ChargeAmps":                     49,
-		"ChargeEnableRequest":            50,
-		"ChargerPhases":                  51,
-		"ChargePortColdWeatherMode":      52,
-		"ChargeCurrentRequest":           53,
-		"ChargeCurrentRequestMax":        54,
-		"BatteryHeaterOn":                55,
-		"NotEnoughPowerToHeat":           56,
-		"SuperchargerSessionTripPlanner": 57,
-		"DoorState":                      58,
-		"Locked":                         59,
-		"FdWindow":                       60,
-		"FpWindow":                       61,
-		"RdWindow":                       62,
-		"RpWindow":                       63,
-		"VehicleName":                    64,
-		"SentryMode":                     65,
-		"SpeedLimitMode":                 66,
-		"CurrentLimitMph":                67,
-		"Version":                        68,
-		"TpmsPressureFl":                 69,
-		"TpmsPressureFr":                 70,
-		"TpmsPressureRl":                 71,
-		"TpmsPressureRr":                 72,
-		"TmpsPressureRe1L0":              73,
-		"TmpsPressureRe1L1":              74,
-		"TmpsPressureRe1R0":              75,
-		"TmpsPressureRe1R1":              76,
-		"TmpsPressureRe2L0":              77,
-		"TmpsPressureRe2L1":              78,
-		"TmpsPressureRe2R0":              79,
-		"TmpsPressureRe2R1":              80,
-		"TpmsLastSeenPressureTimeFl":     81,
-		"TpmsLastSeenPressureTimeFr":     82,
-		"TpmsLastSeenPressureTimeRl":     83,
-		"TpmsLastSeenPressureTimeRr":     84,
-		"InsideTemp":                     85,
-		"OutsideTemp":                    86,
-		"SeatHeaterLeft":                 87,
-		"SeatHeaterRight":                88,
-		"SeatHeaterRearLeft":             89,
-		"SeatHeaterRearRight":            90,
-		"SeatHeaterRearCenter":           91,
-		"AutoSeatClimateLeft":            92,
-		"AutoSeatClimateRight":           93,
-		"DriverSeatBelt":                 94,
-		"PassengerSeatBelt":              95,
-		"DriverSeatOccupied":             96,
-		"PassengerSeatFoldPosition":      97,
-		"LateralAcceleration":            98,
-		"LongitudinalAcceleration":       99,
-		"CruiseState":                    100,
-		"CruiseSetSpeed":                 101,
-		"LifetimeEnergyUsed":             102,
-		"LifetimeEnergyUsedDrive":        103,
-		"TractorParkBrakeStatus":         104,
-		"TrailerParkBrakeStatus":         105,
-		"BrakePedalPos":                  106,
-		"RouteLastUpdated":               107,
-		"RouteLine":                      108,
-		"MilesToArrival":                 109,
-		"MinutesToArrival":               110,
-		"OriginLocation":                 111,
-		"DestinationLocation":            112,
-		"CarType":                        113,
-		"Trim":                           114,
-		"ExteriorColor":                  115,
-		"RoofColor":                      116,
-		"ChargePort":                     117,
-		"ChargePortLatch":                118,
-		"Experimental_1":                 119,
-		"Experimental_2":                 120,
-		"Experimental_3":                 121,
-		"Experimental_4":                 122,
-		"GuestModeEnabled":               123,
-		"PinToDriveEnabled":              124,
+		"Unknown":                         0,
+		"DriveRail":                       1,
+		"ChargeState":                     2,
+		"BmsFullchargecomplete":           3,
+		"VehicleSpeed":                    4,
+		"Odometer":                        5,
+		"PackVoltage":                     6,
+		"PackCurrent":                     7,
+		"Soc":                             8,
+		"DCDCEnable":                      9,
+		"Gear":                            10,
+		"IsolationResistance":             11,
+		"PedalPosition":                   12,
+		"BrakePedal":                      13,
+		"DiState":                         14,
+		"DiPcbt":                          15,
+		"DiRpm":                           16,
+		"DiTorquemotor":                   17,
+		"DiHeatsinkt":                     18,
+		"DiVbat":                          19,
+		"DiMotorcurrent":                  20,
+		"Location":                        21,
+		"GpsState":                        22,
+		"GpsHeading":                      23,
+		"NumBrickVoltageMax":              24,
+		"BrickVoltageMax":                 25,
+		"NumBrickVoltageMin":              26,
+		"BrickVoltageMin":                 27,
+		"NumModuleTempMax":                28,
+		"ModuleTempMax":                   29,
+		"NumModuleTempMin":                30,
+		"ModuleTempMin":                   31,
+		"RatedRange":                      32,
+		"Hvil":                            33,
+		"DCChargingEnergyIn":              34,
+		"DCChargingPower":                 35,
+		"ACChargingEnergyIn":              36,
+		"ACChargingPower":                 37,
+		"ChargeLimitSoc":                  38,
+		"FastChargerPresent":              39,
+		"EstBatteryRange":                 40,
+		"IdealBatteryRange":               41,
+		"BatteryLevel":                    42,
+		"TimeToFullCharge":                43,
+		"ScheduledChargingStartTime":      44,
+		"ScheduledChargingPending":        45,
+		"ScheduledDepartureTime":          46,
+		"PreconditioningEnabled":          47,
+		"ScheduledChargingMode":           48,
+		"ChargeAmps":                      49,
+		"ChargeEnableRequest":             50,
+		"ChargerPhases":                   51,
+		"ChargePortColdWeatherMode":       52,
+		"ChargeCurrentRequest":            53,
+		"ChargeCurrentRequestMax":         54,
+		"BatteryHeaterOn":                 55,
+		"NotEnoughPowerToHeat":            56,
+		"SuperchargerSessionTripPlanner":  57,
+		"DoorState":                       58,
+		"Locked":                          59,
+		"FdWindow":                        60,
+		"FpWindow":                        61,
+		"RdWindow":                        62,
+		"RpWindow":                        63,
+		"VehicleName":                     64,
+		"SentryMode":                      65,
+		"SpeedLimitMode":                  66,
+		"CurrentLimitMph":                 67,
+		"Version":                         68,
+		"TpmsPressureFl":                  69,
+		"TpmsPressureFr":                  70,
+		"TpmsPressureRl":                  71,
+		"TpmsPressureRr":                  72,
+		"TmpsPressureRe1L0":               73,
+		"TmpsPressureRe1L1":               74,
+		"TmpsPressureRe1R0":               75,
+		"TmpsPressureRe1R1":               76,
+		"TmpsPressureRe2L0":               77,
+		"TmpsPressureRe2L1":               78,
+		"TmpsPressureRe2R0":               79,
+		"TmpsPressureRe2R1":               80,
+		"TpmsLastSeenPressureTimeFl":      81,
+		"TpmsLastSeenPressureTimeFr":      82,
+		"TpmsLastSeenPressureTimeRl":      83,
+		"TpmsLastSeenPressureTimeRr":      84,
+		"InsideTemp":                      85,
+		"OutsideTemp":                     86,
+		"SeatHeaterLeft":                  87,
+		"SeatHeaterRight":                 88,
+		"SeatHeaterRearLeft":              89,
+		"SeatHeaterRearRight":             90,
+		"SeatHeaterRearCenter":            91,
+		"AutoSeatClimateLeft":             92,
+		"AutoSeatClimateRight":            93,
+		"DriverSeatBelt":                  94,
+		"PassengerSeatBelt":               95,
+		"DriverSeatOccupied":              96,
+		"PassengerSeatFoldPosition":       97,
+		"LateralAcceleration":             98,
+		"LongitudinalAcceleration":        99,
+		"CruiseState":                     100,
+		"CruiseSetSpeed":                  101,
+		"LifetimeEnergyUsed":              102,
+		"LifetimeEnergyUsedDrive":         103,
+		"TractorParkBrakeStatus":          104,
+		"TrailerParkBrakeStatus":          105,
+		"BrakePedalPos":                   106,
+		"RouteLastUpdated":                107,
+		"RouteLine":                       108,
+		"MilesToArrival":                  109,
+		"MinutesToArrival":                110,
+		"OriginLocation":                  111,
+		"DestinationLocation":             112,
+		"CarType":                         113,
+		"Trim":                            114,
+		"ExteriorColor":                   115,
+		"RoofColor":                       116,
+		"ChargePort":                      117,
+		"ChargePortLatch":                 118,
+		"Experimental_1":                  119,
+		"Experimental_2":                  120,
+		"Experimental_3":                  121,
+		"Experimental_4":                  122,
+		"GuestModeEnabled":                123,
+		"PinToDriveEnabled":               124,
+		"PairedPhoneKeyAndKeyFobQty":      125,
+		"CruiseFollowDistance":            126,
+		"AutomaticBlindSpotCamera":        127,
+		"BlindSpotCollisionWarningChime":  128,
+		"SpeedLimitWarning":               129,
+		"ForwardCollisionWarning":         130,
+		"LaneDepartureAvoidance":          131,
+		"EmergencyLaneDepartureAvoidance": 132,
+		"AutomaticEmergencyBrakingOff":    133,
 	}
 )
 
@@ -976,7 +1003,7 @@ var file_protos_vehicle_data_proto_rawDesc = []byte{
 	0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d,
 	0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x52, 0x09, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x41,
 	0x74, 0x12, 0x10, 0x0a, 0x03, 0x76, 0x69, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03,
-	0x76, 0x69, 0x6e, 0x2a, 0xa9, 0x14, 0x0a, 0x05, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x12, 0x0b, 0x0a,
+	0x76, 0x69, 0x6e, 0x2a, 0xc2, 0x16, 0x0a, 0x05, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x12, 0x0b, 0x0a,
 	0x07, 0x55, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x44, 0x72,
 	0x69, 0x76, 0x65, 0x52, 0x61, 0x69, 0x6c, 0x10, 0x01, 0x12, 0x0f, 0x0a, 0x0b, 0x43, 0x68, 0x61,
 	0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x10, 0x02, 0x12, 0x19, 0x0a, 0x15, 0x42, 0x6d,
@@ -1138,32 +1165,50 @@ var file_protos_vehicle_data_proto_rawDesc = []byte{
 	0x0a, 0x0e, 0x45, 0x78, 0x70, 0x65, 0x72, 0x69, 0x6d, 0x65, 0x6e, 0x74, 0x61, 0x6c, 0x5f, 0x34,
 	0x10, 0x7a, 0x12, 0x14, 0x0a, 0x10, 0x47, 0x75, 0x65, 0x73, 0x74, 0x4d, 0x6f, 0x64, 0x65, 0x45,
 	0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x10, 0x7b, 0x12, 0x15, 0x0a, 0x11, 0x50, 0x69, 0x6e, 0x54,
-	0x6f, 0x44, 0x72, 0x69, 0x76, 0x65, 0x45, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x10, 0x7c, 0x2a,
-	0xbf, 0x01, 0x0a, 0x0d, 0x43, 0x68, 0x61, 0x72, 0x67, 0x69, 0x6e, 0x67, 0x53, 0x74, 0x61, 0x74,
-	0x65, 0x12, 0x16, 0x0a, 0x12, 0x43, 0x68, 0x61, 0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65,
-	0x55, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x10, 0x00, 0x12, 0x1b, 0x0a, 0x17, 0x43, 0x68, 0x61,
-	0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x44, 0x69, 0x73, 0x63, 0x6f, 0x6e, 0x6e, 0x65,
-	0x63, 0x74, 0x65, 0x64, 0x10, 0x01, 0x12, 0x16, 0x0a, 0x12, 0x43, 0x68, 0x61, 0x72, 0x67, 0x65,
-	0x53, 0x74, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x50, 0x6f, 0x77, 0x65, 0x72, 0x10, 0x02, 0x12, 0x17,
-	0x0a, 0x13, 0x43, 0x68, 0x61, 0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x53, 0x74, 0x61,
-	0x72, 0x74, 0x69, 0x6e, 0x67, 0x10, 0x03, 0x12, 0x17, 0x0a, 0x13, 0x43, 0x68, 0x61, 0x72, 0x67,
-	0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x43, 0x68, 0x61, 0x72, 0x67, 0x69, 0x6e, 0x67, 0x10, 0x04,
+	0x6f, 0x44, 0x72, 0x69, 0x76, 0x65, 0x45, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x10, 0x7c, 0x12,
+	0x1e, 0x0a, 0x1a, 0x50, 0x61, 0x69, 0x72, 0x65, 0x64, 0x50, 0x68, 0x6f, 0x6e, 0x65, 0x4b, 0x65,
+	0x79, 0x41, 0x6e, 0x64, 0x4b, 0x65, 0x79, 0x46, 0x6f, 0x62, 0x51, 0x74, 0x79, 0x10, 0x7d, 0x12,
+	0x18, 0x0a, 0x14, 0x43, 0x72, 0x75, 0x69, 0x73, 0x65, 0x46, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x44,
+	0x69, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x10, 0x7e, 0x12, 0x1c, 0x0a, 0x18, 0x41, 0x75, 0x74,
+	0x6f, 0x6d, 0x61, 0x74, 0x69, 0x63, 0x42, 0x6c, 0x69, 0x6e, 0x64, 0x53, 0x70, 0x6f, 0x74, 0x43,
+	0x61, 0x6d, 0x65, 0x72, 0x61, 0x10, 0x7f, 0x12, 0x23, 0x0a, 0x1e, 0x42, 0x6c, 0x69, 0x6e, 0x64,
+	0x53, 0x70, 0x6f, 0x74, 0x43, 0x6f, 0x6c, 0x6c, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x57, 0x61, 0x72,
+	0x6e, 0x69, 0x6e, 0x67, 0x43, 0x68, 0x69, 0x6d, 0x65, 0x10, 0x80, 0x01, 0x12, 0x16, 0x0a, 0x11,
+	0x53, 0x70, 0x65, 0x65, 0x64, 0x4c, 0x69, 0x6d, 0x69, 0x74, 0x57, 0x61, 0x72, 0x6e, 0x69, 0x6e,
+	0x67, 0x10, 0x81, 0x01, 0x12, 0x1c, 0x0a, 0x17, 0x46, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0x43,
+	0x6f, 0x6c, 0x6c, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x57, 0x61, 0x72, 0x6e, 0x69, 0x6e, 0x67, 0x10,
+	0x82, 0x01, 0x12, 0x1b, 0x0a, 0x16, 0x4c, 0x61, 0x6e, 0x65, 0x44, 0x65, 0x70, 0x61, 0x72, 0x74,
+	0x75, 0x72, 0x65, 0x41, 0x76, 0x6f, 0x69, 0x64, 0x61, 0x6e, 0x63, 0x65, 0x10, 0x83, 0x01, 0x12,
+	0x24, 0x0a, 0x1f, 0x45, 0x6d, 0x65, 0x72, 0x67, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x61, 0x6e, 0x65,
+	0x44, 0x65, 0x70, 0x61, 0x72, 0x74, 0x75, 0x72, 0x65, 0x41, 0x76, 0x6f, 0x69, 0x64, 0x61, 0x6e,
+	0x63, 0x65, 0x10, 0x84, 0x01, 0x12, 0x21, 0x0a, 0x1c, 0x41, 0x75, 0x74, 0x6f, 0x6d, 0x61, 0x74,
+	0x69, 0x63, 0x45, 0x6d, 0x65, 0x72, 0x67, 0x65, 0x6e, 0x63, 0x79, 0x42, 0x72, 0x61, 0x6b, 0x69,
+	0x6e, 0x67, 0x4f, 0x66, 0x66, 0x10, 0x85, 0x01, 0x2a, 0xbf, 0x01, 0x0a, 0x0d, 0x43, 0x68, 0x61,
+	0x72, 0x67, 0x69, 0x6e, 0x67, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12, 0x16, 0x0a, 0x12, 0x43, 0x68,
+	0x61, 0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x55, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e,
+	0x10, 0x00, 0x12, 0x1b, 0x0a, 0x17, 0x43, 0x68, 0x61, 0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74,
+	0x65, 0x44, 0x69, 0x73, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x65, 0x64, 0x10, 0x01, 0x12,
+	0x16, 0x0a, 0x12, 0x43, 0x68, 0x61, 0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x4e, 0x6f,
+	0x50, 0x6f, 0x77, 0x65, 0x72, 0x10, 0x02, 0x12, 0x17, 0x0a, 0x13, 0x43, 0x68, 0x61, 0x72, 0x67,
+	0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x53, 0x74, 0x61, 0x72, 0x74, 0x69, 0x6e, 0x67, 0x10, 0x03,
 	0x12, 0x17, 0x0a, 0x13, 0x43, 0x68, 0x61, 0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x43,
-	0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x10, 0x05, 0x12, 0x16, 0x0a, 0x12, 0x43, 0x68, 0x61,
-	0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x53, 0x74, 0x6f, 0x70, 0x70, 0x65, 0x64, 0x10,
-	0x06, 0x2a, 0x91, 0x01, 0x0a, 0x0a, 0x53, 0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65,
-	0x12, 0x15, 0x0a, 0x11, 0x53, 0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x55, 0x6e,
-	0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x10, 0x00, 0x12, 0x15, 0x0a, 0x11, 0x53, 0x68, 0x69, 0x66, 0x74,
-	0x53, 0x74, 0x61, 0x74, 0x65, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x10, 0x01, 0x12, 0x0f,
-	0x0a, 0x0b, 0x53, 0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x50, 0x10, 0x02, 0x12,
-	0x0f, 0x0a, 0x0b, 0x53, 0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x10, 0x03,
-	0x12, 0x0f, 0x0a, 0x0b, 0x53, 0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x44, 0x10,
-	0x04, 0x12, 0x0f, 0x0a, 0x0b, 0x53, 0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x4e,
-	0x10, 0x05, 0x12, 0x11, 0x0a, 0x0d, 0x53, 0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65,
-	0x53, 0x4e, 0x41, 0x10, 0x06, 0x42, 0x2f, 0x5a, 0x2d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
-	0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x65, 0x73, 0x6c, 0x61, 0x6d, 0x6f, 0x74, 0x6f, 0x72, 0x73, 0x2f,
-	0x66, 0x6c, 0x65, 0x65, 0x74, 0x2d, 0x74, 0x65, 0x6c, 0x65, 0x6d, 0x65, 0x74, 0x72, 0x79, 0x2f,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x68, 0x61, 0x72, 0x67, 0x69, 0x6e, 0x67, 0x10, 0x04, 0x12, 0x17, 0x0a, 0x13, 0x43, 0x68, 0x61,
+	0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65,
+	0x10, 0x05, 0x12, 0x16, 0x0a, 0x12, 0x43, 0x68, 0x61, 0x72, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74,
+	0x65, 0x53, 0x74, 0x6f, 0x70, 0x70, 0x65, 0x64, 0x10, 0x06, 0x2a, 0x91, 0x01, 0x0a, 0x0a, 0x53,
+	0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12, 0x15, 0x0a, 0x11, 0x53, 0x68, 0x69,
+	0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x55, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x10, 0x00,
+	0x12, 0x15, 0x0a, 0x11, 0x53, 0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x49, 0x6e,
+	0x76, 0x61, 0x6c, 0x69, 0x64, 0x10, 0x01, 0x12, 0x0f, 0x0a, 0x0b, 0x53, 0x68, 0x69, 0x66, 0x74,
+	0x53, 0x74, 0x61, 0x74, 0x65, 0x50, 0x10, 0x02, 0x12, 0x0f, 0x0a, 0x0b, 0x53, 0x68, 0x69, 0x66,
+	0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x10, 0x03, 0x12, 0x0f, 0x0a, 0x0b, 0x53, 0x68, 0x69,
+	0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x44, 0x10, 0x04, 0x12, 0x0f, 0x0a, 0x0b, 0x53, 0x68,
+	0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x4e, 0x10, 0x05, 0x12, 0x11, 0x0a, 0x0d, 0x53,
+	0x68, 0x69, 0x66, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x53, 0x4e, 0x41, 0x10, 0x06, 0x42, 0x2f,
+	0x5a, 0x2d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x65, 0x73,
+	0x6c, 0x61, 0x6d, 0x6f, 0x74, 0x6f, 0x72, 0x73, 0x2f, 0x66, 0x6c, 0x65, 0x65, 0x74, 0x2d, 0x74,
+	0x65, 0x6c, 0x65, 0x6d, 0x65, 0x74, 0x72, 0x79, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
