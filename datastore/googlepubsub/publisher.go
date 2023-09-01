@@ -45,9 +45,6 @@ func configurePubsub(projectID string) (*pubsub.Client, error) {
 	}
 	_, useEmulator := os.LookupEnv("PUBSUB_EMULATOR_HOST")
 	_, useGcpPubsub := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS")
-	if !useEmulator && !useGcpPubsub {
-		return nil, errors.New("must set environment variable GOOGLE_APPLICATION_CREDENTIALS or PUBSUB_EMULATOR_HOST")
-	}
 	if useEmulator && useGcpPubsub {
 		return nil, errors.New("pubsub cannot initialize with both emulator and GCP resource")
 	}
