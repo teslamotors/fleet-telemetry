@@ -141,6 +141,7 @@ enum Field {
   LaneDepartureAvoidance = 131;
   EmergencyLaneDepartureAvoidance = 132;
   AutomaticEmergencyBrakingOff = 133;
+  LifetimeEnergyGainedRegen = 134;
 }
 
 // ChargingState are the charging options
