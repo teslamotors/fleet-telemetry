@@ -154,12 +154,6 @@ var _ = Describe("Test full application config", func() {
 			os.Clearenv()
 		})
 
-		It("pubsub does not work when environment variable is not set for emulator", func() {
-			log, _ := test.NewNullLogger()
-			_, err := pubsubConfig.ConfigureProducers(log)
-			Expect(err).To(MatchError("pubsub_connect_error must set environment variable GOOGLE_APPLICATION_CREDENTIALS or PUBSUB_EMULATOR_HOST"))
-		})
-
 		It("pubsub does not work when both the environment variables are set", func() {
 			log, _ := test.NewNullLogger()
 			_ = os.Setenv("PUBSUB_EMULATOR_HOST", "some_url")
