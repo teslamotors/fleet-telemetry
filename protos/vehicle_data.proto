@@ -9,7 +9,7 @@ option go_package = "github.com/teslamotors/fleet-telemetry/protos";
 enum Field {
   Unknown = 0;
   DriveRail = 1;
-  BMSState = 2;
+  ChargeState = 2;
   BmsFullchargecomplete = 3;
   VehicleSpeed = 4;
   Odometer = 5;
@@ -167,6 +167,7 @@ enum Field {
   DiMotorCurrentRER = 157;
   EnergyRemaining = 158;
   ServiceMode = 159;
+  BMSState = 160;
 }
 
 // ChargingState are the charging options
