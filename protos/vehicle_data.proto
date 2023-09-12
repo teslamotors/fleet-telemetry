@@ -21,13 +21,13 @@ enum Field {
   IsolationResistance = 11;
   PedalPosition = 12;
   BrakePedal = 13;
-  DiState = 14;
-  DiPcbt = 15;
-  DiRpm = 16;
+  DiStateR = 14;
+  DiHeatsinkTR = 15;
+  DiAxleSpeedR = 16;
   DiTorquemotor = 17;
-  DiHeatsinkt = 18;
-  DiVbat = 19;
-  DiMotorcurrent = 20;
+  DiStatorTempR = 18;
+  DiVBatR = 19;
+  DiMotorCurrentR = 20;
   Location = 21;
   GpsState = 22;
   GpsHeading = 23;
@@ -142,6 +142,32 @@ enum Field {
   EmergencyLaneDepartureAvoidance = 132;
   AutomaticEmergencyBrakingOff = 133;
   LifetimeEnergyGainedRegen = 134;
+  DiStateF = 135;
+  DiStateREL = 136;
+  DiStateRER = 137;
+  DiHeatsinkTF = 138;
+  DiHeatsinkTREL = 139;
+  DiHeatsinkTRER = 140;
+  DiAxleSpeedF = 141;
+  DiAxleSpeedREL = 142;
+  DiAxleSpeedRER = 143;
+  DiSlaveTorqueCmd = 144;
+  DiTorqueActualR = 145;
+  DiTorqueActualF = 146;
+  DiTorqueActualREL = 147;
+  DiTorqueActualRER = 148;
+  DiStatorTempF = 149;
+  DiStatorTempREL = 150;
+  DiStatorTempRER = 151;
+  DiVBatF = 152;
+  DiVBatREL = 153;
+  DiVBatRER = 154;
+  DiMotorCurrentF = 155;
+  DiMotorCurrentREL = 156;
+  DiMotorCurrentRER = 157;
+  EnergyRemaining = 158;
+  ServiceMode = 159;
+  BMSState = 160;
 }
 
 // ChargingState are the charging options
