@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -18,7 +19,8 @@ func main() {
 
 	config, logger, err := config.LoadApplicationConfiguration()
 	if err != nil {
-		logger.Fatalf("error=load_service_config value=\"%s\"", err.Error())
+		// logger is not available yet
+		panic(fmt.Sprintf("error=load_service_config value=\"%s\"", err.Error()))
 	}
 
 	if config.Monitoring != nil && config.Monitoring.ProfilingPath != "" {
