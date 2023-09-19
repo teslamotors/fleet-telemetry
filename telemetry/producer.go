@@ -16,6 +16,8 @@ const (
 	Kinesis Dispatcher = "kinesis"
 	// Logger registers a simple logger
 	Logger Dispatcher = "logger"
+  // ZMQ registers a zmq logger
+  ZMQ Dispatcher = "zmq"
 )
 
 // BuildTopicName creates a topic from a namespace and a recordName
