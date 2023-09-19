@@ -19,7 +19,7 @@ enum Audience {
   Unknown = 0;
   Customer = 1;
   Service = 2;
-  Service_fix = 3;
+  ServiceFix = 3;
 }
 
 // VehicleAlert is a single alert and is active if ended_at is nil.
