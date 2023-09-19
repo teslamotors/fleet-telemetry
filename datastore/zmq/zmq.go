@@ -113,7 +113,7 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 
   if config.Verbose {
     ready := make(chan struct{})
-    if err = logSocketInBackground(logger, "inproc://zmq_socket_monitor.rep", ready, ctx); err != nil {
+    if err = logSocketInBackground(sock, logger, "inproc://zmq_socket_monitor.rep", ready, ctx); err != nil {
       return
     }
     <-ready
@@ -147,7 +147,11 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 }
 
 // logSocketInBackground logs the socket activity in the background.
-func logSocketInBackground(logger *logrus.Logger, addr string, ready chan<- struct{}, ctx context.Context) error {
+func logSocketInBackground(target *zmq.Socket, logger *logrus.Logger, addr string, ready chan<- struct{}, ctx context.Context) error {
+  if err := target.Monitor(addr, zmq.EVENT_ALL); err != nil {
+    return err
+  }
+
   monitor, err := zmq.NewSocket(zmq.PAIR)
   if err != nil {
     return err
