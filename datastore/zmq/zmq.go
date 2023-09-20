@@ -26,6 +26,9 @@ type Config struct {
 	// key as a json. This key can be generated using zmq4.NewCurveKeypair
 	ServerKeyJSONPath string `json:"server_key_json_path"`
 
+	// AllowedPublicKeysJSONPath
+	AllowedPublicKeysJSONPath string `json:"allowed_public_keys_json_path"`
+
 	// TopicPrefix is an optional topic prefix which will be added to the
 	// published data.
 	TopicPrefix string `json:"topic_prefix"`
@@ -135,6 +138,20 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 
 	if err = sock.SetCurveSecretkey(key.Secret); err != nil {
 		return
+	}
+
+	if len(config.AllowedPublicKeysJSONPath) > 0 {
+		fi2, err := os.Open(config.AllowedPublicKeysJSONPath)
+		if err != nil {
+			return nil, err
+		}
+
+		var keys []string
+		if err = json.NewDecoder(fi2).Decode(&keys); err != nil {
+			return nil, err
+		}
+
+		zmq.AuthCurveAdd("*", keys...)
 	}
 
 	if err = sock.Bind(config.Addr); err != nil {
