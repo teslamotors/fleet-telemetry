@@ -62,8 +62,8 @@ type Config struct {
 	// Pubsub is a configuration for the Google Pubsub
 	Pubsub *Pubsub `json:"pubsub,omitempty"`
 
-  // ZMQ configures a zeromq socket
-  ZMQ *zmq.Config
+	// ZMQ configures a zeromq socket
+	ZMQ *zmq.Config `json:"zmq,omitempty"`
 
 	// Namespace defines a prefix for the kafka/pubsub topic
 	Namespace string `json:"namespace,omitempty"`
@@ -240,16 +240,16 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 		producers[telemetry.Kinesis] = kinesis
 	}
 
-  if _, ok := requiredDispatchers[telemetry.ZMQ]; ok {
-    if c.ZMQ == nil {
-      return nil, errors.New("Expected ZMQ to be configured")
-    }
-    zmqProducer, err := zmq.NewProducer(context.Background(), c.ZMQ, c.MetricCollector, logger)
-    if err != nil {
-      return nil, err
-    }
-    producers[telemetry.ZMQ] = zmqProducer
-  }
+	if _, ok := requiredDispatchers[telemetry.ZMQ]; ok {
+		if c.ZMQ == nil {
+			return nil, errors.New("Expected ZMQ to be configured")
+		}
+		zmqProducer, err := zmq.NewProducer(context.Background(), c.ZMQ, c.MetricCollector, logger)
+		if err != nil {
+			return nil, err
+		}
+		producers[telemetry.ZMQ] = zmqProducer
+	}
 
 	dispatchProducerRules := make(map[string][]telemetry.Producer)
 	for recordName, dispatchRules := range c.Records {

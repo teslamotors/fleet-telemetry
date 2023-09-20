@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"strings"
-  "sync"
+	"sync"
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/sirupsen/logrus"
@@ -19,36 +19,36 @@ const DefaultTopicSep = "."
 
 // Config contains the data necessary to configure a zmq producer.
 type Config struct {
-  // Addr is the address to which to producer will attempt to bind.
-  Addr string
+	// Addr is the address to which to producer will attempt to bind.
+	Addr string `json:"addr"`
 
-  // ServerKeyJSONPath is the path to a file which contains the server's secret
-  // key as a json. This key can be generated using zmq4.NewCurveKeypair
-  ServerKeyJSONPath string
+	// ServerKeyJSONPath is the path to a file which contains the server's secret
+	// key as a json. This key can be generated using zmq4.NewCurveKeypair
+	ServerKeyJSONPath string `json:"server_key_json_path"`
 
-  // TopicPrefix is an optional topic prefix which will be added to the
-  // published data.
-  TopicPrefix string
+	// TopicPrefix is an optional topic prefix which will be added to the
+	// published data.
+	TopicPrefix string `json:"topic_prefix"`
 
-  // TopicSuffix is an optional topic suffix which will be added to the
-  // published data.
-  TopicSuffix string
+	// TopicSuffix is an optional topic suffix which will be added to the
+	// published data.
+	TopicSuffix string `json:"topic_suffix"`
 
-  // TopicSep is the seperator character used in creating topics. By default
-  // this is ".".
-  TopicSep string
+	// TopicSep is the seperator character used in creating topics. By default
+	// this is ".".
+	TopicSep string `json:"topic_sep"`
 
-  // Verbose controls if verbose logging is enabled for the socket.
-  Verbose bool
+	// Verbose controls if verbose logging is enabled for the socket.
+	Verbose bool `json:"verbose"`
 }
 
 // KeyJSON contains z85 key data
 type KeyJSON struct {
-  // Secret is the secret key encoded as a 40 char z85 string.
-  Secret string `json:"secret"`
+	// Secret is the secret key encoded as a 40 char z85 string.
+	Secret string `json:"secret"`
 
-  // Public is the public key encoded as a 40 char z85 string.
-  Public string `json:"public"`
+	// Public is the public key encoded as a 40 char z85 string.
+	Public string `json:"public"`
 }
 
 // Metrics stores metrics reported from this package
@@ -66,120 +66,120 @@ var (
 // ZMQProducer implements the telemetry.Producer interface by publishing to a
 // bound zmq socket.
 type ZMQProducer struct {
-  topicPrefix string
-  topicSuffix string
-  topicSep string
-  ctx context.Context
-  sock *zmq.Socket
-  logger *logrus.Logger
+	topicPrefix string
+	topicSuffix string
+	topicSep    string
+	ctx         context.Context
+	sock        *zmq.Socket
+	logger      *logrus.Logger
 }
 
 // Publish the record to the socket.
 func (p *ZMQProducer) Produce(rec *telemetry.Record) {
-  if p.ctx.Err() != nil {
-    return
-  }
+	if p.ctx.Err() != nil {
+		return
+	}
 
-  topicParts := make([]string, 0, 4)
-  if len(p.topicPrefix) > 0 {
-    topicParts = append(topicParts, p.topicPrefix)
-  }
-  topicParts = append(topicParts, rec.Vin)
-  topicParts = append(topicParts, rec.TxType)
-  if len(p.topicSuffix) > 0 {
-    topicParts = append(topicParts, p.topicSuffix)
-  }
-  joinChar := DefaultTopicSep
-  if len(p.topicSep) > 0 {
-    joinChar = p.topicSep
-  }
-  topic := strings.Join(topicParts, joinChar)
+	topicParts := make([]string, 0, 4)
+	if len(p.topicPrefix) > 0 {
+		topicParts = append(topicParts, p.topicPrefix)
+	}
+	topicParts = append(topicParts, rec.Vin)
+	topicParts = append(topicParts, rec.TxType)
+	if len(p.topicSuffix) > 0 {
+		topicParts = append(topicParts, p.topicSuffix)
+	}
+	joinChar := DefaultTopicSep
+	if len(p.topicSep) > 0 {
+		joinChar = p.topicSep
+	}
+	topic := strings.Join(topicParts, joinChar)
 
-  if nBytes, err := p.sock.SendMessage(topic, rec.Payload()); err != nil {
+	if nBytes, err := p.sock.SendMessage(topic, rec.Payload()); err != nil {
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
-    p.logger.Errorf("Failed sending log on zmq socket: %s", err.Error())
-  } else {
-    metricsRegistry.byteTotal.Add(int64(nBytes), map[string]string{"record_type": rec.TxType})
-    metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
-  }
+		p.logger.Errorf("Failed sending log on zmq socket: %s", err.Error())
+	} else {
+		metricsRegistry.byteTotal.Add(int64(nBytes), map[string]string{"record_type": rec.TxType})
+		metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
+	}
 }
 
 // NewProducer creates a ZMQProducer with the given config.
 func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, logger *logrus.Logger) (producer telemetry.Producer, err error) {
-  sock, err := zmq.NewSocket(zmq.PUB)
-  if err != nil {
-    return
-  }
+	sock, err := zmq.NewSocket(zmq.PUB)
+	if err != nil {
+		return
+	}
 
-  if config.Verbose {
-    ready := make(chan struct{})
-    if err = logSocketInBackground(sock, logger, "inproc://zmq_socket_monitor.rep", ready, ctx); err != nil {
-      return
-    }
-    <-ready
-  }
+	if config.Verbose {
+		ready := make(chan struct{})
+		if err = logSocketInBackground(sock, logger, "inproc://zmq_socket_monitor.rep", ready, ctx); err != nil {
+			return
+		}
+		<-ready
+	}
 
-  fi, err := os.Open(config.ServerKeyJSONPath)
-  if err != nil {
-    return
-  }
-  defer fi.Close()
-  key := KeyJSON{}
-  if err = json.NewDecoder(fi).Decode(&key); err != nil {
-    return
-  }
+	fi, err := os.Open(config.ServerKeyJSONPath)
+	if err != nil {
+		return
+	}
+	defer fi.Close()
+	key := KeyJSON{}
+	if err = json.NewDecoder(fi).Decode(&key); err != nil {
+		return
+	}
 
-  if err = sock.SetCurveServer(1); err != nil {
-    return 
-  }
+	if err = sock.SetCurveServer(1); err != nil {
+		return
+	}
 
-  if err = sock.SetCurveSecretkey(key.Secret); err != nil {
-    return
-  }
+	if err = sock.SetCurveSecretkey(key.Secret); err != nil {
+		return
+	}
 
-  if err = sock.Bind(config.Addr); err != nil {
-    return
-  }
+	if err = sock.Bind(config.Addr); err != nil {
+		return
+	}
 
-  return &ZMQProducer{
-    config.TopicPrefix, config.TopicSuffix, config.TopicSep, ctx, sock, logger,
-  }, nil
+	return &ZMQProducer{
+		config.TopicPrefix, config.TopicSuffix, config.TopicSep, ctx, sock, logger,
+	}, nil
 }
 
 // logSocketInBackground logs the socket activity in the background.
 func logSocketInBackground(target *zmq.Socket, logger *logrus.Logger, addr string, ready chan<- struct{}, ctx context.Context) error {
-  if err := target.Monitor(addr, zmq.EVENT_ALL); err != nil {
-    return err
-  }
+	if err := target.Monitor(addr, zmq.EVENT_ALL); err != nil {
+		return err
+	}
 
-  monitor, err := zmq.NewSocket(zmq.PAIR)
-  if err != nil {
-    return err
-  }
+	monitor, err := zmq.NewSocket(zmq.PAIR)
+	if err != nil {
+		return err
+	}
 
-  if err := monitor.Connect(addr); err != nil {
-    return err
-  }
+	if err := monitor.Connect(addr); err != nil {
+		return err
+	}
 
-  ready <- struct{}{}
-  go func() {
-    defer monitor.Close()
-    for {
-      if ctx.Err() != nil {
-        return
-      }
+	ready <- struct{}{}
+	go func() {
+		defer monitor.Close()
+		for {
+			if ctx.Err() != nil {
+				return
+			}
 
-      eventType, addr, value, err := monitor.RecvEvent(0)
-      if err != nil {
-        logger.Errorf("Failed receiving event on zmq socket: %s", err)
-        continue
-      }
+			eventType, addr, value, err := monitor.RecvEvent(0)
+			if err != nil {
+				logger.Errorf("Failed receiving event on zmq socket: %s", err)
+				continue
+			}
 
-      logger.Infof("ZMQ socket event: %v %v %v", eventType, addr, value)
-    }
-  }()
+			logger.Infof("ZMQ socket event: %v %v %v", eventType, addr, value)
+		}
+	}()
 
-  return nil
+	return nil
 }
 
 func registerMetrics(metricsCollector metrics.MetricCollector) {
