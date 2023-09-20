@@ -145,6 +145,7 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 		if err != nil {
 			return nil, err
 		}
+		defer fi2.Close()
 
 		var keys []string
 		if err = json.NewDecoder(fi2).Decode(&keys); err != nil {
