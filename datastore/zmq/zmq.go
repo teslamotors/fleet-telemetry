@@ -161,8 +161,8 @@ func logSocketInBackground(target *zmq.Socket, logger *logrus.Logger, addr strin
 		return err
 	}
 
-	ready <- struct{}{}
 	go func() {
+		ready <- struct{}{}
 		defer monitor.Close()
 		for {
 			if ctx.Err() != nil {
