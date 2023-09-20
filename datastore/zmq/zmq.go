@@ -155,6 +155,10 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 		zmq.AuthCurveAdd("*", keys...)
 	}
 
+	if err = zmq.AuthStart(); err != nil {
+		return
+	}
+
 	if err = sock.Bind(config.Addr); err != nil {
 		return
 	}
