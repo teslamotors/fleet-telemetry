@@ -14,7 +14,7 @@ The service handles device connectivity as well as receiving and storing transmi
 As a service provider, you will need to register a publicly available endpoint to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend. The application has been designed to operate on top of Kubernetes, but you can run it as a standalone binary if you prefer.
 
 ### Install on Kubernetes with Helm Chart (recommended)
-Please follow these [instructions](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md)
+For ease of installation and operation, we recommend running Fleet Telemetry on Kubernetes. Helm Charts help you define, install, and upgrade applications on Kubernetes. You can find a reference helm chart [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
 ### Install manually (skip this if you have installed with Helm on Kubernetes)
 1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name). This will be used in the server and client (vehicle) configuration.
