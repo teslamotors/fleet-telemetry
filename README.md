@@ -139,6 +139,8 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
+  
+>NOTE: To add a new dispatcher, please provide integration tests and updated documentation.
 
 ## Metrics
 Prometheus or a StatsD interface supporting data store for metrics. This is required for monitoring your applications.
