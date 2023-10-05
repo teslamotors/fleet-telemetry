@@ -5,10 +5,9 @@
 # Tesla Fleet Telemetry
 ---------------------------------
 
-At Tesla, we believe that security and privacy are core tenets of any modern technology. Customers should be able to decide what data they share with third parties, how they share it, and when it can be shared. We've developed Fleet Telemetry, a decentralized framework that allows customers to create a secure and direct bridge from their Tesla devices to any provider they authorize. Fleet Telemetry is a simple, scalable, and secure data exchange service for vehicles and other devices.
+Fleet Telemetry is a server reference implementation for Tesla's telemetry protocol. Owners can allow registered applications to receive telemetry securely and directly from their vehicles. This reference implementation can be used by individual owners as is or by fleet operators who can extend it to aggregate data accross their fleet.
 
-Fleet Telemetry is a server reference implementation. The service handles device connectivity as well as receiving and storing transmitted data. Once configured, devices establish a WebSocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
-
+The service handles device connectivity as well as receiving and storing transmitted data. Once configured, devices establish a WebSocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
 
 ## Configuring and running the service
 
