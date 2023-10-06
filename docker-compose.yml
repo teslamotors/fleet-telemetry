@@ -68,6 +68,7 @@ services:
 
   pubsub:
     image: google/cloud-sdk:415.0.0
+    platform: linux/x86_64
     ports:
       - '8085:8085'
     command:
