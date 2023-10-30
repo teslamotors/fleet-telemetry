@@ -81,3 +81,17 @@ const BadTopicConfig = `
 	"host": "127.0.0.1",
 	"port": "",
 }`
+
+const TestZMQConfig = `
+{
+  "host": "127.0.0.1",
+  "port": 443,
+  "status_port": 8080,
+  "zmq": {
+    "addr": "tcp://127.0.0.1:5288"
+  },
+  "records": {
+    "FS": ["zmq"]
+  }
+}
+`

@@ -23,6 +23,9 @@
             "V": "test_V"
         }
     },
+    "zmq": {
+      "addr": "tcp://*:5284"
+    },
     "monitoring": {
         "prometheus_metrics_port": 9090,
         "profiler_port": 4269,
@@ -38,7 +41,8 @@
             "kafka",
             "kinesis",
             "pubsub",
-            "logger"
+            "logger",
+            "zmq"
         ]
     },
     "tls": {

@@ -142,6 +142,7 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
   * Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
+* ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
   
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation.
@@ -196,6 +197,15 @@ make: *** [install] Error 1
 ~/fleet-telemetry➜ git:(main) ✗  export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/opt/homebrew/Cellar/openssl@3/3.0.8/lib/pkgconfig/
 ```
 A reference to libcrypto is not set properly. To resolve find the reference to libcrypto by pkgconfig and set et the PKG_CONFIG_PATH accordingly.
+
+libzmq is missing. Install with:
+```sh
+sudo apt install -y libsodium-dev libzmq3-dev
+```
+Or for macOS:
+```sh
+brew install libsodium zmq
+```
 
 ## Integration Tests
 (Optional): If you want to recreate fake certs for your test: `make generate-certs`
