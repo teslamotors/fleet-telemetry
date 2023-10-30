@@ -18,7 +18,10 @@ import (
 
 var _ = Describe("Test full application config", func() {
 
-	var config *Config
+	var (
+		config    *Config
+		producers map[string][]telemetry.Producer
+	)
 
 	BeforeEach(func() {
 		config = &Config{
@@ -40,6 +43,21 @@ var _ = Describe("Test full application config", func() {
 			LogLevel:      "info",
 			JSONLogEnable: true,
 			Records:       map[string][]telemetry.Dispatcher{"FS": {"kafka"}},
+		}
+	})
+
+	AfterEach(func() {
+		os.Clearenv()
+		type Closer interface {
+			Close() error
+		}
+		for _, typeProducers := range producers {
+			for _, producer := range typeProducers {
+				if closer, ok := producer.(Closer); ok {
+					err := closer.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}
+			}
 		}
 	})
 
@@ -104,7 +122,7 @@ var _ = Describe("Test full application config", func() {
 			config, err := loadTestApplicationConfig(TestSmallConfig)
 			Expect(err).NotTo(HaveOccurred())
 
-			producers, err := config.ConfigureProducers(log)
+			producers, err = config.ConfigureProducers(log)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(producers["FS"]).To(HaveLen(1))
 
@@ -119,7 +137,8 @@ var _ = Describe("Test full application config", func() {
 			log, _ := test.NewNullLogger()
 			config.Records = map[string][]telemetry.Dispatcher{"FS": {"kinesis"}}
 
-			producers, err := config.ConfigureProducers(log)
+			var err error
+			producers, err = config.ConfigureProducers(log)
 			Expect(err).To(MatchError("Expected Kinesis to be configured"))
 			Expect(producers).To(BeNil())
 		})
@@ -165,7 +184,39 @@ var _ = Describe("Test full application config", func() {
 		It("pubsub config works", func() {
 			log, _ := test.NewNullLogger()
 			_ = os.Setenv("PUBSUB_EMULATOR_HOST", "some_url")
-			producers, err := pubsubConfig.ConfigureProducers(log)
+			var err error
+			producers, err = pubsubConfig.ConfigureProducers(log)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(producers["FS"]).NotTo(BeNil())
+		})
+	})
+
+	Context("configure zmq", func() {
+		var zmqConfig *Config
+
+		BeforeEach(func() {
+			var err error
+			zmqConfig, err = loadTestApplicationConfig(TestZMQConfig)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error if zmq isn't included", func() {
+			log, _ := test.NewNullLogger()
+			config.Records = map[string][]telemetry.Dispatcher{"FS": {"zmq"}}
+			var err error
+			producers, err = config.ConfigureProducers(log)
+			Expect(err).To(MatchError("Expected ZMQ to be configured"))
+			Expect(producers).To(BeNil())
+			producers, err = zmqConfig.ConfigureProducers(log)
+			Expect(err).To(BeNil())
+		})
+
+		It("zmq config works", func() {
+			// ZMQ close is async, this removes the need to sync between tests.
+			zmqConfig.ZMQ.Addr = "tcp://127.0.0.1:5285"
+			log, _ := test.NewNullLogger()
+			var err error
+			producers, err = zmqConfig.ConfigureProducers(log)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(producers["FS"]).NotTo(BeNil())
 		})

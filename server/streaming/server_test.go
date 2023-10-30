@@ -19,6 +19,23 @@ import (
 
 var _ = Describe("Socket handler test", func() {
 
+	var producerRules map[string][]telemetry.Producer
+
+	AfterEach(func() {
+		type Closer interface {
+			Close() error
+		}
+
+		for _, typeProducers := range producerRules {
+			for _, producer := range typeProducers {
+				if closer, ok := producer.(Closer); ok {
+					err := closer.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}
+			}
+		}
+	})
+
 	It("ServeBinaryWs test", func() {
 		logger, hook := test.NewNullLogger()
 		conf := &config.Config{
