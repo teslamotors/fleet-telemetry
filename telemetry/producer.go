@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -27,5 +28,31 @@ func BuildTopicName(namespace, recordName string) string {
 
 // Producer handles dispatching data received from the vehicle
 type Producer interface {
+	// Produce posts a Record to the producer.
 	Produce(entry *Record)
+
+	// Close releases resources tied to the producer.
+	Close() error
+}
+
+// CloseDispatchRules closes the set of dispatch rules.
+func CloseDispatchRules(dispatchRules map[string][]Producer) error {
+	closeErrors := make([]error, 0)
+
+	// Close each producer only once.
+	closedProducers := make(map[Producer]struct{})
+	for _, producerSet := range dispatchRules {
+		for _, producer := range producerSet {
+			if _, ok := closedProducers[producer]; !ok {
+				closeErrors = append(closeErrors, producer.Close())
+				closedProducers[producer] = struct{}{}
+			}
+		}
+	}
+
+	if len(closeErrors) == 0 {
+		return nil
+	}
+
+	return errors.Join(closeErrors...)
 }

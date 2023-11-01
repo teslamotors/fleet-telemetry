@@ -21,6 +21,10 @@ func (c *CallbackTester) Produce(entry *telemetry.Record) {
 	c.counter++
 }
 
+func (c *CallbackTester) Close() error {
+	return nil
+}
+
 var _ = Describe("BinarySerializer", func() {
 	DispatchKafkaGlobal := &CallbackTester{counter: 0}
 	DispatchRules := map[string][]telemetry.Producer{

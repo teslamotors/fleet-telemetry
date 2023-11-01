@@ -143,3 +143,8 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 		Labels: []string{"record_type"},
 	})
 }
+
+// Close the underlying pubsub connection.
+func (p *Producer) Close() error {
+	return p.pubsubClient.Close()
+}

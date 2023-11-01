@@ -80,13 +80,7 @@ func (p *ZMQProducer) Produce(rec *telemetry.Record) {
 
 // Close the underlying socket.
 func (p *ZMQProducer) Close() error {
-	if p.sock != nil {
-		if err := p.sock.Close(); err != nil {
-			return err
-		}
-	}
-	p.sock = nil
-	return nil
+	return p.sock.Close()
 }
 
 // NewProducer creates a ZMQProducer with the given config.
