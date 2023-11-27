@@ -20,6 +20,9 @@ endif
 INTEGRATION_TEST_ROOT		= ./test/integration
 UNIT_TEST_PACKAGES			= $(shell go list ./... | grep -v $(INTEGRATION_TEST_ROOT))
 
+PROTO_DIR = protos
+PROTO_FILES = $(wildcard $(PROTO_DIR)/*.proto)
+
 build:
 	go build $(GO_FLAGS) -v -o $(GOPATH)/bin/fleet-telemetry cmd/main.go
 	@echo "** build complete: $(GOPATH)/bin/fleet-telemetry **"
@@ -58,12 +61,15 @@ generate-certs:
 	go run tools/main.go
 
 generate-golang:
-	protoc --go_out=./ --go_opt=paths=source_relative protos/*.proto
+	protoc --go_out=./ --go_opt=paths=source_relative $(PROTO_DIR)/*.proto
 
 generate-python:
-	protoc -I=protos --python_out=protos/python/ protos/*.proto
+	protoc -I=$(PROTO_DIR) --python_out=$(PROTO_DIR)/python/ $(PROTO_DIR)/*.proto
 
-generate-protos: generate-golang generate-python
+generate-ruby:
+	protoc --ruby_out=$(PROTO_DIR)/ruby/ --proto_path=$(PROTO_DIR) $(PROTO_FILES)
+
+generate-protos: generate-golang generate-python generate-ruby
 
 image-gen:
 	docker build -t $(ALPHA_IMAGE_NAME) .
