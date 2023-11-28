@@ -208,7 +208,6 @@ brew install libsodium zmq
 ```
 
 ## Integration Tests
-(Optional): If you want to recreate fake certs for your test: `make generate-certs`
 
 To run the integration tests: `make integration`
 

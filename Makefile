@@ -75,4 +75,4 @@ image-gen:
 	docker build -t $(ALPHA_IMAGE_NAME) .
 	docker save $(ALPHA_IMAGE_NAME) | gzip > $(ALPHA_IMAGE_COMPRESSED_FILENAME).tar.gz
 
-.PHONY: test build vet linters install integration image-gen generate-protos generate-golang generate-python
+.PHONY: test build vet linters install integration image-gen generate-protos generate-golang generate-python generate-ruby
