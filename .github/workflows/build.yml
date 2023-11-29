@@ -29,7 +29,7 @@ jobs:
 
     - name: Generated protofiles are up to date
       run: |
-        make generate-golang
+        make generate-protos
         git diff --exit-code
 
     - name: No formatting changes
