@@ -60,6 +60,9 @@ integration: generate-certs
 generate-certs:
 	go run tools/main.go
 
+clean:
+	find $(PROTO_DIR) -type f ! -name '*.proto' -delete
+
 generate-golang:
 	protoc --go_out=./ --go_opt=paths=source_relative $(PROTO_DIR)/*.proto
 
@@ -69,10 +72,10 @@ generate-python:
 generate-ruby:
 	protoc --ruby_out=$(PROTO_DIR)/ruby/ --proto_path=$(PROTO_DIR) $(PROTO_FILES)
 
-generate-protos: generate-golang generate-python generate-ruby
+generate-protos: clean generate-golang generate-python generate-ruby
 
 image-gen:
 	docker build -t $(ALPHA_IMAGE_NAME) .
 	docker save $(ALPHA_IMAGE_NAME) | gzip > $(ALPHA_IMAGE_COMPRESSED_FILENAME).tar.gz
 
-.PHONY: test build vet linters install integration image-gen generate-protos generate-golang generate-python generate-ruby
+.PHONY: test build vet linters install integration image-gen generate-protos generate-golang generate-python generate-ruby clean
