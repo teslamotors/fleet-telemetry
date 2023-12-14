@@ -51,10 +51,10 @@ test-race: test
 integration: generate-certs
 	@echo "** RUNNING INTEGRATION TESTS **"
 	./test/integration/pretest.sh
-	docker-compose -p app -f docker-compose.yml build
-	docker-compose -p app -f docker-compose.yml up -d --remove-orphans
+	docker compose -p app -f docker-compose.yml build
+	docker compose -p app -f docker-compose.yml up -d --remove-orphans
 	./test/integration/test.sh
-	docker-compose -p app -f docker-compose.yml down
+	docker compose -p app -f docker-compose.yml down
 	@echo "** INTEGRATION TESTS FINISHED **"
 
 generate-certs:
