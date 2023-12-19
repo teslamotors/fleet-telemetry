@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -40,10 +38,8 @@ func main() {
 
 func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 	logger.Infoln("starting")
-	mux := http.NewServeMux()
 	registry := streaming.NewSocketRegistry()
 
-	monitoring.StartProfilerServer(config, mux, logger)
 	if config.StatusPort > 0 {
 		monitoring.StartStatusServer(config, logger)
 	}
@@ -56,7 +52,7 @@ func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 		return err
 	}
 
-	server, _, err := streaming.InitServer(config, mux, producerRules, logger, registry)
+	server, _, err := streaming.InitServer(config, producerRules, logger, registry)
 	if err != nil {
 		return err
 	}

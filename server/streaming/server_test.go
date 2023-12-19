@@ -49,8 +49,7 @@ var _ = Describe("Socket handler test", func() {
 		req := httptest.NewRequest("GET", "http://tel.vn.tesla.com", nil)
 
 		producerRules := make(map[string][]telemetry.Producer)
-		mux := http.NewServeMux()
-		_, s, err := streaming.InitServer(conf, mux, producerRules, logger, registry)
+		_, s, err := streaming.InitServer(conf, producerRules, logger, registry)
 		Expect(err).NotTo(HaveOccurred())
 
 		srv := httptest.NewServer(http.HandlerFunc(s.ServeBinaryWs(conf, registry)))

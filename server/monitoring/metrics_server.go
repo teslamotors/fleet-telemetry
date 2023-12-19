@@ -6,6 +6,9 @@ import (
 	"sync"
 	"time"
 
+	// This registers the profiler on the default mux which we will use for monitoring port.
+	_ "net/http/pprof"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
@@ -42,6 +45,8 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 
 	if config.Monitoring.ProfilerPort > 0 {
 		go func() {
+			StartProfilerServer(config, http.DefaultServeMux, logger)
+
 			if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Monitoring.ProfilerPort), nil); err != nil {
 				logger.Errorf("profiler_listen_error: %v", err)
 			}

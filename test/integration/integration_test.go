@@ -125,11 +125,6 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(string(body)).To(Equal("ok"))
 	})
 
-	It("returns 200 for gc stats", func() {
-		_, err := VerifyHTTPSRequest(serviceURL, "gc_stats", tlsConfig)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	It("returns 200 for prom metrics", func() {
 		_, err := VerifyHTTPRequest(prometheusURL, "metrics")
 		Expect(err).NotTo(HaveOccurred())
