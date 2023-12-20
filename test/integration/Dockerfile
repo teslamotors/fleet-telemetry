@@ -38,5 +38,8 @@ WORKDIR /go/src/fleet-telemetry/test/integration
 ARG it_target
 ENV IT_TARGET=${it_target}
 
+# used for testing http publisher
+EXPOSE 3000
+
 # hadolint ignore=DL3025
 CMD go test -v ${IT_TARGET}
