@@ -43,7 +43,7 @@ For ease of installation and operation, we recommend running Fleet Telemetry on 
       "flush_period": int - ms flush period
     }
   },
-  "kafka": { //librdkafka kafka config, seen here: https://raw.githubusercontent.com/confluentinc/librdkafka/master/CONFIGURATION.md
+  "kafka": { // librdkafka kafka config, seen here: https://raw.githubusercontent.com/confluentinc/librdkafka/master/CONFIGURATION.md
     "bootstrap.servers": "kafka:9092",
     "queue.buffering.max.messages": 1000000
   },
@@ -57,7 +57,7 @@ For ease of installation and operation, we recommend running Fleet Telemetry on 
     "enabled": bool,
     "message_limit": int - ex.: 1000
   },
-  "records": { list of records and their dispatchers, currently: alerts, errors, and V(vehicle data)
+  "records": { // list of records and their dispatchers, currently: alerts, errors, and V(vehicle data)
     "alerts": [
         "logger"
     ],
@@ -69,7 +69,7 @@ For ease of installation and operation, we recommend running Fleet Telemetry on 
         "kafka"
     ]
   },
-  "tls": {
+  "tls": { // Note: setting a ca_file here can be used for testing, but may reject vehicle mTLS connections
     "server_cert": string - server cert location,
     "server_key": string - server key location
   }
