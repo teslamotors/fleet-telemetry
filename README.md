@@ -115,20 +115,7 @@ spec:
   type: LoadBalancer
 ```
 
-6. Create and share a vehicle configuration with Tesla.
-```
-{
-  "hostname": string - server hostname,
-  "ca": string - pem format ca certificate(s),
-  "fields": { map of field configurations
-    name (string) -> {
-        "interval_seconds": int - data polling interval in seconds
-    }...
-  },
-  "alert_types": [ string list - alerts audiences that should be pushed to the server, recommendation is to use only "service" ]
-}
-```
-Example: [client_config.json](./examples/client_config.json)
+6. Register vehicles for streaming via [fleet-telemetry-config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config) API.
 
 ## Vehicle Compatibility
 
