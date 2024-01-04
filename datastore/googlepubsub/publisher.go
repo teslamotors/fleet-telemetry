@@ -94,11 +94,12 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	})
 	if _, err = result.Get(ctx); err != nil {
 		p.logger.Errorf("pubsub_err err: %v", err)
-		metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
-		metricsRegistry.publishBytesTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
-	} else {
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
+		return
 	}
+	metricsRegistry.publishBytesTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
+	metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
+
 }
 
 func (p *Producer) createTopicIfNotExists(ctx context.Context, topic string) (*pubsub.Topic, error) {
