@@ -132,7 +132,7 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
   
->NOTE: To add a new dispatcher, please provide integration tests and updated documentation.
+>NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L104)
 
 ## Metrics
 Prometheus or a StatsD interface supporting data store for metrics. This is required for monitoring your applications.

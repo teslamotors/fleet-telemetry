@@ -80,6 +80,9 @@ type Config struct {
 	// Records is a mapping of topics (records type) to a reference dispatch implementation (i,e: kafka)
 	Records map[string][]telemetry.Dispatcher `json:"records,omitempty"`
 
+	// TransmitDecodedRecords if true decodes proto message before dispatching it to supported datastores
+	TransmitDecodedRecords bool `json:"transmit_decoded_records,omitempty"`
+
 	// MetricCollector collects metrics for the application
 	MetricCollector metrics.MetricCollector
 

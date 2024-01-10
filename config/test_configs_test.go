@@ -95,3 +95,15 @@ const TestZMQConfig = `
   }
 }
 `
+
+const TestTransmitDecodedRecords = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"transmit_decoded_records": true,
+	"records": {
+		"FS": ["logger"]
+	}
+}
+`
