@@ -42,7 +42,7 @@ var _ = Describe("Socket handler test", func() {
 		raw := make([]byte, telemetry.SizeLimit+1)
 		_, _ = rand.Read(raw)
 
-		record, err := telemetry.NewRecord(serializer, raw, "")
+		record, err := telemetry.NewRecord(serializer, raw, "", false)
 		Expect(err).To(HaveOccurred())
 		Expect(record).NotTo(BeNil())
 		Expect(record.Serializer).NotTo(BeNil())
@@ -53,7 +53,7 @@ var _ = Describe("Socket handler test", func() {
 		recordMsg, err := message.ToBytes()
 		Expect(err).NotTo(HaveOccurred())
 
-		record, err := telemetry.NewRecord(serializer, recordMsg, "1")
+		record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(record).NotTo(BeNil())
 		Expect(record.Serializer).NotTo(BeNil())
@@ -72,7 +72,7 @@ var _ = Describe("Socket handler test", func() {
 		recordMsg, err := message.ToBytes()
 		Expect(err).NotTo(HaveOccurred())
 
-		record, err := telemetry.NewRecord(serializer, recordMsg, "1")
+		record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(record).NotTo(BeNil())
 
@@ -103,7 +103,7 @@ var _ = Describe("Socket handler test", func() {
 		recordMsg, err := message.ToBytes()
 		Expect(err).NotTo(HaveOccurred())
 
-		record, err := telemetry.NewRecord(serializer, recordMsg, "1")
+		record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(record).NotTo(BeNil())
 
@@ -133,7 +133,7 @@ var _ = Describe("Socket handler test", func() {
 		recordMsg, err := message.ToBytes()
 		Expect(err).NotTo(HaveOccurred())
 
-		record, err := telemetry.NewRecord(serializer, recordMsg, "1")
+		record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(record).NotTo(BeNil())
 
@@ -190,7 +190,7 @@ var _ = Describe("Socket handler test", func() {
 			recordMsg, err := message.ToBytes()
 			Expect(err).NotTo(HaveOccurred())
 
-			record, err := telemetry.NewRecord(serializer, recordMsg, "1")
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(record).NotTo(BeNil())
 
@@ -222,6 +222,76 @@ var _ = Describe("Socket handler test", func() {
 		Entry("for a valid loc, SW", "(37.412374 S, 122.145867 W)", &protos.LocationValue{Latitude: -37.412374, Longitude: -122.145867}, ""),
 		Entry("for a valid loc, SE", "(37.412374 S, 122.145867 E)", &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}, ""),
 	)
+
+	Describe("GetProtoMessage", func() {
+		DescribeTable("valid alert types",
+			func(txType string, input proto.Message, verifyOutput func(proto.Message) bool) {
+				payloadBytes, err := proto.Marshal(input)
+				Expect(err).NotTo(HaveOccurred())
+				record := &telemetry.Record{
+					TxType:       txType,
+					PayloadBytes: payloadBytes,
+				}
+				output, err := record.GetProtoMessage()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(verifyOutput(output)).To(BeTrue())
+			},
+			Entry("for txType alerts", "alerts", &protos.VehicleAlerts{Vin: "testAlertVin"}, func(msg proto.Message) bool {
+				myMsg, ok := msg.(*protos.VehicleAlerts)
+				if !ok {
+					return false
+				}
+				return myMsg.GetVin() == "testAlertVin"
+			}),
+			Entry("for txType errors", "errors", &protos.VehicleErrors{Vin: "testErrorVin"}, func(msg proto.Message) bool {
+				myMsg, ok := msg.(*protos.VehicleErrors)
+				if !ok {
+					return false
+				}
+				return myMsg.GetVin() == "testErrorVin"
+			}),
+			Entry("for txType V", "V", &protos.Payload{Vin: "testPayloadVIN"}, func(msg proto.Message) bool {
+				myMsg, ok := msg.(*protos.Payload)
+				if !ok {
+					return false
+				}
+				return myMsg.GetVin() == "testPayloadVIN"
+			}),
+		)
+
+		It("errors on unknown txtype", func() {
+			record := &telemetry.Record{
+				TxType: "badTxType",
+			}
+			_, err := record.GetProtoMessage()
+			Expect(err).To(MatchError("no mapping for txType: badTxType"))
+		})
+	})
+
+	Describe("json record", func() {
+		It("outputs json with all data", func() {
+			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: generatePayload("cybertruck", "42", nil)}
+			recordMsg, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1", true)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(record).NotTo(BeNil())
+
+			expectedJSON := "{\"data\":[{\"key\":\"VehicleName\",\"value\":{\"stringValue\":\"cybertruck\"}}],\"createdAt\":null,\"vin\":\"42\"}"
+			Expect(string(record.Payload())).To(MatchJSON(expectedJSON))
+		})
+
+		It("returns error on invalid txType", func() {
+			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("INVALID"), Payload: generatePayload("cybertruck", "42", nil)}
+			recordMsg, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1", true)
+			Expect(err).To(MatchError("no mapping for txType: INVALID"))
+			Expect(record).NotTo(BeNil())
+		})
+	})
 })
 
 func generatePayload(vehicleName string, vin string, timestamp *timestamppb.Timestamp, extraData ...*protos.Datum) []byte {

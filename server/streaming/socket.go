@@ -40,14 +40,15 @@ type SocketManager struct {
 	StartTime    time.Time
 	UUID         string
 
-	config           *config.Config
-	logger           *logrus.Logger
-	registry         *SocketRegistry
-	requestIdentity  *telemetry.RequestIdentity
-	requestInfo      map[string]interface{}
-	metricsCollector metrics.MetricCollector
-	stopChan         chan struct{}
-	writeChan        chan SocketMessage
+	config                 *config.Config
+	logger                 *logrus.Logger
+	registry               *SocketRegistry
+	requestIdentity        *telemetry.RequestIdentity
+	requestInfo            map[string]interface{}
+	metricsCollector       metrics.MetricCollector
+	stopChan               chan struct{}
+	writeChan              chan SocketMessage
+	transmitDecodedRecords bool
 }
 
 // SocketMessage represents incoming socket connection
@@ -92,13 +93,14 @@ func NewSocketManager(ctx context.Context, requestIdentity *telemetry.RequestIde
 		StartTime:    time.Now(),
 		UUID:         socketUUID.String(),
 
-		config:           config,
-		metricsCollector: config.MetricCollector,
-		logger:           logger,
-		requestInfo:      requestLogInfo,
-		writeChan:        make(chan SocketMessage, 1000),
-		stopChan:         make(chan struct{}),
-		requestIdentity:  requestIdentity,
+		config:                 config,
+		metricsCollector:       config.MetricCollector,
+		logger:                 logger,
+		requestInfo:            requestLogInfo,
+		writeChan:              make(chan SocketMessage, 1000),
+		stopChan:               make(chan struct{}),
+		requestIdentity:        requestIdentity,
+		transmitDecodedRecords: config.TransmitDecodedRecords,
 	}
 }
 
@@ -200,7 +202,7 @@ func (sm *SocketManager) ProcessTelemetry(serializer *telemetry.BinarySerializer
 			}
 			// client exceeded the rate limit
 			messagesRateLimited++
-			record, _ := telemetry.NewRecord(serializer, message, sm.UUID)
+			record, _ := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
 			metricsRegistry.rateLimitExceededCount.Inc(map[string]string{"device_id": sm.requestIdentity.DeviceID, "txtype": record.TxType})
 			if sm.config.RateLimit != nil && sm.config.RateLimit.Enabled {
 				continue
@@ -221,7 +223,7 @@ func (sm *SocketManager) ProcessTelemetry(serializer *telemetry.BinarySerializer
 
 // ParseAndProcessRecord reads incoming client message and dispatches to relevant producer
 func (sm *SocketManager) ParseAndProcessRecord(serializer *telemetry.BinarySerializer, message []byte) {
-	record, err := telemetry.NewRecord(serializer, message, sm.UUID)
+	record, err := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
 	logInfo := fmt.Sprintf("txid=%v, txtype=%v", record.Txid, record.TxType)
 
 	if err != nil {

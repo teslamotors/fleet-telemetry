@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/teslamotors/fleet-telemetry/protos"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -17,31 +18,51 @@ const (
 	maxSecondsInDuration = 315576000000
 )
 
+var (
+	jsonOptions = protojson.MarshalOptions{
+		UseEnumNumbers:  false,
+		EmitUnpopulated: true,
+		Indent:          ""}
+	protobufMap = map[string]func() proto.Message{
+		"alerts": func() proto.Message {
+			return &protos.VehicleAlerts{}
+		},
+		"errors": func() proto.Message {
+			return &protos.VehicleErrors{}
+		},
+		"V": func() proto.Message {
+			return &protos.Payload{}
+		},
+	}
+)
+
 // Record is a structs that represents the telemetry records vehicles send to the backend
 // vin is used as kafka produce partitioning key by default, can be configured to random
 type Record struct {
-	ProduceTime       time.Time
-	ReceivedTimestamp int64
-	Serializer        *BinarySerializer
-	SocketID          string
-	Timestamp         int64
-	Txid              string
-	TxType            string
-	TripID            string
-	Version           int
-	Vin               string
-	PayloadBytes      []byte
-	RawBytes          []byte
+	ProduceTime            time.Time
+	ReceivedTimestamp      int64
+	Serializer             *BinarySerializer
+	SocketID               string
+	Timestamp              int64
+	Txid                   string
+	TxType                 string
+	TripID                 string
+	Version                int
+	Vin                    string
+	PayloadBytes           []byte
+	RawBytes               []byte
+	transmitDecodedRecords bool
 }
 
 // NewRecord Sanitizes and instantiates a Record from a message
 // !! caller expect *Record to not be nil !!
-func NewRecord(ts *BinarySerializer, msg []byte, socketID string) (*Record, error) {
+func NewRecord(ts *BinarySerializer, msg []byte, socketID string, transmitDecodedRecords bool) (*Record, error) {
 	if len(msg) > SizeLimit {
-		return &Record{Serializer: ts}, ErrMessageTooBig
+		return &Record{Serializer: ts, transmitDecodedRecords: transmitDecodedRecords}, ErrMessageTooBig
 	}
 
 	rec, err := ts.Deserialize(msg, socketID)
+	rec.transmitDecodedRecords = transmitDecodedRecords
 	if err != nil {
 		return rec, err
 	}
@@ -106,7 +127,7 @@ func (record *Record) ensureEncoded() {
 	}
 }
 
-func (record *Record) applyRecordTransforms() error {
+func (record *Record) applyProtoRecordTransforms() error {
 	switch record.TxType {
 	case "alerts":
 		message := &protos.VehicleAlerts{}
@@ -140,6 +161,38 @@ func (record *Record) applyRecordTransforms() error {
 	default:
 		return nil
 	}
+}
+
+func (record *Record) applyRecordTransforms() error {
+	var err error
+	if err = record.applyProtoRecordTransforms(); err != nil {
+		return err
+	}
+	if !record.transmitDecodedRecords {
+		return nil
+	}
+	record.PayloadBytes, err = record.toJSON()
+	return err
+}
+
+// GetProtoMessage converts the record to a proto Message
+func (record *Record) GetProtoMessage() (proto.Message, error) {
+	msgFunc, ok := protobufMap[record.TxType]
+	if !ok {
+		return nil, fmt.Errorf("no mapping for txType: %s", record.TxType)
+	}
+	message := msgFunc()
+	err := proto.Unmarshal(record.Payload(), message)
+	return message, err
+}
+
+// ToJSON serializes the record to a JSON data in bytes
+func (record *Record) toJSON() ([]byte, error) {
+	payload, err := record.GetProtoMessage()
+	if err != nil {
+		return nil, err
+	}
+	return jsonOptions.Marshal(payload)
 }
 
 // transformLocation does a best-effort attempt to convert the Location field to a proper protos.Location

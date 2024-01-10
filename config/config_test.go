@@ -107,12 +107,24 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
-	Context("configure ports", func() {
+	Context("basic config", func() {
 		It("use correct ports", func() {
 			config, err := loadTestApplicationConfig(TestSmallConfig)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(config.Port).To(BeEquivalentTo(443))
 			Expect(config.StatusPort).To(BeEquivalentTo(8080))
+		})
+
+		It("transmitrecords disabled by default", func() {
+			config, err := loadTestApplicationConfig(TestSmallConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.TransmitDecodedRecords).To(BeFalse())
+		})
+
+		It("transmitrecords enabled", func() {
+			config, err := loadTestApplicationConfig(TestTransmitDecodedRecords)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.TransmitDecodedRecords).To(BeTrue())
 		})
 	})
 
