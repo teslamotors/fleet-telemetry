@@ -97,6 +97,13 @@ func (record *Record) Payload() []byte {
 	return record.PayloadBytes
 }
 
+func (record *Record) GetJSONPayload() ([]byte, error) {
+	if record.transmitDecodedRecords {
+		return record.Payload(), nil
+	}
+	return record.toJSON()
+}
+
 // Raw returns the raw telemetry record
 func (record *Record) Raw() []byte {
 	return record.RawBytes
