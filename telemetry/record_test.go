@@ -266,6 +266,21 @@ var _ = Describe("Socket handler test", func() {
 			_, err := record.GetProtoMessage()
 			Expect(err).To(MatchError("no mapping for txType: badTxType"))
 		})
+
+		It("json payload returns valid data when transmitDecodedRecords is false", func() {
+			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: generatePayload("cybertruck", "42", nil)}
+			recordMsg, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(record).NotTo(BeNil())
+
+			expectedJSON := "{\"data\":[{\"key\":\"VehicleName\",\"value\":{\"stringValue\":\"cybertruck\"}}],\"createdAt\":null,\"vin\":\"42\"}"
+			data, err := record.GetJSONPayload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(data)).To(MatchJSON(expectedJSON))
+		})
 	})
 
 	Describe("json record", func() {
@@ -280,6 +295,10 @@ var _ = Describe("Socket handler test", func() {
 
 			expectedJSON := "{\"data\":[{\"key\":\"VehicleName\",\"value\":{\"stringValue\":\"cybertruck\"}}],\"createdAt\":null,\"vin\":\"42\"}"
 			Expect(string(record.Payload())).To(MatchJSON(expectedJSON))
+
+			data, err := record.GetJSONPayload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(record.Payload()).To(Equal(data))
 		})
 
 		It("returns error on invalid txType", func() {

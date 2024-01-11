@@ -18,5 +18,10 @@ func NewProtoLogger(logger *logrus.Logger) telemetry.Producer {
 
 // Produce sends the data to the logger
 func (p *ProtoLogger) Produce(entry *telemetry.Record) {
-	p.logger.Infof("logger_json_unmarshal %s %v %s\n", entry.Vin, entry.Metadata(), string(entry.Payload()))
+	data, err := entry.GetJSONPayload()
+	if err != nil {
+		p.logger.Errorf("json_unmarshal_error %s %v %s\n", entry.Vin, entry.Metadata(), err.Error())
+		return
+	}
+	p.logger.Infof("logger_json_unmarshal %s %v %s\n", entry.Vin, entry.Metadata(), string(data))
 }
