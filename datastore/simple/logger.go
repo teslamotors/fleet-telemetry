@@ -25,3 +25,8 @@ func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 	}
 	p.logger.Infof("logger_json_unmarshal %s %v %s\n", entry.Vin, entry.Metadata(), string(data))
 }
+
+// Close does nothing as the proto logger maintains no resources.
+func (p *ProtoLogger) Close() error {
+	return nil
+}

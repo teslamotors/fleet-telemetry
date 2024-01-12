@@ -1,17 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	_ "go.uber.org/automaxprocs"
 
+	"github.com/teslamotors/fleet-telemetry/cmd/run"
 	"github.com/teslamotors/fleet-telemetry/config"
-	"github.com/teslamotors/fleet-telemetry/server/monitoring"
-	"github.com/teslamotors/fleet-telemetry/server/streaming"
 )
 
 func main() {
@@ -35,34 +33,5 @@ func main() {
 		}()
 	}
 
-	panic(startServer(config, logger))
-}
-
-func startServer(config *config.Config, logger *logrus.Logger) (err error) {
-	logger.Infoln("starting")
-	mux := http.NewServeMux()
-	registry := streaming.NewSocketRegistry()
-
-	monitoring.StartProfilerServer(config, mux, logger)
-	if config.StatusPort > 0 {
-		monitoring.StartStatusServer(config, logger)
-	}
-	if config.Monitoring != nil {
-		monitoring.StartServerMetrics(config, logger, registry)
-	}
-
-	producerRules, err := config.ConfigureProducers(logger)
-	if err != nil {
-		return err
-	}
-
-	server, _, err := streaming.InitServer(config, mux, producerRules, logger, registry)
-	if err != nil {
-		return err
-	}
-
-	if server.TLSConfig, err = config.ExtractServiceTLSConfig(); err != nil {
-		return err
-	}
-	return server.ListenAndServeTLS(config.TLS.ServerCert, config.TLS.ServerKey)
+	panic(run.RunServer(context.Background(), config, logger))
 }

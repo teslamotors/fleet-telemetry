@@ -137,3 +137,9 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 		Labels: []string{},
 	})
 }
+
+// Close the underlying kafka producer.
+func (p *Producer) Close() error {
+	p.kafkaProducer.Close()
+	return nil
+}

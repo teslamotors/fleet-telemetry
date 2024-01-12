@@ -137,3 +137,10 @@ func extractCertFromHeaders(ctx context.Context, r *http.Request) (*x509.Certifi
 
 	return r.TLS.PeerCertificates[nbCerts-1], nil
 }
+
+// Close releases resources managed by the server.
+func (s *Server) Close() error {
+	err := telemetry.CloseDispatchRules(s.DispatchRules)
+	s.DispatchRules = nil
+	return err
+}

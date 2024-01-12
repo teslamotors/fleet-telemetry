@@ -119,3 +119,8 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 		Labels: []string{"record_type"},
 	})
 }
+
+// Close does nothing as the underlying kinesis object has no close method.
+func (p *Producer) Close() error {
+	return nil
+}

@@ -48,17 +48,8 @@ var _ = Describe("Test full application config", func() {
 
 	AfterEach(func() {
 		os.Clearenv()
-		type Closer interface {
-			Close() error
-		}
-		for _, typeProducers := range producers {
-			for _, producer := range typeProducers {
-				if closer, ok := producer.(Closer); ok {
-					err := closer.Close()
-					Expect(err).NotTo(HaveOccurred())
-				}
-			}
-		}
+		err := telemetry.CloseDispatchRules(producers)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Context("ExtractServiceTLSConfig", func() {
