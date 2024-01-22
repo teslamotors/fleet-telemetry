@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 
@@ -19,11 +18,6 @@ type profileServer struct {
 // liveProfiler profiles https requests
 func (p *profileServer) liveProfiler(config *config.Config) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.RemoteAddr, "127.0.0.1") { // enable this only locally
-			w.WriteHeader(404)
-			return
-		}
-
 		if config.Monitoring == nil || config.Monitoring.ProfilingPath == "" { // disabled by default
 			w.WriteHeader(405)
 			_, _ = w.Write([]byte(`{"error":"profiler not configured"}`))

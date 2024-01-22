@@ -39,7 +39,7 @@ type Server struct {
 }
 
 // InitServer initializes the main server
-func InitServer(c *config.Config, mux *http.ServeMux, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *Server, error) {
+func InitServer(c *config.Config, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *Server, error) {
 	reliableAck := false
 	if c.Kafka != nil {
 		reliableAck = c.ReliableAck
@@ -52,6 +52,7 @@ func InitServer(c *config.Config, mux *http.ServeMux, producerRules map[string][
 		logger:           logger,
 	}
 
+	mux := http.NewServeMux()
 	mux.HandleFunc("/", socketServer.ServeBinaryWs(c, registry))
 	mux.HandleFunc("/status", socketServer.Status())
 

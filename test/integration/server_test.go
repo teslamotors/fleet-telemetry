@@ -28,6 +28,7 @@ const (
 
 	serviceURL    = "app:4443"
 	statusURL     = "app:8080"
+	profilerURL   = "app:4269"
 	prometheusURL = "app:9090"
 
 	clientCert = "./test-certs/vehicle_device.device-1.cert"
