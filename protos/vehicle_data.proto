@@ -170,6 +170,7 @@ enum Field {
   BMSState = 160;
   GuestModeMobileAccessState = 161;
   AutopilotState = 162;
+  DestinationName = 163;
 }
 
 // ChargingState are the charging options
