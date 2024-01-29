@@ -9,21 +9,38 @@ Fleet Telemetry is a server reference implementation for Tesla's telemetry proto
 
 The service handles device connectivity as well as receiving and storing transmitted data. Once configured, devices establish a WebSocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
 
+## Requirements
+These are the minimum system requirements for a Fleet Telemetry server, with 10 active vehicles connected, running on a Debian-based server with regular day-to-day usage. The requirements will change based on vehicle usage and quantity of vehicles.
+
+* Allocate at least 0.2 AWS vCPU, 256MB RAM, and 8GB storage
+* Host on a publicly available server with an associated domain
+
+### Recommendations
+* Run on a Debian base image
+* Allocate and configure a server certificate using best practices
+
+### Dependencies
+* Go 1.20+
+* libzmq
+* Docker*
+* Kubernetes/Helm*
+
+*Kubernetes/Helm is required when using the Helm Charts deployment method (recommended) and Docker is required for deploying Fleet Telemetry via a docker image.
+
+### Vehicle Compatibility
+
+Vehicles must be running firmware version 2023.20.6 or later. You may find this information under your VIN in the Tesla Mobile App or the Software tab in the vehicle's infotainment system. Some older model S/X are not supported.
+
 ## Configuring and running the service
+You may generate [self-signed certificates](https://en.wikipedia.org/wiki/Self-signed_certificate) for your domain and the generated tls certificate + private key pair will be used to authenticate vehicles to your Fleet Telemetry server. Tesla vehicles rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend.
 
-As a service provider, you will need to register a publicly available endpoint to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend. The application has been designed to operate on top of Kubernetes, but you can run it as a standalone binary if you prefer.
+You may generate a self-signed certificate using the OpenSSL command below, though we recommend using best practices for generating a server certificate from a trusted certificate authority (have your domain/CNAME ready):
 
-### Install on Kubernetes with Helm Chart (recommended)
-For ease of installation and operation, we recommend running Fleet Telemetry on Kubernetes. Helm Charts help you define, install, and upgrade applications on Kubernetes. You can find a reference helm chart [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
+```sh
+openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out certificate.pem
+```
 
-### Install manually (skip this if you have installed with Helm on Kubernetes)
-1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name). This will be used in the server and client (vehicle) configuration.
-
-2. Design a simple hosting architecture. We recommend: Firewall/Loadbalancer -> Fleet Telemetry -> Kafka.
-
-3. Ensure mTLS connections are terminated on the Fleet Telemetry service.
-
-4. Configure the server
+Before you deploy your Fleet Telemetry server, you will need to configure your server (the docker image will check the config mounted on `/etc/fleet-telemetry/config.json`). Server config template:
 ```
 {
   "host": string - hostname,
@@ -77,7 +94,28 @@ For ease of installation and operation, we recommend running Fleet Telemetry on 
 ```
 Example: [server_config.json](./examples/server_config.json)
 
-5. Deploy and run the server. Get the latest docker image information from our [docker hub](https://hub.docker.com/r/tesla/fleet-telemetry/tags). This can be run as a binary via `./fleet-telemetry -config=/etc/fleet-telemetry/config.json` directly on a server, or as a Kubernetes deployment. Example snippet:
+### Deploy using Kubernetes with Helm Charts (recommended for large fleets)
+Hosting on [Kubernetes](https://kubernetes.io/) will enable the service to scale for large fleets. Helm Charts help you define, install, and upgrade applications on Kubernetes. Reference Helm chart [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
+
+You must have [Kubernetes](https://kubernetes.io/docs/setup/) amd [Helm](https://helm.sh/docs/intro/install/) installed for this deployment method.
+
+### Deploy using Docker
+
+1. Pull the Tesla Fleet Telemetry image (you may find all images in [docker hub](https://hub.docker.com/r/tesla/fleet-telemetry/tags)):
+```sh
+docker pull tesla/fleet-telemetry:v0.1.8
+```
+2. Run and deploy your docker image with your mTLS certificate, private key, and config.json locally mounted on `/etc/fleet-telemetry`:
+```sh
+sudo docker run -v /etc/fleet-telemetry:/etc/fleet-telemetry tesla/fleet-telemetry:v0.1.8
+```
+### Deploy manually
+1. Build the server
+```sh
+make install
+```
+
+2. Deploy and run the server. This can be run as a binary via `$GOPATH/bin/fleet-telemetry -config=/etc/fleet-telemetry/config.json` directly on a server, or as a Kubernetes deployment. Example snippet:
 ```yaml
 ---
 apiVersion: apps/v1
@@ -115,11 +153,7 @@ spec:
   type: LoadBalancer
 ```
 
-6. Register vehicles for streaming via [fleet-telemetry-config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config) API.
-
-## Vehicle Compatibility
-
-Vehicles must be running firmware version 2023.20.6 or later.  Some older model S/X are not supported.
+3. Register vehicles for streaming via [fleet-telemetry-config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config) API.
 
 ## Backends/dispatchers
 The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
