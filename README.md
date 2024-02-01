@@ -11,19 +11,23 @@ The service handles device connectivity as well as receiving and storing transmi
 
 ## Configuring and running the service
 
-As a service provider, you will need to register a publicly available endpoint to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend. The application has been designed to operate on top of Kubernetes, but you can run it as a standalone binary if you prefer.
+Register a publicly available endpoint (DNS record) to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend. The application has been designed to operate on top of Kubernetes, but it can run as a standalone binary.
+
+See https://developer.tesla.com/docs/fleet-api#setup for setting up and registering a developer account. [check_csr.sh](tools/check_csr.sh) can be used to validate CSR submissions and ensure the account's public key is available.
+
+Configure vehicles for streaming using FleetAPI's [fleet-telemetry-config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config).
 
 ### Install on Kubernetes with Helm Chart (recommended)
-For ease of installation and operation, we recommend running Fleet Telemetry on Kubernetes. Helm Charts help you define, install, and upgrade applications on Kubernetes. You can find a reference helm chart [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
+For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
-### Install manually (skip this if you have installed with Helm on Kubernetes)
+### Install steps
 1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name). This will be used in the server and client (vehicle) configuration.
 
 2. Design a simple hosting architecture. We recommend: Firewall/Loadbalancer -> Fleet Telemetry -> Kafka.
 
 3. Ensure mTLS connections are terminated on the Fleet Telemetry service.
 
-4. Configure the server
+4. Configure the server (Helm charts cover some of this configuration)
 ```
 {
   "host": string - hostname,
@@ -77,7 +81,7 @@ For ease of installation and operation, we recommend running Fleet Telemetry on 
 ```
 Example: [server_config.json](./examples/server_config.json)
 
-5. Deploy and run the server. Get the latest docker image information from our [docker hub](https://hub.docker.com/r/tesla/fleet-telemetry/tags). This can be run as a binary via `./fleet-telemetry -config=/etc/fleet-telemetry/config.json` directly on a server, or as a Kubernetes deployment. Example snippet:
+5. (Manual install only) Deploy and run the server. Get the latest docker image information from our [docker hub](https://hub.docker.com/r/tesla/fleet-telemetry/tags). This can be run as a binary via `./fleet-telemetry -config=/etc/fleet-telemetry/config.json` directly on a server, or as a Kubernetes deployment. Example snippet:
 ```yaml
 ---
 apiVersion: apps/v1
@@ -115,7 +119,6 @@ spec:
   type: LoadBalancer
 ```
 
-6. Register vehicles for streaming via [fleet-telemetry-config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config) API.
 
 ## Vehicle Compatibility
 
@@ -135,10 +138,10 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L104)
 
 ## Metrics
-Prometheus or a StatsD interface supporting data store for metrics. This is required for monitoring your applications.
+Configure and use Prometheus or a StatsD-interface supporting data store for metrics.
 
 ## Protos
-Data is encapsulated into protobuf messages of different types. We do not recommend making changes, but if you need to recompile them you can always do so with:
+Data is encapsulated into protobuf messages of different types. Protos can be recompiled via:
 
   1. Install protoc, currently on version 4.25.1: https://grpc.io/docs/protoc-installation/
   2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
