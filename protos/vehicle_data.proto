@@ -7,170 +7,498 @@ import "google/protobuf/timestamp.proto";
 option go_package = "github.com/teslamotors/fleet-telemetry/protos";
 
 enum Field {
+  // Unknown field, default value
   Unknown = 0;
+
+  // Information about the drive rail
   DriveRail = 1;
+
+  // Current state of the vehicle's charge
   ChargeState = 2;
+
+  // Indicates if the battery management system reports the charge is complete
   BmsFullchargecomplete = 3;
+
+  // Current speed of the vehicle
   VehicleSpeed = 4;
+
+  // Vehicle's odometer reading
   Odometer = 5;
+
+  // Voltage of the battery pack
   PackVoltage = 6;
+
+  // Current of the battery pack
   PackCurrent = 7;
+
+  // State of charge of the battery
   Soc = 8;
+
+  // Status of the DC-DC converter enable
   DCDCEnable = 9;
+
+  // Current gear position
   Gear = 10;
+
+  // Isolation resistance value
   IsolationResistance = 11;
+
+  // Position of the acceleration pedal
   PedalPosition = 12;
+
+  // Status of the brake pedal
   BrakePedal = 13;
+
+  // Digital input state for the rear
   DiStateR = 14;
+
+  // Temperature of the rear heatsink
   DiHeatsinkTR = 15;
+
+  // Speed of the rear axle
   DiAxleSpeedR = 16;
+
+  // Torque output of the motor
   DiTorquemotor = 17;
+
+  // Temperature of the rear stator
   DiStatorTempR = 18;
+
+  // Voltage of the rear battery
   DiVBatR = 19;
+
+  // Current of the rear motor
   DiMotorCurrentR = 20;
+
+  // GPS location of the vehicle
   Location = 21;
+
+  // State of the GPS system
   GpsState = 22;
+
+  // Heading direction from GPS
   GpsHeading = 23;
+
+  // Maximum voltage among all bricks
   NumBrickVoltageMax = 24;
+
+  // Voltage of the brick with the maximum voltage
   BrickVoltageMax = 25;
+
+  // Minimum voltage among all bricks
   NumBrickVoltageMin = 26;
+
+  // Voltage of the brick with the minimum voltage
   BrickVoltageMin = 27;
+
+  // Maximum temperature among all modules
   NumModuleTempMax = 28;
+
+  // Temperature of the module with the maximum temperature
   ModuleTempMax = 29;
+
+  // Minimum temperature among all modules
   NumModuleTempMin = 30;
+
+  // Temperature of the module with the minimum temperature
   ModuleTempMin = 31;
+
+  // Rated range of the vehicle
   RatedRange = 32;
+
+  // High voltage interlock loop status
   Hvil = 33;
+
+  // Energy input during DC charging
   DCChargingEnergyIn = 34;
+
+  // Power during DC charging
   DCChargingPower = 35;
+
+  // Energy input during AC charging
   ACChargingEnergyIn = 36;
+
+  // Power during AC charging
   ACChargingPower = 37;
+
+  // State of charge limit for charging
   ChargeLimitSoc = 38;
+
+  // Presence of a fast charger
   FastChargerPresent = 39;
+
+  // Estimated battery range
   EstBatteryRange = 40;
+
+  // Ideal battery range
   IdealBatteryRange = 41;
+
+  // Current battery level
   BatteryLevel = 42;
+
+  // Time remaining to full charge
   TimeToFullCharge = 43;
+
+  // Scheduled start time for charging
   ScheduledChargingStartTime = 44;
+
+  // Indicates if scheduled charging is pending
   ScheduledChargingPending = 45;
+
+  // Scheduled departure time
   ScheduledDepartureTime = 46;
+
+  // Status of preconditioning feature
   PreconditioningEnabled = 47;
+
+  // Mode of scheduled charging
   ScheduledChargingMode = 48;
+
+  // Current in amperes during charging
   ChargeAmps = 49;
+
+  // Request to enable charging
   ChargeEnableRequest = 50;
+
+  // Number of phases used by the charger
   ChargerPhases = 51;
+
+  // Cold weather mode status of the charge port
   ChargePortColdWeatherMode = 52;
+
+  // Requested current for charging
   ChargeCurrentRequest = 53;
+
+  // Maximum requested current for charging
   ChargeCurrentRequestMax = 54;
+
+  // Status of the battery heater
   BatteryHeaterOn = 55;
+
+  // Indicates if there is not enough power to heat
   NotEnoughPowerToHeat = 56;
+
+  // Supercharger session information from trip planner
   SuperchargerSessionTripPlanner = 57;
+
+  // State of the vehicle's doors
   DoorState = 58;
+
+  // Lock status of the vehicle
   Locked = 59;
+
+  // Status of the front driver-side window
   FdWindow = 60;
+
+  // Status of the front passenger-side window
   FpWindow = 61;
+
+  // Status of the rear driver-side window
   RdWindow = 62;
+
+  // Status of the rear passenger-side window
   RpWindow = 63;
+
+  // Name of the vehicle
   VehicleName = 64;
+
+  // Status of Sentry Mode
   SentryMode = 65;
+
+  // Status of Speed Limit Mode
   SpeedLimitMode = 66;
+
+  // Current speed limit in MPH
   CurrentLimitMph = 67;
+
+  // Software version of the vehicle
   Version = 68;
+
+  // Tire pressure of the front left tire
   TpmsPressureFl = 69;
+
+  // Tire pressure of the front right tire
   TpmsPressureFr = 70;
+
+  // Tire pressure of the rear left tire
   TpmsPressureRl = 71;
+
+  // Tire pressure of the rear right tire
   TpmsPressureRr = 72;
-  SemitruckTpmsPressureRe1L0 = 73;  // Semi-truck only
-  SemitruckTpmsPressureRe1L1 = 74;  // Semi-truck only
-  SemitruckTpmsPressureRe1R0 = 75;  // Semi-truck only
-  SemitruckTpmsPressureRe1R1 = 76;  // Semi-truck only
-  SemitruckTpmsPressureRe2L0 = 77;  // Semi-truck only
-  SemitruckTpmsPressureRe2L1 = 78;  // Semi-truck only
-  SemitruckTpmsPressureRe2R0 = 79;  // Semi-truck only
-  SemitruckTpmsPressureRe2R1 = 80;  // Semi-truck only
+
+  // Tire pressure of the semi-truck's first rear axle, left outer tire 
+  SemitruckTpmsPressureRe1L0 = 73;
+
+  // Tire pressure of the semi-truck's first rear axle, left inner tire
+  SemitruckTpmsPressureRe1L1 = 74;
+
+  // Tire pressure of the semi-truck's first rear axle, right outer tire
+  SemitruckTpmsPressureRe1R0 = 75;
+
+  // Tire pressure of the semi-truck's first rear axle, right inner tire
+  SemitruckTpmsPressureRe1R1 = 76;
+
+  // Tire pressure of the semi-truck's second rear axle, left outer tire
+  SemitruckTpmsPressureRe2L0 = 77;
+
+  // Tire pressure of the semi-truck's second rear axle, left inner tire
+  SemitruckTpmsPressureRe2L1 = 78;
+
+  // Tire pressure of the semi-truck's second rear axle, right outer tire
+  SemitruckTpmsPressureRe2R0 = 79;
+
+  // Tire pressure of the semi-truck's second rear axle, right inner tire
+  SemitruckTpmsPressureRe2R1 = 80;
+
+  // Last seen time of the front left tire pressure
   TpmsLastSeenPressureTimeFl = 81;
+
+  // Last seen time of the front right tire pressure
   TpmsLastSeenPressureTimeFr = 82;
+
+  // Last seen time of the rear left tire pressure
   TpmsLastSeenPressureTimeRl = 83;
+
+  // Last seen time of the rear right tire pressure
   TpmsLastSeenPressureTimeRr = 84;
+
+  // Temperature inside the vehicle
   InsideTemp = 85;
+
+  // Temperature outside the vehicle
   OutsideTemp = 86;
+
+  // Status of the left seat heater
   SeatHeaterLeft = 87;
+
+  // Status of the right seat heater
   SeatHeaterRight = 88;
+
+  // Status of the rear left seat heater
   SeatHeaterRearLeft = 89;
+
+  // Status of the rear right seat heater
   SeatHeaterRearRight = 90;
+
+  // Status of the rear center seat heater
   SeatHeaterRearCenter = 91;
+
+  // Automatic climate control for the left seat
   AutoSeatClimateLeft = 92;
+
+  // Automatic climate control for the right seat
   AutoSeatClimateRight = 93;
+
+  // Status of the driver's seat belt
   DriverSeatBelt = 94;
+
+  // Status of the passenger's seat belt
   PassengerSeatBelt = 95;
+
+  // Occupancy status of the driver's seat
   DriverSeatOccupied = 96;
-  SemitruckPassengerSeatFoldPosition = 97;  // Semi-truck only
+
+  // Fold position of the semi-truck's passenger seat
+  SemitruckPassengerSeatFoldPosition = 97;
+
+  // Lateral acceleration of the vehicle
   LateralAcceleration = 98;
+
+  // Longitudinal acceleration of the vehicle
   LongitudinalAcceleration = 99;
+
+  // State of the cruise control system
   CruiseState = 100;
+
+  // Set speed for the cruise control
   CruiseSetSpeed = 101;
+
+  // Lifetime energy used by the vehicle
   LifetimeEnergyUsed = 102;
+
+  // Lifetime energy used by the vehicle for driving
   LifetimeEnergyUsedDrive = 103;
-  SemitruckTractorParkBrakeStatus = 104;  // Semi-truck only
-  SemitruckTrailerParkBrakeStatus = 105;  // Semi-truck only
+
+  // Park brake status of the semi-truck tractor
+  SemitruckTractorParkBrakeStatus = 104;
+
+  // Park brake status of the semi-truck trailer
+  SemitruckTrailerParkBrakeStatus = 105;
+
+  // Position of the brake pedal
   BrakePedalPos = 106;
+
+  // Last update time of the route
   RouteLastUpdated = 107;
+
+  // Route line data
   RouteLine = 108;
+
+  // Miles remaining to arrival
   MilesToArrival = 109;
+
+  // Minutes remaining to arrival
   MinutesToArrival = 110;
+
+  // Origin location for navigation
   OriginLocation = 111;
+
+  // Destination location for navigation
   DestinationLocation = 112;
+
+  // Type of the car
   CarType = 113;
+
+  // Trim level of the vehicle
   Trim = 114;
+
+  // Exterior color of the vehicle
   ExteriorColor = 115;
+
+  // Color of the vehicle's roof
   RoofColor = 116;
+
+  // Status of the charge port
   ChargePort = 117;
+
+  // Status of the charge port latch
   ChargePortLatch = 118;
+
+  // Experimental field 1
   Experimental_1 = 119;
+
+  // Experimental field 2
   Experimental_2 = 120;
+
+  // Experimental field 3
   Experimental_3 = 121;
+
+  // Experimental field 4
   Experimental_4 = 122;
+
+  // Status of guest mode
   GuestModeEnabled = 123;
+
+  // Status of PIN to Drive feature
   PinToDriveEnabled = 124;
+
+  // Quantity of paired phone keys and key fobs
   PairedPhoneKeyAndKeyFobQty = 125;
+
+  // Following distance setting for cruise control
   CruiseFollowDistance = 126;
+
+  // Status of the automatic blind spot camera
   AutomaticBlindSpotCamera = 127;
+
+  // Status of the blind spot collision warning chime
   BlindSpotCollisionWarningChime = 128;
+
+  // Status of the speed limit warning system
   SpeedLimitWarning = 129;
+
+  // Status of the forward collision warning system
   ForwardCollisionWarning = 130;
+
+  // Status of the lane departure avoidance system
   LaneDepartureAvoidance = 131;
+
+  // Status of the emergency lane departure avoidance system
   EmergencyLaneDepartureAvoidance = 132;
+
+  // Status of the automatic emergency braking system being off
   AutomaticEmergencyBrakingOff = 133;
+
+  // Lifetime energy gained through regeneration
   LifetimeEnergyGainedRegen = 134;
+
+  // Digital input state for the front
   DiStateF = 135;
+
+  // Digital input state for the rear left
   DiStateREL = 136;
+
+  // Digital input state for the rear right
   DiStateRER = 137;
+
+  // Temperature of the front heatsink
   DiHeatsinkTF = 138;
+
+  // Temperature of the rear left heatsink
   DiHeatsinkTREL = 139;
+
+  // Temperature of the rear right heatsink
   DiHeatsinkTRER = 140;
+
+  // Speed of the front axle
   DiAxleSpeedF = 141;
+
+  // Speed of the rear left axle
   DiAxleSpeedREL = 142;
+
+  // Speed of the rear right axle
   DiAxleSpeedRER = 143;
+
+  // Slave torque command
   DiSlaveTorqueCmd = 144;
+
+  // Actual torque of the rear motor
   DiTorqueActualR = 145;
+
+  // Actual torque of the front motor
   DiTorqueActualF = 146;
+
+  // Actual torque of the rear left motor
   DiTorqueActualREL = 147;
+
+  // Actual torque of the rear right motor
   DiTorqueActualRER = 148;
+
+  // Temperature of the front stator
   DiStatorTempF = 149;
+
+  // Temperature of the rear left stator
   DiStatorTempREL = 150;
+
+  // Temperature of the rear right stator
   DiStatorTempRER = 151;
+
+  // Voltage of the front battery
   DiVBatF = 152;
+
+  // Voltage of the rear left battery
   DiVBatREL = 153;
+
+  // Voltage of the rear right battery
   DiVBatRER = 154;
+
+  // Current of the front motor
   DiMotorCurrentF = 155;
+
+  // Current of the rear left motor
   DiMotorCurrentREL = 156;
+
+  // Current of the rear right motor
   DiMotorCurrentRER = 157;
+
+  // Remaining energy in the battery
   EnergyRemaining = 158;
+
+  // Status of service mode
   ServiceMode = 159;
+
+  // State of the battery management system
   BMSState = 160;
+
+  // Mobile access state in guest mode
   GuestModeMobileAccessState = 161;
+
+  // State of the Autopilot system
   AutopilotState = 162;
+
+  // Name of the navigation destination
   DestinationName = 163;
+
 }
 
 // ChargingState are the charging options
