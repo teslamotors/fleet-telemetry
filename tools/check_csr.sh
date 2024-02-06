@@ -38,10 +38,9 @@ match_csr() {
     fi
 }
 
-
 CSR="$1"
-DN="$(openssl req -in "$1" -subject -noout)"
-HOST="$(echo $DN | sed 's/subject=[\/]*CN=//')"
+DN="$(openssl req -in "$1" -subject -nameopt RFC2253 -noout)"
+HOST="$(echo "$DN" | sed 's/subject=[\/]*CN=//')"
 
 echo "----"
 echo "CSR: $1"
