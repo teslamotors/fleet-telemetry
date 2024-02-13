@@ -15,10 +15,12 @@ Register a publicly available endpoint (DNS record) to receive device connection
 
 See https://developer.tesla.com/docs/fleet-api#setup for setting up and registering a developer account. [check_csr.sh](tools/check_csr.sh) can be used to validate CSR submissions and ensure the account's public key is available.
 
-Configure vehicles for streaming using FleetAPI's [fleet-telemetry-config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config).  Validate vehicle configs are compatible with your server by running [check_server_cert.sh](tools/check_server_cert.sh) passing the path of your proposed vehicle config:
+Configure vehicles for streaming using FleetAPI's [fleet-telemetry-config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-create).  Validate vehicle configs are compatible with your server by running [check_server_cert.sh](tools/check_server_cert.sh) passing the path of your proposed vehicle config:
 ```
 ./tools/check_server_cert.sh /tmp/proposed_config.json
 ```
+
+To troubleshoot issues receiving data from vehicles, see the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_errors) endpoint.
 
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
