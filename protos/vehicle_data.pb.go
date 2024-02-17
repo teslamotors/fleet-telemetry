@@ -24,170 +24,334 @@ const (
 type Field int32
 
 const (
-	Field_Unknown                            Field = 0
-	Field_DriveRail                          Field = 1
-	Field_ChargeState                        Field = 2
-	Field_BmsFullchargecomplete              Field = 3
-	Field_VehicleSpeed                       Field = 4
-	Field_Odometer                           Field = 5
-	Field_PackVoltage                        Field = 6
-	Field_PackCurrent                        Field = 7
-	Field_Soc                                Field = 8
-	Field_DCDCEnable                         Field = 9
-	Field_Gear                               Field = 10
-	Field_IsolationResistance                Field = 11
-	Field_PedalPosition                      Field = 12
-	Field_BrakePedal                         Field = 13
-	Field_DiStateR                           Field = 14
-	Field_DiHeatsinkTR                       Field = 15
-	Field_DiAxleSpeedR                       Field = 16
-	Field_DiTorquemotor                      Field = 17
-	Field_DiStatorTempR                      Field = 18
-	Field_DiVBatR                            Field = 19
-	Field_DiMotorCurrentR                    Field = 20
-	Field_Location                           Field = 21
-	Field_GpsState                           Field = 22
-	Field_GpsHeading                         Field = 23
-	Field_NumBrickVoltageMax                 Field = 24
-	Field_BrickVoltageMax                    Field = 25
-	Field_NumBrickVoltageMin                 Field = 26
-	Field_BrickVoltageMin                    Field = 27
-	Field_NumModuleTempMax                   Field = 28
-	Field_ModuleTempMax                      Field = 29
-	Field_NumModuleTempMin                   Field = 30
-	Field_ModuleTempMin                      Field = 31
-	Field_RatedRange                         Field = 32
-	Field_Hvil                               Field = 33
-	Field_DCChargingEnergyIn                 Field = 34
-	Field_DCChargingPower                    Field = 35
-	Field_ACChargingEnergyIn                 Field = 36
-	Field_ACChargingPower                    Field = 37
-	Field_ChargeLimitSoc                     Field = 38
-	Field_FastChargerPresent                 Field = 39
-	Field_EstBatteryRange                    Field = 40
-	Field_IdealBatteryRange                  Field = 41
-	Field_BatteryLevel                       Field = 42
-	Field_TimeToFullCharge                   Field = 43
-	Field_ScheduledChargingStartTime         Field = 44
-	Field_ScheduledChargingPending           Field = 45
-	Field_ScheduledDepartureTime             Field = 46
-	Field_PreconditioningEnabled             Field = 47
-	Field_ScheduledChargingMode              Field = 48
-	Field_ChargeAmps                         Field = 49
-	Field_ChargeEnableRequest                Field = 50
-	Field_ChargerPhases                      Field = 51
-	Field_ChargePortColdWeatherMode          Field = 52
-	Field_ChargeCurrentRequest               Field = 53
-	Field_ChargeCurrentRequestMax            Field = 54
-	Field_BatteryHeaterOn                    Field = 55
-	Field_NotEnoughPowerToHeat               Field = 56
-	Field_SuperchargerSessionTripPlanner     Field = 57
-	Field_DoorState                          Field = 58
-	Field_Locked                             Field = 59
-	Field_FdWindow                           Field = 60
-	Field_FpWindow                           Field = 61
-	Field_RdWindow                           Field = 62
-	Field_RpWindow                           Field = 63
-	Field_VehicleName                        Field = 64
-	Field_SentryMode                         Field = 65
-	Field_SpeedLimitMode                     Field = 66
-	Field_CurrentLimitMph                    Field = 67
-	Field_Version                            Field = 68
-	Field_TpmsPressureFl                     Field = 69
-	Field_TpmsPressureFr                     Field = 70
-	Field_TpmsPressureRl                     Field = 71
-	Field_TpmsPressureRr                     Field = 72
-	Field_SemitruckTpmsPressureRe1L0         Field = 73 // Semi-truck only
-	Field_SemitruckTpmsPressureRe1L1         Field = 74 // Semi-truck only
-	Field_SemitruckTpmsPressureRe1R0         Field = 75 // Semi-truck only
-	Field_SemitruckTpmsPressureRe1R1         Field = 76 // Semi-truck only
-	Field_SemitruckTpmsPressureRe2L0         Field = 77 // Semi-truck only
-	Field_SemitruckTpmsPressureRe2L1         Field = 78 // Semi-truck only
-	Field_SemitruckTpmsPressureRe2R0         Field = 79 // Semi-truck only
-	Field_SemitruckTpmsPressureRe2R1         Field = 80 // Semi-truck only
-	Field_TpmsLastSeenPressureTimeFl         Field = 81
-	Field_TpmsLastSeenPressureTimeFr         Field = 82
-	Field_TpmsLastSeenPressureTimeRl         Field = 83
-	Field_TpmsLastSeenPressureTimeRr         Field = 84
-	Field_InsideTemp                         Field = 85
-	Field_OutsideTemp                        Field = 86
-	Field_SeatHeaterLeft                     Field = 87
-	Field_SeatHeaterRight                    Field = 88
-	Field_SeatHeaterRearLeft                 Field = 89
-	Field_SeatHeaterRearRight                Field = 90
-	Field_SeatHeaterRearCenter               Field = 91
-	Field_AutoSeatClimateLeft                Field = 92
-	Field_AutoSeatClimateRight               Field = 93
-	Field_DriverSeatBelt                     Field = 94
-	Field_PassengerSeatBelt                  Field = 95
-	Field_DriverSeatOccupied                 Field = 96
-	Field_SemitruckPassengerSeatFoldPosition Field = 97 // Semi-truck only
-	Field_LateralAcceleration                Field = 98
-	Field_LongitudinalAcceleration           Field = 99
-	Field_CruiseState                        Field = 100
-	Field_CruiseSetSpeed                     Field = 101
-	Field_LifetimeEnergyUsed                 Field = 102
-	Field_LifetimeEnergyUsedDrive            Field = 103
-	Field_SemitruckTractorParkBrakeStatus    Field = 104 // Semi-truck only
-	Field_SemitruckTrailerParkBrakeStatus    Field = 105 // Semi-truck only
-	Field_BrakePedalPos                      Field = 106
-	Field_RouteLastUpdated                   Field = 107
-	Field_RouteLine                          Field = 108
-	Field_MilesToArrival                     Field = 109
-	Field_MinutesToArrival                   Field = 110
-	Field_OriginLocation                     Field = 111
-	Field_DestinationLocation                Field = 112
-	Field_CarType                            Field = 113
-	Field_Trim                               Field = 114
-	Field_ExteriorColor                      Field = 115
-	Field_RoofColor                          Field = 116
-	Field_ChargePort                         Field = 117
-	Field_ChargePortLatch                    Field = 118
-	Field_Experimental_1                     Field = 119
-	Field_Experimental_2                     Field = 120
-	Field_Experimental_3                     Field = 121
-	Field_Experimental_4                     Field = 122
-	Field_GuestModeEnabled                   Field = 123
-	Field_PinToDriveEnabled                  Field = 124
-	Field_PairedPhoneKeyAndKeyFobQty         Field = 125
-	Field_CruiseFollowDistance               Field = 126
-	Field_AutomaticBlindSpotCamera           Field = 127
-	Field_BlindSpotCollisionWarningChime     Field = 128
-	Field_SpeedLimitWarning                  Field = 129
-	Field_ForwardCollisionWarning            Field = 130
-	Field_LaneDepartureAvoidance             Field = 131
-	Field_EmergencyLaneDepartureAvoidance    Field = 132
-	Field_AutomaticEmergencyBrakingOff       Field = 133
-	Field_LifetimeEnergyGainedRegen          Field = 134
-	Field_DiStateF                           Field = 135
-	Field_DiStateREL                         Field = 136
-	Field_DiStateRER                         Field = 137
-	Field_DiHeatsinkTF                       Field = 138
-	Field_DiHeatsinkTREL                     Field = 139
-	Field_DiHeatsinkTRER                     Field = 140
-	Field_DiAxleSpeedF                       Field = 141
-	Field_DiAxleSpeedREL                     Field = 142
-	Field_DiAxleSpeedRER                     Field = 143
-	Field_DiSlaveTorqueCmd                   Field = 144
-	Field_DiTorqueActualR                    Field = 145
-	Field_DiTorqueActualF                    Field = 146
-	Field_DiTorqueActualREL                  Field = 147
-	Field_DiTorqueActualRER                  Field = 148
-	Field_DiStatorTempF                      Field = 149
-	Field_DiStatorTempREL                    Field = 150
-	Field_DiStatorTempRER                    Field = 151
-	Field_DiVBatF                            Field = 152
-	Field_DiVBatREL                          Field = 153
-	Field_DiVBatRER                          Field = 154
-	Field_DiMotorCurrentF                    Field = 155
-	Field_DiMotorCurrentREL                  Field = 156
-	Field_DiMotorCurrentRER                  Field = 157
-	Field_EnergyRemaining                    Field = 158
-	Field_ServiceMode                        Field = 159
-	Field_BMSState                           Field = 160
-	Field_GuestModeMobileAccessState         Field = 161
-	Field_AutopilotState                     Field = 162
-	Field_DestinationName                    Field = 163
+	// Unknown field, default value
+	Field_Unknown Field = 0
+	// Information about the drive rail
+	Field_DriveRail Field = 1
+	// Current state of the vehicle's charge
+	Field_ChargeState Field = 2
+	// Indicates if the battery management system reports the charge is complete
+	Field_BmsFullchargecomplete Field = 3
+	// Current speed of the vehicle
+	Field_VehicleSpeed Field = 4
+	// Vehicle's odometer reading
+	Field_Odometer Field = 5
+	// Voltage of the battery pack
+	Field_PackVoltage Field = 6
+	// Current of the battery pack
+	Field_PackCurrent Field = 7
+	// State of charge of the battery
+	Field_Soc Field = 8
+	// Status of the DC-DC converter enable
+	Field_DCDCEnable Field = 9
+	// Current gear position
+	Field_Gear Field = 10
+	// Isolation resistance value
+	Field_IsolationResistance Field = 11
+	// Position of the acceleration pedal
+	Field_PedalPosition Field = 12
+	// Status of the brake pedal
+	Field_BrakePedal Field = 13
+	// Digital input state for the rear
+	Field_DiStateR Field = 14
+	// Temperature of the rear heatsink
+	Field_DiHeatsinkTR Field = 15
+	// Speed of the rear axle
+	Field_DiAxleSpeedR Field = 16
+	// Torque output of the motor
+	Field_DiTorquemotor Field = 17
+	// Temperature of the rear stator
+	Field_DiStatorTempR Field = 18
+	// Voltage of the rear battery
+	Field_DiVBatR Field = 19
+	// Current of the rear motor
+	Field_DiMotorCurrentR Field = 20
+	// GPS location of the vehicle
+	Field_Location Field = 21
+	// State of the GPS system
+	Field_GpsState Field = 22
+	// Heading direction from GPS
+	Field_GpsHeading Field = 23
+	// Maximum voltage among all bricks
+	Field_NumBrickVoltageMax Field = 24
+	// Voltage of the brick with the maximum voltage
+	Field_BrickVoltageMax Field = 25
+	// Minimum voltage among all bricks
+	Field_NumBrickVoltageMin Field = 26
+	// Voltage of the brick with the minimum voltage
+	Field_BrickVoltageMin Field = 27
+	// Maximum temperature among all modules
+	Field_NumModuleTempMax Field = 28
+	// Temperature of the module with the maximum temperature
+	Field_ModuleTempMax Field = 29
+	// Minimum temperature among all modules
+	Field_NumModuleTempMin Field = 30
+	// Temperature of the module with the minimum temperature
+	Field_ModuleTempMin Field = 31
+	// Rated range of the vehicle
+	Field_RatedRange Field = 32
+	// High voltage interlock loop status
+	Field_Hvil Field = 33
+	// Energy input during DC charging
+	Field_DCChargingEnergyIn Field = 34
+	// Power during DC charging
+	Field_DCChargingPower Field = 35
+	// Energy input during AC charging
+	Field_ACChargingEnergyIn Field = 36
+	// Power during AC charging
+	Field_ACChargingPower Field = 37
+	// State of charge limit for charging
+	Field_ChargeLimitSoc Field = 38
+	// Presence of a fast charger
+	Field_FastChargerPresent Field = 39
+	// Estimated battery range
+	Field_EstBatteryRange Field = 40
+	// Ideal battery range
+	Field_IdealBatteryRange Field = 41
+	// Current battery level
+	Field_BatteryLevel Field = 42
+	// Time remaining to full charge
+	Field_TimeToFullCharge Field = 43
+	// Scheduled start time for charging
+	Field_ScheduledChargingStartTime Field = 44
+	// Indicates if scheduled charging is pending
+	Field_ScheduledChargingPending Field = 45
+	// Scheduled departure time
+	Field_ScheduledDepartureTime Field = 46
+	// Status of preconditioning feature
+	Field_PreconditioningEnabled Field = 47
+	// Mode of scheduled charging
+	Field_ScheduledChargingMode Field = 48
+	// Current in amperes during charging
+	Field_ChargeAmps Field = 49
+	// Request to enable charging
+	Field_ChargeEnableRequest Field = 50
+	// Number of phases used by the charger
+	Field_ChargerPhases Field = 51
+	// Cold weather mode status of the charge port
+	Field_ChargePortColdWeatherMode Field = 52
+	// Requested current for charging
+	Field_ChargeCurrentRequest Field = 53
+	// Maximum requested current for charging
+	Field_ChargeCurrentRequestMax Field = 54
+	// Status of the battery heater
+	Field_BatteryHeaterOn Field = 55
+	// Indicates if there is not enough power to heat
+	Field_NotEnoughPowerToHeat Field = 56
+	// Supercharger session information from trip planner
+	Field_SuperchargerSessionTripPlanner Field = 57
+	// State of the vehicle's doors
+	Field_DoorState Field = 58
+	// Lock status of the vehicle
+	Field_Locked Field = 59
+	// Status of the front driver-side window
+	Field_FdWindow Field = 60
+	// Status of the front passenger-side window
+	Field_FpWindow Field = 61
+	// Status of the rear driver-side window
+	Field_RdWindow Field = 62
+	// Status of the rear passenger-side window
+	Field_RpWindow Field = 63
+	// Name of the vehicle
+	Field_VehicleName Field = 64
+	// Status of Sentry Mode
+	Field_SentryMode Field = 65
+	// Status of Speed Limit Mode
+	Field_SpeedLimitMode Field = 66
+	// Current speed limit in MPH
+	Field_CurrentLimitMph Field = 67
+	// Software version of the vehicle
+	Field_Version Field = 68
+	// Tire pressure of the front left tire
+	Field_TpmsPressureFl Field = 69
+	// Tire pressure of the front right tire
+	Field_TpmsPressureFr Field = 70
+	// Tire pressure of the rear left tire
+	Field_TpmsPressureRl Field = 71
+	// Tire pressure of the rear right tire
+	Field_TpmsPressureRr Field = 72
+	// Tire pressure of the semi-truck's first rear axle, left outer tire
+	Field_SemitruckTpmsPressureRe1L0 Field = 73
+	// Tire pressure of the semi-truck's first rear axle, left inner tire
+	Field_SemitruckTpmsPressureRe1L1 Field = 74
+	// Tire pressure of the semi-truck's first rear axle, right outer tire
+	Field_SemitruckTpmsPressureRe1R0 Field = 75
+	// Tire pressure of the semi-truck's first rear axle, right inner tire
+	Field_SemitruckTpmsPressureRe1R1 Field = 76
+	// Tire pressure of the semi-truck's second rear axle, left outer tire
+	Field_SemitruckTpmsPressureRe2L0 Field = 77
+	// Tire pressure of the semi-truck's second rear axle, left inner tire
+	Field_SemitruckTpmsPressureRe2L1 Field = 78
+	// Tire pressure of the semi-truck's second rear axle, right outer tire
+	Field_SemitruckTpmsPressureRe2R0 Field = 79
+	// Tire pressure of the semi-truck's second rear axle, right inner tire
+	Field_SemitruckTpmsPressureRe2R1 Field = 80
+	// Last seen time of the front left tire pressure
+	Field_TpmsLastSeenPressureTimeFl Field = 81
+	// Last seen time of the front right tire pressure
+	Field_TpmsLastSeenPressureTimeFr Field = 82
+	// Last seen time of the rear left tire pressure
+	Field_TpmsLastSeenPressureTimeRl Field = 83
+	// Last seen time of the rear right tire pressure
+	Field_TpmsLastSeenPressureTimeRr Field = 84
+	// Temperature inside the vehicle
+	Field_InsideTemp Field = 85
+	// Temperature outside the vehicle
+	Field_OutsideTemp Field = 86
+	// Status of the left seat heater
+	Field_SeatHeaterLeft Field = 87
+	// Status of the right seat heater
+	Field_SeatHeaterRight Field = 88
+	// Status of the rear left seat heater
+	Field_SeatHeaterRearLeft Field = 89
+	// Status of the rear right seat heater
+	Field_SeatHeaterRearRight Field = 90
+	// Status of the rear center seat heater
+	Field_SeatHeaterRearCenter Field = 91
+	// Automatic climate control for the left seat
+	Field_AutoSeatClimateLeft Field = 92
+	// Automatic climate control for the right seat
+	Field_AutoSeatClimateRight Field = 93
+	// Status of the driver's seat belt
+	Field_DriverSeatBelt Field = 94
+	// Status of the passenger's seat belt
+	Field_PassengerSeatBelt Field = 95
+	// Occupancy status of the driver's seat
+	Field_DriverSeatOccupied Field = 96
+	// Fold position of the semi-truck's passenger seat
+	Field_SemitruckPassengerSeatFoldPosition Field = 97
+	// Lateral acceleration of the vehicle
+	Field_LateralAcceleration Field = 98
+	// Longitudinal acceleration of the vehicle
+	Field_LongitudinalAcceleration Field = 99
+	// State of the cruise control system
+	Field_CruiseState Field = 100
+	// Set speed for the cruise control
+	Field_CruiseSetSpeed Field = 101
+	// Lifetime energy used by the vehicle
+	Field_LifetimeEnergyUsed Field = 102
+	// Lifetime energy used by the vehicle for driving
+	Field_LifetimeEnergyUsedDrive Field = 103
+	// Park brake status of the semi-truck tractor
+	Field_SemitruckTractorParkBrakeStatus Field = 104
+	// Park brake status of the semi-truck trailer
+	Field_SemitruckTrailerParkBrakeStatus Field = 105
+	// Position of the brake pedal
+	Field_BrakePedalPos Field = 106
+	// Last update time of the route
+	Field_RouteLastUpdated Field = 107
+	// Route line data
+	Field_RouteLine Field = 108
+	// Miles remaining to arrival
+	Field_MilesToArrival Field = 109
+	// Minutes remaining to arrival
+	Field_MinutesToArrival Field = 110
+	// Origin location for navigation
+	Field_OriginLocation Field = 111
+	// Destination location for navigation
+	Field_DestinationLocation Field = 112
+	// Type of the car
+	Field_CarType Field = 113
+	// Trim level of the vehicle
+	Field_Trim Field = 114
+	// Exterior color of the vehicle
+	Field_ExteriorColor Field = 115
+	// Color of the vehicle's roof
+	Field_RoofColor Field = 116
+	// Status of the charge port
+	Field_ChargePort Field = 117
+	// Status of the charge port latch
+	Field_ChargePortLatch Field = 118
+	// Experimental field 1
+	Field_Experimental_1 Field = 119
+	// Experimental field 2
+	Field_Experimental_2 Field = 120
+	// Experimental field 3
+	Field_Experimental_3 Field = 121
+	// Experimental field 4
+	Field_Experimental_4 Field = 122
+	// Status of guest mode
+	Field_GuestModeEnabled Field = 123
+	// Status of PIN to Drive feature
+	Field_PinToDriveEnabled Field = 124
+	// Quantity of paired phone keys and key fobs
+	Field_PairedPhoneKeyAndKeyFobQty Field = 125
+	// Following distance setting for cruise control
+	Field_CruiseFollowDistance Field = 126
+	// Status of the automatic blind spot camera
+	Field_AutomaticBlindSpotCamera Field = 127
+	// Status of the blind spot collision warning chime
+	Field_BlindSpotCollisionWarningChime Field = 128
+	// Status of the speed limit warning system
+	Field_SpeedLimitWarning Field = 129
+	// Status of the forward collision warning system
+	Field_ForwardCollisionWarning Field = 130
+	// Status of the lane departure avoidance system
+	Field_LaneDepartureAvoidance Field = 131
+	// Status of the emergency lane departure avoidance system
+	Field_EmergencyLaneDepartureAvoidance Field = 132
+	// Status of the automatic emergency braking system being off
+	Field_AutomaticEmergencyBrakingOff Field = 133
+	// Lifetime energy gained through regeneration
+	Field_LifetimeEnergyGainedRegen Field = 134
+	// Digital input state for the front
+	Field_DiStateF Field = 135
+	// Digital input state for the rear left
+	Field_DiStateREL Field = 136
+	// Digital input state for the rear right
+	Field_DiStateRER Field = 137
+	// Temperature of the front heatsink
+	Field_DiHeatsinkTF Field = 138
+	// Temperature of the rear left heatsink
+	Field_DiHeatsinkTREL Field = 139
+	// Temperature of the rear right heatsink
+	Field_DiHeatsinkTRER Field = 140
+	// Speed of the front axle
+	Field_DiAxleSpeedF Field = 141
+	// Speed of the rear left axle
+	Field_DiAxleSpeedREL Field = 142
+	// Speed of the rear right axle
+	Field_DiAxleSpeedRER Field = 143
+	// Slave torque command
+	Field_DiSlaveTorqueCmd Field = 144
+	// Actual torque of the rear motor
+	Field_DiTorqueActualR Field = 145
+	// Actual torque of the front motor
+	Field_DiTorqueActualF Field = 146
+	// Actual torque of the rear left motor
+	Field_DiTorqueActualREL Field = 147
+	// Actual torque of the rear right motor
+	Field_DiTorqueActualRER Field = 148
+	// Temperature of the front stator
+	Field_DiStatorTempF Field = 149
+	// Temperature of the rear left stator
+	Field_DiStatorTempREL Field = 150
+	// Temperature of the rear right stator
+	Field_DiStatorTempRER Field = 151
+	// Voltage of the front battery
+	Field_DiVBatF Field = 152
+	// Voltage of the rear left battery
+	Field_DiVBatREL Field = 153
+	// Voltage of the rear right battery
+	Field_DiVBatRER Field = 154
+	// Current of the front motor
+	Field_DiMotorCurrentF Field = 155
+	// Current of the rear left motor
+	Field_DiMotorCurrentREL Field = 156
+	// Current of the rear right motor
+	Field_DiMotorCurrentRER Field = 157
+	// Remaining energy in the battery
+	Field_EnergyRemaining Field = 158
+	// Status of service mode
+	Field_ServiceMode Field = 159
+	// State of the battery management system
+	Field_BMSState Field = 160
+	// Mobile access state in guest mode
+	Field_GuestModeMobileAccessState Field = 161
+	// State of the Autopilot system
+	Field_AutopilotState Field = 162
+	// Name of the navigation destination
+	Field_DestinationName Field = 163
 )
 
 // Enum value maps for Field.
