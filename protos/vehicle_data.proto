@@ -169,7 +169,7 @@ enum Field {
   ServiceMode = 159;
   BMSState = 160;
   GuestModeMobileAccessState = 161;
-  AutopilotState = 162;
+  Deprecated_1 = 162;
   DestinationName = 163;
 }
 
