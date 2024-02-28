@@ -23,6 +23,8 @@ services:
       AWS_ACCESS_KEY_ID: ABC123
       AWS_SECRET_ACCESS_KEY: EFG456
       PUBSUB_EMULATOR_HOST: pubsub:8085
+      # Dont set this environment variable when running this service in production
+      INTEGRATION_TEST: true
     depends_on:
       kinesis:
         condition: service_healthy

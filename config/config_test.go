@@ -21,9 +21,11 @@ var _ = Describe("Test full application config", func() {
 	var (
 		config    *Config
 		producers map[string][]telemetry.Producer
+		log       *logrus.Logger
 	)
 
 	BeforeEach(func() {
+		log, _ = test.NewNullLogger()
 		config = &Config{
 			Host:               "127.0.0.1",
 			Port:               443,
@@ -64,16 +66,25 @@ var _ = Describe("Test full application config", func() {
 	Context("ExtractServiceTLSConfig", func() {
 		It("fails when TLS is nil ", func() {
 			config = &Config{}
-			_, err := config.ExtractServiceTLSConfig()
+			_, err := config.ExtractServiceTLSConfig(log)
 			Expect(err).To(MatchError("tls config is empty - telemetry server is mTLS only, make sure to provide certificates in the config"))
 		})
 
 		It("fails when files are missing", func() {
-			_, err := config.ExtractServiceTLSConfig()
+			err := os.Setenv("INTEGRATION_TEST", "true")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = config.ExtractServiceTLSConfig(log)
 			Expect(err).To(MatchError("open tesla.ca: no such file or directory"))
 		})
 
+		It("fails when custom ca is provided outside of integration test", func() {
+			_, err := config.ExtractServiceTLSConfig(log)
+			Expect(err).To(MatchError("cannot set custom CA outside integration tests"))
+		})
+
 		It("fails when pem file is invalid", func() {
+			err := os.Setenv("INTEGRATION_TEST", "true")
+			Expect(err).NotTo(HaveOccurred())
 			tmpCA, err := os.CreateTemp(GinkgoT().TempDir(), "tmpCA")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -81,14 +92,14 @@ var _ = Describe("Test full application config", func() {
 			Expect(err).NotTo(HaveOccurred())
 			config.TLS.CAFile = tmpCA.Name()
 
-			_, err = config.ExtractServiceTLSConfig()
+			_, err = config.ExtractServiceTLSConfig(log)
 			Expect(err).To(MatchError(MatchRegexp("tls ca not properly loaded: .*tmpCA.*")))
 		})
 
 		It("uses prod CA", func() {
 			config.TLS.CAFile = ""
 
-			tls, err := config.ExtractServiceTLSConfig()
+			tls, err := config.ExtractServiceTLSConfig(log)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(tls).NotTo(BeNil())
 			Expect(tls.ClientCAs).NotTo(BeNil())
@@ -99,7 +110,7 @@ var _ = Describe("Test full application config", func() {
 			config.TLS.CAFile = ""
 			config.UseDefaultEngCA = true
 
-			tls, err := config.ExtractServiceTLSConfig()
+			tls, err := config.ExtractServiceTLSConfig(log)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(tls).NotTo(BeNil())
 			Expect(tls.ClientCAs).NotTo(BeNil())
@@ -130,7 +141,6 @@ var _ = Describe("Test full application config", func() {
 
 	Context("configure kafka", func() {
 		It("converts floats to int", func() {
-			log, _ := test.NewNullLogger()
 			config, err := loadTestApplicationConfig(TestSmallConfig)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -166,7 +176,6 @@ var _ = Describe("Test full application config", func() {
 				"errors": "test_errors",
 				"alerts": "tesla_telemetry_alerts",
 			}))
-			os.Clearenv()
 		})
 	})
 
