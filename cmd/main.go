@@ -57,7 +57,7 @@ func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 		return err
 	}
 
-	if server.TLSConfig, err = config.ExtractServiceTLSConfig(); err != nil {
+	if server.TLSConfig, err = config.ExtractServiceTLSConfig(logger); err != nil {
 		return err
 	}
 	return server.ListenAndServeTLS(config.TLS.ServerCert, config.TLS.ServerKey)

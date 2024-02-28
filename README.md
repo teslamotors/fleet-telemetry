@@ -78,7 +78,7 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
         "kafka"
     ]
   },
-  "tls": { // Note: setting a ca_file here can be used for testing, but may reject vehicle mTLS connections
+  "tls": {
     "server_cert": string - server cert location,
     "server_key": string - server key location
   }

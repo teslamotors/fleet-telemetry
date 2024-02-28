@@ -134,7 +134,7 @@ type TLS struct {
 }
 
 // ExtractServiceTLSConfig return the TLS config needed for stating the mTLS Server
-func (c *Config) ExtractServiceTLSConfig() (*tls.Config, error) {
+func (c *Config) ExtractServiceTLSConfig(logger *logrus.Logger) (*tls.Config, error) {
 	if c.TLS == nil {
 		return nil, errors.New("tls config is empty - telemetry server is mTLS only, make sure to provide certificates in the config")
 	}
@@ -150,6 +150,11 @@ func (c *Config) ExtractServiceTLSConfig() (*tls.Config, error) {
 			copy(caFileBytes, defaultProdCA)
 		}
 	} else {
+		_, ok := os.LookupEnv("INTEGRATION_TEST")
+		if !ok {
+			return nil, errors.New("cannot set custom CA outside integration tests")
+		}
+		logger.Infof("use custom CA file :%s, because service is running with integration test environment\n", c.TLS.CAFile)
 		caFileBytes, err = os.ReadFile(c.TLS.CAFile)
 		if err != nil {
 			return nil, err
