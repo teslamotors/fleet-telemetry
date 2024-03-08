@@ -71,20 +71,11 @@ var _ = Describe("Test full application config", func() {
 		})
 
 		It("fails when files are missing", func() {
-			err := os.Setenv("INTEGRATION_TEST", "true")
-			Expect(err).NotTo(HaveOccurred())
-			_, err = config.ExtractServiceTLSConfig(log)
+			_, err := config.ExtractServiceTLSConfig(log)
 			Expect(err).To(MatchError("open tesla.ca: no such file or directory"))
 		})
 
-		It("fails when custom ca is provided outside of integration test", func() {
-			_, err := config.ExtractServiceTLSConfig(log)
-			Expect(err).To(MatchError("cannot set custom CA outside integration tests"))
-		})
-
 		It("fails when pem file is invalid", func() {
-			err := os.Setenv("INTEGRATION_TEST", "true")
-			Expect(err).NotTo(HaveOccurred())
 			tmpCA, err := os.CreateTemp(GinkgoT().TempDir(), "tmpCA")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -93,7 +84,7 @@ var _ = Describe("Test full application config", func() {
 			config.TLS.CAFile = tmpCA.Name()
 
 			_, err = config.ExtractServiceTLSConfig(log)
-			Expect(err).To(MatchError(MatchRegexp("tls ca not properly loaded: .*tmpCA.*")))
+			Expect(err).To(MatchError(MatchRegexp("custom ca not properly loaded: .*tmpCA.*")))
 		})
 
 		It("uses prod CA", func() {
