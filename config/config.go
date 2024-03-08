@@ -139,31 +139,32 @@ func (c *Config) ExtractServiceTLSConfig(logger *logrus.Logger) (*tls.Config, er
 		return nil, errors.New("tls config is empty - telemetry server is mTLS only, make sure to provide certificates in the config")
 	}
 
-	var err error
 	var caFileBytes []byte
-	if c.TLS.CAFile == "" {
-		if c.UseDefaultEngCA {
-			caFileBytes = make([]byte, len(defaultEngCA))
-			copy(caFileBytes, defaultEngCA)
-		} else {
-			caFileBytes = make([]byte, len(defaultProdCA))
-			copy(caFileBytes, defaultProdCA)
-		}
+	var caEnv string
+	if c.UseDefaultEngCA {
+		caEnv = "eng"
+		caFileBytes = make([]byte, len(defaultEngCA))
+		copy(caFileBytes, defaultEngCA)
 	} else {
-		_, ok := os.LookupEnv("INTEGRATION_TEST")
-		if !ok {
-			return nil, errors.New("cannot set custom CA outside integration tests")
-		}
-		logger.Infof("use custom CA file :%s, because service is running with integration test environment\n", c.TLS.CAFile)
-		caFileBytes, err = os.ReadFile(c.TLS.CAFile)
-		if err != nil {
-			return nil, err
-		}
+		caEnv = "prod"
+		caFileBytes = make([]byte, len(defaultProdCA))
+		copy(caFileBytes, defaultProdCA)
 	}
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(caFileBytes)
 	if !ok {
-		return nil, fmt.Errorf("tls ca not properly loaded: %s", c.TLS.CAFile)
+		return nil, fmt.Errorf("tls ca not properly loaded for %s environment", caEnv)
+	}
+	if c.TLS.CAFile != "" {
+		customCaFileBytes, err := os.ReadFile(c.TLS.CAFile)
+		if err != nil {
+			return nil, err
+		}
+		ok := caCertPool.AppendCertsFromPEM(customCaFileBytes)
+		if !ok {
+			return nil, fmt.Errorf("custom ca not properly loaded: %s", c.TLS.CAFile)
+		}
+		logger.Infof("appending custom CA file :%s", c.TLS.CAFile)
 	}
 
 	return &tls.Config{
