@@ -11,16 +11,34 @@ The service handles device connectivity as well as receiving and storing transmi
 
 ## Configuring and running the service
 
-Register a publicly available endpoint (DNS record) to receive device connections. Tesla devices will rely on a mutual TLS (mTLS) WebSocket to create a connection with the backend. The application has been designed to operate on top of Kubernetes, but it can run as a standalone binary.
+### Setup steps
 
-See https://developer.tesla.com/docs/fleet-api#setup for setting up and registering a developer account. [check_csr.sh](tools/check_csr.sh) can be used to validate CSR submissions and ensure the account's public key is available.
-
-Configure vehicles for streaming using FleetAPI's [fleet-telemetry-config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-create).  Validate vehicle configs are compatible with your server by running [check_server_cert.sh](tools/check_server_cert.sh) passing the path of your proposed vehicle config:
-```
-./tools/check_server_cert.sh /tmp/proposed_config.json
-```
-
-To troubleshoot issues receiving data from vehicles, see the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_errors) endpoint.
+1. Create a third-party application on [developer.tesla.com](https://developer.tesla.com).
+   - In the "Client Details" step, it is recommended to select "Authorization Code and Machine-to-Machine" for most use cases. "Machine-to-Machine" (M2M) should only be selected for business accounts that own vehicles.
+2. Generate an EC private key using the secp256r1 curve (prime256v1).
+   - `openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem`
+3. Derive its public key.
+   - `openssl ec -in private-key.pem -pubout -out public-key.pem`
+4. Host this public key at: `https://your-domain.com/.well-known/appspecific/com.tesla.3p.public-key.pem`.
+5. Generate a Certificate Signing Request (CSR).
+   - `openssl req -out your-domain.com.csr -key private_key.pem -subj /CN=your-domain.com/ -new`
+6. Ensure the generated CSR passes [check_csr.sh](https://github.com/teslamotors/fleet-telemetry/blob/main/tools/check_csr.sh).
+   - `./check_csr.sh your-domain.com.csr`
+7. Generate a Partner Authentication Token. ([docs](https://developer.tesla.com/docs/fleet-api#partner-authentication-token))
+8. Register your application with Fleet API by sending `domain` and `csr` to the [register](https://developer.tesla.com/docs/fleet-api#register) endpoint. Use the partner authentication token generated in step 7 as a Bearer token.
+9. Wait for Tesla to process your CSR. This may take up to two weeks. Once complete, you will receive an email from Tesla. The generated certificate will not be sent back to you; it is attached to your account on the backend and is used internally when configuring a vehicle to stream data.
+10. Configure your fleet-telemetry server. Full details are described in [install steps](#install-steps).
+11. Validate server configuration using [check_server_cert.sh](https://github.com/teslamotors/fleet-telemetry/blob/main/tools/check_server_cert.sh).
+    - From your local computer, create `validate_server.json` with the following fields:
+      - `hostname`: the hostname your fleet-telemetry server is available on.
+      - `port`: the port your fleet-telemetry server is available on. Defaults to 443.
+      - `ca`: the full certificate chain used to generate the server's TLS cert/key.
+    - `./check_server_cert.sh validate_server.json`
+12. Ensure your virtual key has been added to the vehicle you intend to configure. To add your virtual key to the vehicle, redirect the owner to https://tesla.com/_ak/your-domain.com. If using authorization code flow, the owner of the vehicle must have [authorized your application](https://developer.tesla.com/docs/fleet-api#third-party-token) with `vehicle_device_data` scope before they are able to add your key.
+13. Send your configuration to a vehicle. Using a third-party token, send a [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-create) request.
+14. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-get).
+15. At this point, the vehicle should be streaming data to your fleet-telemetry server. If you are not seeing messages come through, call [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_errors).
+    - If fleet_telemetry_errors is not yielding any results, please reach out to [fleetapisupport@tesla.com](mailto:fleetapisupport@tesla.com). Include your client ID and the VIN you are trying to setup.
 
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
