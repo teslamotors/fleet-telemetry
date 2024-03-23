@@ -21,7 +21,7 @@ The service handles device connectivity as well as receiving and storing transmi
    - `openssl ec -in private-key.pem -pubout -out public-key.pem`
 4. Host this public key at: `https://your-domain.com/.well-known/appspecific/com.tesla.3p.public-key.pem`.
 5. Generate a Certificate Signing Request (CSR).
-   - `openssl req -out your-domain.com.csr -key private_key.pem -subj /CN=your-domain.com/ -new`
+   - `openssl req -out your-domain.com.csr -key private-key.pem -subj /CN=your-domain.com/ -new`
 6. Ensure the generated CSR passes [check_csr.sh](https://github.com/teslamotors/fleet-telemetry/blob/main/tools/check_csr.sh).
    - `./check_csr.sh your-domain.com.csr`
 7. Generate a Partner Authentication Token. ([docs](https://developer.tesla.com/docs/fleet-api#partner-authentication-token))
