@@ -18,7 +18,7 @@ require (
 	github.com/smira/go-statsd v1.3.2
 	go.uber.org/automaxprocs v1.5.2
 	google.golang.org/api v0.114.0
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
