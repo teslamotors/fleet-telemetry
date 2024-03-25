@@ -171,6 +171,10 @@ enum Field {
   GuestModeMobileAccessState = 161;
   Deprecated_1 = 162;
   DestinationName = 163;
+  DiInverterTR = 164;
+  DiInverterTF = 165;
+  DiInverterTREL = 166;
+  DiInverterTRER = 167;
 }
 
 // ChargingState are the charging options
