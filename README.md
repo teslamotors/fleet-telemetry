@@ -156,6 +156,7 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
+* HTTP: Send events to an HTTP endpoint. This should **never** be used in production grade systems as failed requests are discarded and there is limited scalability. It is suitable for owners wishing to stream data directly from their own vehicles. [View configuration options](./datastore/http/http.go#L51).
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
   
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L104)

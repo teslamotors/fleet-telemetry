@@ -234,6 +234,34 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
+	Context("configure http", func() {
+		var httpConfig *Config
+
+		BeforeEach(func() {
+			var err error
+			httpConfig, err = loadTestApplicationConfig(TestHTTPConfig)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error if http isn't included", func() {
+			log, _ := test.NewNullLogger()
+			config.Records = map[string][]telemetry.Dispatcher{"FS": {"http"}}
+			var err error
+			producers, err = config.ConfigureProducers(log)
+			Expect(err).To(MatchError("expected http to be configured"))
+			Expect(producers).To(BeNil())
+			producers, err = httpConfig.ConfigureProducers(log)
+			Expect(err).To(BeNil())
+		})
+
+		It("http config works", func() {
+			log, _ := test.NewNullLogger()
+			producers, err := httpConfig.ConfigureProducers(log)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(producers["FS"]).NotTo(BeNil())
+		})
+	})
+
 	Context("configureMetricsCollector", func() {
 		It("does not fail when TLS is nil ", func() {
 			log, _ := test.NewNullLogger()

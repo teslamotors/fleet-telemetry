@@ -26,6 +26,10 @@
     "zmq": {
       "addr": "tcp://*:5284"
     },
+    "http": {
+        "address": "http://integration-test:3000/webhook",
+        "worker_count": 1
+    },
     "monitoring": {
         "prometheus_metrics_port": 9090,
         "profiler_port": 4269,
@@ -42,7 +46,8 @@
             "kinesis",
             "pubsub",
             "logger",
-            "zmq"
+            "zmq",
+            "http"
         ]
     },
     "tls": {

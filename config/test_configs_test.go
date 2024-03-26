@@ -107,3 +107,17 @@ const TestTransmitDecodedRecords = `
 	}
 }
 `
+
+const TestHTTPConfig = `
+{
+  "host": "127.0.0.1",
+  "port": 443,
+  "status_port": 8080,
+  "http": {
+    "url": "https://tesla.com/webhook"
+  },
+  "records": {
+    "FS": ["http"]
+  }
+}
+`
