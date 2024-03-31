@@ -49,12 +49,13 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 		namespace:         namespace,
 		metricsCollector:  metricsCollector,
 		prometheusEnabled: prometheusEnabled,
+		logger:            logger,
 	}
 
 	for i := 0; i < reliableAckWorkers; i++ {
 		go producer.handleProducerEvents(ackChan)
 	}
-	logger.Infof("registered kafka for namespace: %s", namespace)
+	producer.logger.Infof("registered kafka for namespace: %s", namespace)
 	return producer, nil
 }
 
