@@ -18,6 +18,8 @@ const (
 	Logger Dispatcher = "logger"
 	// ZMQ registers a zmq logger
 	ZMQ Dispatcher = "zmq"
+	// HTTP registers an http publisher
+	HTTP Dispatcher = "http"
 )
 
 // BuildTopicName creates a topic from a namespace and a recordName

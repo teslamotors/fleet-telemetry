@@ -32,6 +32,7 @@ const (
 	kafkaBroker       = "kafka:9092"
 	pubsubHost        = "pubsub:8085"
 	zmqAddr           = "tcp://app:5284"
+	httpAddr          = ":3000"
 	kinesisHost       = "http://kinesis:4567"
 	kinesisStreamName = "test_V"
 )
@@ -52,6 +53,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		kinesisConsumer *TestKinesisConsumer
 		kafkaConsumer   *kafka.Consumer
 		zmqConsumer     *TestZMQConsumer
+		httpConsumer    *TestHTTPConsumer
 		tlsConfig       *tls.Config
 		timestamp       *timestamppb.Timestamp
 		logger          *logrus.Logger
@@ -83,6 +85,9 @@ var _ = Describe("Test messages", Ordered, func() {
 
 		zmqConsumer, err = NewTestZMQConsumer(zmqAddr, vehicleTopic, logger)
 		Expect(err).NotTo(HaveOccurred())
+
+		httpConsumer, err = NewTestHTTPConsumer(httpAddr, logger)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterAll(func() {
@@ -90,6 +95,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		pubsubConsumer.ClearSubscriptions()
 		_ = connection.Close()
 		zmqConsumer.Close()
+		httpConsumer.Close()
 		os.Clearenv()
 	})
 
@@ -170,6 +176,20 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(data).NotTo(BeNil())
 		Expect(topic).To(Equal(vehicleTopic))
 		VerifyMessageBody(data, vehicleName)
+	})
+
+	It("reads data from http subscriber", func() {
+		err := connection.WriteMessage(websocket.BinaryMessage, payload)
+		Expect(err).NotTo(HaveOccurred())
+
+		var msg *Message
+		Eventually(func() error {
+			msg, err = httpConsumer.NextMessage()
+			return err
+		}, time.Second*3, time.Millisecond*100).Should(BeNil())
+		Expect(msg.topic).To(Equal(vehicleTopic))
+		VerifyMessageBody(msg.data, vehicleName)
+		VerifyMessageHeaders(msg.headers)
 	})
 })
 
