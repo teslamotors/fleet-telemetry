@@ -10,9 +10,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/teslamotors/fleet-telemetry/config"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
@@ -37,7 +37,7 @@ var _ = Describe("Socket handler test", func() {
 	})
 
 	It("ServeBinaryWs test", func() {
-		logger, hook := test.NewNullLogger()
+		logger, hook := logrus.NoOpLogger()
 		conf := &config.Config{
 			RateLimit: &config.RateLimit{
 				MessageLimit:              1,

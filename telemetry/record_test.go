@@ -5,15 +5,13 @@ import (
 	"sort"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/sirupsen/logrus/hooks/test"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -26,7 +24,7 @@ var _ = Describe("Socket handler test", func() {
 	)
 
 	BeforeEach(func() {
-		logger, _ = test.NewNullLogger()
+		logger, _ = logrus.NoOpLogger()
 		serializer = telemetry.NewBinarySerializer(
 			&telemetry.RequestIdentity{
 				DeviceID: "42",

@@ -7,8 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/sirupsen/logrus/hooks/test"
-
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
@@ -156,7 +155,7 @@ var _ = Describe("BinarySerializer", func() {
 	}
 	for _, tt := range tests {
 		It(tt.name, func() {
-			logger, _ := test.NewNullLogger()
+			logger, _ := logrus.NoOpLogger()
 			bs := telemetry.NewBinarySerializer(&telemetry.RequestIdentity{DeviceID: tt.fields.DeviceID, SenderID: tt.fields.SenderID}, tt.fields.DispatchRules, false, logger)
 
 			msgBytes, err := tt.args.msg.ToBytes()
@@ -244,7 +243,7 @@ var _ = Describe("BinarySerializer", func() {
 	})
 
 	It("Serializer Errors with no record", func() {
-		logger, _ := test.NewNullLogger()
+		logger, _ := logrus.NoOpLogger()
 		serializer := telemetry.NewBinarySerializer(&telemetry.RequestIdentity{DeviceID: "42", SenderID: "vehicle_device.42"}, DispatchRules, true, logger)
 		Expect(serializer.ReliableAck()).To(BeTrue())
 

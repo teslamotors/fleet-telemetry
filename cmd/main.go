@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	_ "go.uber.org/automaxprocs"
 
 	"github.com/teslamotors/fleet-telemetry/config"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/server/monitoring"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
 )
@@ -23,7 +23,7 @@ func main() {
 
 	if config.Monitoring != nil && config.Monitoring.ProfilingPath != "" {
 		if config.Monitoring.ProfilerFile, err = os.Create(config.Monitoring.ProfilingPath); err != nil {
-			logger.Errorf("profiling_file_error %v", err)
+			logger.ErrorLog("profiling_file_error", err, nil)
 			config.Monitoring.ProfilingPath = ""
 		}
 
@@ -37,7 +37,7 @@ func main() {
 }
 
 func startServer(config *config.Config, logger *logrus.Logger) (err error) {
-	logger.Infoln("starting")
+	logger.ActivityLog("starting_server", nil)
 	registry := streaming.NewSocketRegistry()
 
 	if config.StatusPort > 0 {

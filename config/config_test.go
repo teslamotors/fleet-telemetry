@@ -8,10 +8,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	githublogrus "github.com/sirupsen/logrus"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/test"
-
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
@@ -25,7 +24,7 @@ var _ = Describe("Test full application config", func() {
 	)
 
 	BeforeEach(func() {
-		log, _ = test.NewNullLogger()
+		log, _ = logrus.NoOpLogger()
 		config = &Config{
 			Host:               "127.0.0.1",
 			Port:               443,
@@ -147,7 +146,7 @@ var _ = Describe("Test full application config", func() {
 
 	Context("configure kinesis", func() {
 		It("returns an error if kinesis isn't included", func() {
-			log, _ := test.NewNullLogger()
+			log, _ := logrus.NoOpLogger()
 			config.Records = map[string][]telemetry.Dispatcher{"FS": {"kinesis"}}
 
 			var err error
@@ -186,7 +185,7 @@ var _ = Describe("Test full application config", func() {
 		})
 
 		It("pubsub does not work when both the environment variables are set", func() {
-			log, _ := test.NewNullLogger()
+			log, _ := logrus.NoOpLogger()
 			_ = os.Setenv("PUBSUB_EMULATOR_HOST", "some_url")
 			_ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "some_service_account_path")
 			_, err := pubsubConfig.ConfigureProducers(log)
@@ -194,7 +193,7 @@ var _ = Describe("Test full application config", func() {
 		})
 
 		It("pubsub config works", func() {
-			log, _ := test.NewNullLogger()
+			log, _ := logrus.NoOpLogger()
 			_ = os.Setenv("PUBSUB_EMULATOR_HOST", "some_url")
 			var err error
 			producers, err = pubsubConfig.ConfigureProducers(log)
@@ -213,7 +212,7 @@ var _ = Describe("Test full application config", func() {
 		})
 
 		It("returns an error if zmq isn't included", func() {
-			log, _ := test.NewNullLogger()
+			log, _ := logrus.NoOpLogger()
 			config.Records = map[string][]telemetry.Dispatcher{"FS": {"zmq"}}
 			var err error
 			producers, err = config.ConfigureProducers(log)
@@ -226,7 +225,7 @@ var _ = Describe("Test full application config", func() {
 		It("zmq config works", func() {
 			// ZMQ close is async, this removes the need to sync between tests.
 			zmqConfig.ZMQ.Addr = "tcp://127.0.0.1:5285"
-			log, _ := test.NewNullLogger()
+			log, _ := logrus.NoOpLogger()
 			var err error
 			producers, err = zmqConfig.ConfigureProducers(log)
 			Expect(err).NotTo(HaveOccurred())
@@ -236,7 +235,7 @@ var _ = Describe("Test full application config", func() {
 
 	Context("configureMetricsCollector", func() {
 		It("does not fail when TLS is nil ", func() {
-			log, _ := test.NewNullLogger()
+			log, _ := logrus.NoOpLogger()
 			config = &Config{}
 			config.configureMetricsCollector(log)
 
@@ -244,7 +243,7 @@ var _ = Describe("Test full application config", func() {
 		})
 
 		It("fails if not reachable", func() {
-			log, _ := test.NewNullLogger()
+			log, _ := logrus.NoOpLogger()
 			config.configureMetricsCollector(log)
 			Expect(config.MetricCollector).NotTo(BeNil())
 		})
@@ -252,10 +251,10 @@ var _ = Describe("Test full application config", func() {
 
 	Context("configureLogger", func() {
 		It("Should properly configure logger", func() {
-			log, _ := test.NewNullLogger()
+			log, _ := logrus.NoOpLogger()
 			config.configureLogger(log)
 
-			Expect(log.Level).To(Equal(logrus.InfoLevel))
+			Expect(githublogrus.GetLevel().String()).To(Equal("info"))
 		})
 	})
 })

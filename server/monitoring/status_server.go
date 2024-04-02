@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
 	"github.com/teslamotors/fleet-telemetry/config"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 )
 
 type statusServer struct {
@@ -25,8 +25,8 @@ func StartStatusServer(config *config.Config, logger *logrus.Logger) {
 	mux.HandleFunc("/status", statusServer.Status())
 	go func() {
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", config.StatusPort), mux); err != nil {
-			logger.Errorf("status %v", err)
+			logger.ErrorLog("status", err, nil)
 		}
 	}()
-	logger.Infoln("status_server_configured")
+	logger.ActivityLog("status_server_configured", nil)
 }

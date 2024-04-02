@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/pebbe/zmq4"
-	"github.com/sirupsen/logrus"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -71,7 +71,7 @@ func (p *ZMQProducer) Produce(rec *telemetry.Record) {
 	}
 	if nBytes, err := p.sock.SendMessage(telemetry.BuildTopicName(p.namespace, rec.TxType), rec.Payload()); err != nil {
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
-		p.logger.Errorf("Failed sending log on zmq socket: %s", err.Error())
+		p.logger.ErrorLog("zmq_dispatch_error", err, nil)
 	} else {
 		metricsRegistry.byteTotal.Add(int64(nBytes), map[string]string{"record_type": rec.TxType})
 		metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
@@ -175,11 +175,10 @@ func logSocketInBackground(target *zmq4.Socket, logger *logrus.Logger, addr stri
 
 			eventType, addr, value, err := monitor.RecvEvent(0)
 			if err != nil {
-				logger.Errorf("Failed to receive event on zmq socket: %s", err)
+				logger.ErrorLog("zmq_event_receive_error", err, nil)
 				continue
 			}
-
-			logger.Debugf("ZMQ socket event: %v %v %v", eventType, addr, value)
+			logger.Log(logrus.DEBUG, "zmq_socket_event", logrus.LogInfo{"event_type": eventType, "addr": addr, "value": value})
 		}
 	}()
 

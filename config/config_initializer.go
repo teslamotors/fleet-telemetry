@@ -5,22 +5,23 @@ import (
 	"flag"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
 // LoadApplicationConfiguration loads the configuration from args and config files
 func LoadApplicationConfiguration() (config *Config, logger *logrus.Logger, err error) {
-	logger = logrus.New()
+
+	logger = logrus.NewBasicLogrusLogger("fleet-telemetry")
 
 	configFilePath := loadConfigFlags()
 
 	config, err = loadApplicationConfig(configFilePath)
 	if err != nil {
-		logger.Errorf("read_application_configuration_error %s", err)
+		logger.ErrorLog("read_application_configuration_error", err, nil)
 		return nil, nil, err
 	}
 
@@ -38,7 +39,8 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 	config := &Config{}
 	err = json.NewDecoder(configFile).Decode(&config)
 
-	logger, _ := test.NewNullLogger()
+	log, _ := test.NewNullLogger()
+	logger := logrus.NewLogrusLogger("null_logger", map[string]interface{}{}, log.WithField("context", "metrics"))
 	config.MetricCollector = metrics.NewCollector(config.Monitoring, logger)
 
 	config.AckChan = make(chan *telemetry.Record)

@@ -5,9 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/teslamotors/fleet-telemetry/config"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 )
 
@@ -18,7 +18,8 @@ func TestConfigs(t *testing.T) {
 
 func CreateTestConfig() *config.Config {
 	conf := &config.Config{}
-	logger, _ := test.NewNullLogger()
+
+	logger, _ := logrus.NoOpLogger()
 	conf.MetricCollector = metrics.NewCollector(nil, logger)
 	return conf
 }

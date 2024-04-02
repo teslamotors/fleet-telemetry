@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus"
 
 	"github.com/teslamotors/fleet-telemetry/config"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -66,12 +66,14 @@ func serveHTTPWithLogs(h http.Handler, logger *logrus.Logger) http.Handler {
 		urlPath := r.URL.Path
 		start := time.Now()
 		uuidStr := uuid.New().String()
-		logger.Infof("request_start uuid: %v, method: %v, path: %v, remote_ip: %v", uuidStr, r.Method, urlPath, r.RemoteAddr)
+
+		requestLogInfo := logrus.LogInfo{"uuid": uuidStr, "method": r.Method, "urlPath": urlPath, "remote_ip": r.RemoteAddr}
+		logger.ActivityLog("request_start", requestLogInfo)
 
 		h.ServeHTTP(w, r)
 
-		durationMs := int(time.Since(start).Milliseconds())
-		logger.Infof("request_end uuid: %v, method: %v, path: %v, remote_ip: %v, duration_ms: %d", uuidStr, r.Method, urlPath, r.RemoteAddr, durationMs)
+		requestLogInfo["duration_ms"] = int(time.Since(start).Milliseconds())
+		logger.ActivityLog("request_end", requestLogInfo)
 	})
 }
 
@@ -89,7 +91,7 @@ func (s *Server) ServeBinaryWs(config *config.Config, registry *SocketRegistry) 
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
 			requestIdentity, err := extractIdentityFromConnection(ctx, r)
 			if err != nil {
-				s.logger.Errorf("extract_sender_id err: %v", err)
+				s.logger.ErrorLog("extract_sender_id_err", err, nil)
 			}
 
 			socketManager := NewSocketManager(ctx, requestIdentity, ws, config, s.logger)
@@ -106,7 +108,7 @@ func (s *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *web
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {
-			s.logger.Errorf("websocket_promotion_error err: %v", err)
+			s.logger.ErrorLog("websocket_promotion_error", err, nil)
 		}
 		return nil
 	}

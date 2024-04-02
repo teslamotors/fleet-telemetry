@@ -4,8 +4,8 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/sirupsen/logrus/hooks/test"
 
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter/statsd"
@@ -17,7 +17,7 @@ var _ = Describe("Statsd Metric Adapter", Ordered, func() {
 	)
 
 	BeforeAll(func() {
-		logger, _ := test.NewNullLogger()
+		logger, _ := logrus.NoOpLogger()
 
 		// create logger that will fail to connect forever
 		metricCollector = statsd.NewCollector("", "", logger, time.Second)
