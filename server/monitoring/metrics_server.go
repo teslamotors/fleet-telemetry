@@ -10,9 +10,9 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
 
 	"github.com/teslamotors/fleet-telemetry/config"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
@@ -38,7 +38,7 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 		promMux.Handle("/metrics", promhttp.Handler())
 		go func() {
 			if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Monitoring.PrometheusMetricsPort), promMux); err != nil {
-				logger.Errorf("metrics %v", err)
+				logger.ErrorLog("metrics_server_err", err, nil)
 			}
 		}()
 	}
@@ -48,7 +48,7 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 			StartProfilerServer(config, http.DefaultServeMux, logger)
 
 			if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Monitoring.ProfilerPort), nil); err != nil {
-				logger.Errorf("profiler_listen_error: %v", err)
+				logger.ErrorLog("profiler_listen_error", err, nil)
 			}
 		}()
 	}

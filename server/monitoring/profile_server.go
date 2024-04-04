@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/teslamotors/fleet-telemetry/config"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 )
 
@@ -62,5 +61,6 @@ func StartProfilerServer(config *config.Config, mux *http.ServeMux, logger *logr
 	profileServer := &profileServer{}
 	mux.HandleFunc("/gc_stats", profileServer.gcStats(config))
 	mux.HandleFunc("/live_profiler", profileServer.liveProfiler(config))
-	logger.Infoln("profiler_started")
+
+	logger.ActivityLog("profiler_started", logrus.LogInfo{"port": config.Monitoring.ProfilerPort})
 }

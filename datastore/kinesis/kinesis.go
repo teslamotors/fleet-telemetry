@@ -8,8 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kinesis"
-	"github.com/sirupsen/logrus"
 
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -74,7 +74,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	entry.ProduceTime = time.Now()
 	stream, ok := p.streams[entry.TxType]
 	if !ok {
-		p.logger.Errorf("kinesis_produce_stream_not_configured: %s", entry.TxType)
+		p.logger.ErrorLog("kinesis_produce_stream_not_configured", nil, logrus.LogInfo{"record_type": entry.TxType})
 		return
 	}
 	kinesisRecord := &kinesis.PutRecordInput{
@@ -85,13 +85,12 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 
 	kinesisRecordOutput, err := p.kinesis.PutRecord(kinesisRecord)
 	if err != nil {
-		p.logger.Errorf("kinesis_err: %v", err)
+		p.logger.ErrorLog("kinesis_err", err, nil)
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
 	}
 
-	p.logger.Debugf("kinesis_publish vin=%s,type=%s,txid=%s,shard_id=%s,sequence_number=%s", entry.Vin, entry.TxType, entry.Txid, *kinesisRecordOutput.ShardId, *kinesisRecordOutput.SequenceNumber)
-
+	p.logger.Log(logrus.DEBUG, "kinesis_err", logrus.LogInfo{"vin": entry.Vin, "record_type": entry.TxType, "txid": entry.Txid, "shard_id": *kinesisRecordOutput.ShardId, "sequence_number": *kinesisRecordOutput.SequenceNumber})
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
 	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 }

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/sirupsen/logrus"
 
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -58,31 +58,35 @@ func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, 
 	if err != nil {
 		return nil, fmt.Errorf("pubsub_connect_error %s", err)
 	}
-	logger.Infof("registered pubsub for project: %s, namespace: %s", projectID, namespace)
-	return &Producer{
+
+	p := &Producer{
 		projectID:         projectID,
 		namespace:         namespace,
 		pubsubClient:      pubsubClient,
 		prometheusEnabled: prometheusEnabled,
 		metricsCollector:  metricsCollector,
 		logger:            logger,
-	}, nil
+	}
+	p.logger.ActivityLog("pubsub_registerd", logrus.LogInfo{"project": projectID, "namespace": namespace})
+	return p, nil
 }
 
 // Produce sends the record payload to pubsub
 func (p *Producer) Produce(entry *telemetry.Record) {
 	ctx := context.Background()
 
-	pubsubTopic, err := p.createTopicIfNotExists(ctx, telemetry.BuildTopicName(p.namespace, entry.TxType))
+	topicName := telemetry.BuildTopicName(p.namespace, entry.TxType)
+	logInfo := logrus.LogInfo{"topic_name": topicName, "txid": entry.Txid}
+	pubsubTopic, err := p.createTopicIfNotExists(ctx, topicName)
 
 	if err != nil {
-		p.logger.Errorf("error creating topic %v", err)
+		p.logger.ErrorLog("pubsub_topic_creation_error", err, logInfo)
 		metricsRegistry.notConnectedTotal.Inc(map[string]string{})
 		return
 	}
 
 	if exists, err := pubsubTopic.Exists(ctx); !exists || err != nil {
-		p.logger.Errorf("error checking existing topic %v", err)
+		p.logger.ErrorLog("pubsub_topic_check_error", err, logInfo)
 		metricsRegistry.notConnectedTotal.Inc(map[string]string{})
 		return
 	}
@@ -93,7 +97,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		Attributes: entry.Metadata(),
 	})
 	if _, err = result.Get(ctx); err != nil {
-		p.logger.Errorf("pubsub_err err: %v", err)
+		p.logger.ErrorLog("pubsub_err", err, logInfo)
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
 	}

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/sirupsen/logrus"
 
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -55,7 +55,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 	for i := 0; i < reliableAckWorkers; i++ {
 		go producer.handleProducerEvents(ackChan)
 	}
-	producer.logger.Infof("registered kafka for namespace: %s", namespace)
+	producer.logger.ActivityLog("kafka_registered", logrus.LogInfo{"namespace": namespace})
 	return producer, nil
 }
 
@@ -105,13 +105,13 @@ func (p *Producer) handleProducerEvents(ackChan chan (*telemetry.Record)) {
 				ackChan <- record
 			}
 		default:
-			p.logger.Info("ignored kafka producer event")
+			p.logger.ActivityLog("kafka_event_ignored", logrus.LogInfo{"event": ev.String()})
 		}
 	}
 }
 
 func (p *Producer) logError(err error) {
-	p.logger.Errorf("kafka_err err: %v", err)
+	p.logger.ErrorLog("kafka_err", err, nil)
 	metricsRegistry.errorCount.Inc(map[string]string{})
 }
 

@@ -6,10 +6,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/teslamotors/fleet-telemetry/config"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/messages/tesla"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
@@ -27,7 +27,7 @@ var _ = Describe("Socket test", func() {
 
 	BeforeEach(func() {
 		conf = CreateTestConfig()
-		logger, hook = test.NewNullLogger()
+		logger, hook = logrus.NoOpLogger()
 		requestIdentity := &telemetry.RequestIdentity{
 			DeviceID: "42",
 			SenderID: "vehicle_device.42",

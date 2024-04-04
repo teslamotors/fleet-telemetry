@@ -3,8 +3,8 @@ package statsd
 import (
 	"time"
 
-	"github.com/sirupsen/logrus"
 	sd "github.com/smira/go-statsd"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 )
 
@@ -18,8 +18,7 @@ func NewCollector(addr, prefix string, logger *logrus.Logger, flushPeriod time.D
 
 	client := sd.NewClient(addr, sd.MetricPrefix(prefix), sd.FlushInterval(flushPeriod))
 
-	logger.Infof("new_statsd_client address: %v, flushPeriod: %v", addr, flushPeriod)
-
+	logger.ActivityLog("new_statsd_client", logrus.LogInfo{"address": addr, "flush_period": flushPeriod})
 	return &Collector{
 		client,
 	}

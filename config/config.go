@@ -12,15 +12,16 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/sirupsen/logrus"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	githublogrus "github.com/sirupsen/logrus"
 
 	"github.com/teslamotors/fleet-telemetry/datastore/googlepubsub"
 	"github.com/teslamotors/fleet-telemetry/datastore/kafka"
 	"github.com/teslamotors/fleet-telemetry/datastore/kinesis"
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
 	"github.com/teslamotors/fleet-telemetry/datastore/zmq"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
@@ -164,7 +165,7 @@ func (c *Config) ExtractServiceTLSConfig(logger *logrus.Logger) (*tls.Config, er
 		if !ok {
 			return nil, fmt.Errorf("custom ca not properly loaded: %s", c.TLS.CAFile)
 		}
-		logger.Infof("appending custom CA file :%s", c.TLS.CAFile)
+		logger.ActivityLog("custom_ca_file_appened", logrus.LogInfo{"ca_file_path": c.TLS.CAFile})
 	}
 
 	return &tls.Config{
@@ -174,17 +175,13 @@ func (c *Config) ExtractServiceTLSConfig(logger *logrus.Logger) (*tls.Config, er
 }
 
 func (c *Config) configureLogger(logger *logrus.Logger) {
-	level, err := logrus.ParseLevel(c.LogLevel)
+	level, err := githublogrus.ParseLevel(c.LogLevel)
 	if err != nil {
-		logger.Errorf("Invalid level: %s\n", err)
+		logger.ErrorLog("invalid_level", err, nil)
 	} else {
-		logrus.SetLevel(level)
+		githublogrus.SetLevel(level)
 	}
-
-	// Log as JSON instead of the default ASCII formatter.
-	if c.JSONLogEnable {
-		logrus.SetFormatter(&logrus.JSONFormatter{TimestampFormat: time.RFC3339Nano})
-	}
+	logger.SetJSONFormatter(c.JSONLogEnable)
 }
 
 func (c *Config) configureMetricsCollector(logger *logrus.Logger) {

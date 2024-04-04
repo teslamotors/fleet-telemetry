@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter/noop"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter/prometheus"
@@ -67,7 +67,7 @@ func NewCollector(monitoringConfig *MonitoringConfig, logger *logrus.Logger) Met
 		return statsd.NewCollector(monitoringConfig.Statsd.HostPort, monitoringConfig.Statsd.Prefix, logger, flushDuration)
 	}
 
-	logger.Infoln("config_skipping_empty_metrics_provider")
+	logger.ActivityLog("config_skipping_empty_metrics_provider", nil)
 	return noop.NewCollector()
 }
 
