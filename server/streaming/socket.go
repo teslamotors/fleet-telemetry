@@ -178,7 +178,7 @@ func (sm *SocketManager) ProcessTelemetry(serializer *telemetry.BinarySerializer
 	go sm.writer()
 	var rl *rate.RateLimiter
 
-	if sm.config.RateLimit != nil {
+	if sm.config.RateLimit != nil && sm.config.RateLimit.Enabled {
 		rl = rate.New(sm.config.RateLimit.MessageLimit, sm.config.RateLimit.MessageIntervalTimeSecond)
 	} else {
 		rl = rate.New(100, 60*time.Second)
