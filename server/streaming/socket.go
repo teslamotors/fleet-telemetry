@@ -195,16 +195,18 @@ func (sm *SocketManager) ProcessTelemetry(serializer *telemetry.BinarySerializer
 		}
 
 		// check rate limit
-		if ok, _ := rl.Try(); !ok {
-			if messagesRateLimited == 0 {
-				rateLimitStartTime = time.Now()
-			}
-			// client exceeded the rate limit
-			messagesRateLimited++
-			record, _ := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
-			metricsRegistry.rateLimitExceededCount.Inc(map[string]string{"device_id": sm.requestIdentity.DeviceID, "txtype": record.TxType})
-			if sm.config.RateLimit != nil && sm.config.RateLimit.Enabled {
-				continue
+		if rl != nil {
+			if ok, _ := rl.Try(); !ok {
+				if messagesRateLimited == 0 {
+					rateLimitStartTime = time.Now()
+				}
+				// client exceeded the rate limit
+				messagesRateLimited++
+				record, _ := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
+				metricsRegistry.rateLimitExceededCount.Inc(map[string]string{"device_id": sm.requestIdentity.DeviceID, "txtype": record.TxType})
+				if sm.config.RateLimit != nil && sm.config.RateLimit.Enabled {
+					continue
+				}
 			}
 		}
 		if messagesRateLimited > 0 {
