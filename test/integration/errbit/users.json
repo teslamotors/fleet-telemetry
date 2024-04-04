@@ -1,0 +1,13 @@
+{
+  "users": [
+    {
+      "name": "Test User",
+      "per_page": 30,
+      "time_zone": "Pacific Time (US & Canada)",
+      "email": "noreply@example.org",
+      "password": "test123",
+      "github_login": "noreply",
+      "admin": true
+    }
+  ]
+}

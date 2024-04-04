@@ -30,6 +30,8 @@ services:
         condition: service_healthy
       pubsub:
         condition: service_started
+      errbit:
+        condition: service_healthy
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.6
@@ -91,3 +93,35 @@ services:
       interval: 5s
       timeout: 10s
       retries: 10
+
+  # Errbit implements airbrake's API, so we can use it to test the airbrake
+  errbit:
+    image: errbit/errbit:latest
+    ports:
+      - '48088:8080'
+    command: sh -c "bundle exec rake errbit:init_errbit && bundle exec puma -C config/puma.default.rb"
+    volumes:
+      - ./test/integration/errbit/apps.json:/initialize/apps.json:ro
+      - ./test/integration/errbit/site_configs.json:/initialize/site_configs.json:ro
+      - ./test/integration/errbit/users.json:/initialize/users.json:ro
+      - ./test/integration/errbit/init_errbit.rake:/app/lib/tasks/errbit/init_errbit.rake
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      RACK_ENV: production
+      PORT: 8080
+      MONGO_URL: mongodb://errbit_user:errbit_password@mongodb:27017/errbit
+
+  mongodb:
+    image: mongo:4.1
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: errbit-admin
+      MONGO_INITDB_ROOT_PASSWORD: 42
+    healthcheck:
+      test: mongo -u errbit-admin  -p 42  --eval "db.adminCommand('ping')" --quiet
+      interval: 5s
+    volumes:
+      - ./test/integration/mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro

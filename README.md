@@ -223,6 +223,7 @@ brew install libsodium zmq
 ## Integration Tests
 
 To run the integration tests: `make integration`
+To log into errbit instances, default username is `noreply@example.org` and default password is `test123`
 
 ## Building the binary for Linux from Mac ARM64
 
