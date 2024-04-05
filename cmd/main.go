@@ -54,7 +54,7 @@ func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 		monitoring.StartServerMetrics(config, logger, registry)
 	}
 
-	producerRules, err := config.ConfigureProducers(logger)
+	producerRules, err := config.ConfigureProducers(airbrakeHandler, logger)
 	if err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	githubairbrake "github.com/airbrake/gobrake/v5"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/server/middleware"
 )
 
@@ -45,4 +46,22 @@ func (a *AirbrakeHandler) WithReporting(next http.Handler) http.Handler {
 			a.airbrakeNotifier.SendNoticeAsync(httpAirbrakeMessage(r, recorder))
 		}
 	})
+}
+
+// ReportLogMessage log message to airbrake
+func (a *AirbrakeHandler) ReportLogMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) {
+	if a.airbrakeNotifier == nil {
+		return
+	}
+	notice := githubairbrake.NewNotice(message, nil, 1)
+	notice.Params["log_type"] = logType
+	if err != nil {
+		notice.Params["error"] = err
+	}
+	if logInfo != nil {
+		for logKey, logValue := range logInfo {
+			notice.Params[logKey] = logValue
+		}
+	}
+	a.airbrakeNotifier.SendNoticeAsync(notice)
 }

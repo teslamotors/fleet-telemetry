@@ -14,14 +14,19 @@ import (
 
 type CallbackTester struct {
 	counter int
+	errors  int
 }
 
 func (c *CallbackTester) Produce(entry *telemetry.Record) {
 	c.counter++
 }
 
+func (c *CallbackTester) ReportError(message string, err error, logInfo logrus.LogInfo) {
+	c.errors++
+}
+
 var _ = Describe("BinarySerializer", func() {
-	DispatchKafkaGlobal := &CallbackTester{counter: 0}
+	DispatchKafkaGlobal := &CallbackTester{counter: 0, errors: 0}
 	DispatchRules := map[string][]telemetry.Producer{
 		"T":   {DispatchKafkaGlobal},
 		"D7":  {DispatchKafkaGlobal},
@@ -179,7 +184,7 @@ var _ = Describe("BinarySerializer", func() {
 	}
 
 	It("Dispatches", func() {
-		var CallbackTester = &CallbackTester{counter: 0}
+		var CallbackTester = &CallbackTester{counter: 0, errors: 0}
 
 		dispatchRules := map[string][]telemetry.Producer{"T": {CallbackTester}}
 		bs := &telemetry.BinarySerializer{DispatchRules: dispatchRules, RequestIdentity: &telemetry.RequestIdentity{DeviceID: "42", SenderID: "vehicle_device.42"}}
@@ -195,6 +200,7 @@ var _ = Describe("BinarySerializer", func() {
 		result, _ := bs.Deserialize(msgBytes, "Socket-42")
 		bs.Dispatch(result)
 		Expect(CallbackTester.counter).To(Equal(0))
+		Expect(CallbackTester.errors).To(Equal(0))
 
 		msg = messages.StreamMessage{
 			MessageTopic: []byte("T"),
@@ -208,6 +214,7 @@ var _ = Describe("BinarySerializer", func() {
 		result, _ = bs.Deserialize(msgBytes, "Socket-42")
 		bs.Dispatch(result)
 		Expect(CallbackTester.counter).To(Equal(1))
+		Expect(CallbackTester.errors).To(Equal(0))
 	})
 
 	It("Detects unknown types", func() {

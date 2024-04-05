@@ -12,6 +12,7 @@ import (
 
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -134,7 +135,7 @@ var _ = Describe("Test full application config", func() {
 			config, err := loadTestApplicationConfig(TestSmallConfig)
 			Expect(err).NotTo(HaveOccurred())
 
-			producers, err = config.ConfigureProducers(log)
+			producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(producers["FS"]).To(HaveLen(1))
 
@@ -150,7 +151,7 @@ var _ = Describe("Test full application config", func() {
 			config.Records = map[string][]telemetry.Dispatcher{"FS": {"kinesis"}}
 
 			var err error
-			producers, err = config.ConfigureProducers(log)
+			producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).To(MatchError("Expected Kinesis to be configured"))
 			Expect(producers).To(BeNil())
 		})
@@ -188,7 +189,7 @@ var _ = Describe("Test full application config", func() {
 			log, _ := logrus.NoOpLogger()
 			_ = os.Setenv("PUBSUB_EMULATOR_HOST", "some_url")
 			_ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "some_service_account_path")
-			_, err := pubsubConfig.ConfigureProducers(log)
+			_, err := pubsubConfig.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).To(MatchError("pubsub_connect_error pubsub cannot initialize with both emulator and GCP resource"))
 		})
 
@@ -196,7 +197,7 @@ var _ = Describe("Test full application config", func() {
 			log, _ := logrus.NoOpLogger()
 			_ = os.Setenv("PUBSUB_EMULATOR_HOST", "some_url")
 			var err error
-			producers, err = pubsubConfig.ConfigureProducers(log)
+			producers, err = pubsubConfig.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(producers["FS"]).NotTo(BeNil())
 		})
@@ -215,10 +216,10 @@ var _ = Describe("Test full application config", func() {
 			log, _ := logrus.NoOpLogger()
 			config.Records = map[string][]telemetry.Dispatcher{"FS": {"zmq"}}
 			var err error
-			producers, err = config.ConfigureProducers(log)
+			producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).To(MatchError("Expected ZMQ to be configured"))
 			Expect(producers).To(BeNil())
-			producers, err = zmqConfig.ConfigureProducers(log)
+			producers, err = zmqConfig.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).To(BeNil())
 		})
 
@@ -227,7 +228,7 @@ var _ = Describe("Test full application config", func() {
 			zmqConfig.ZMQ.Addr = "tcp://127.0.0.1:5285"
 			log, _ := logrus.NoOpLogger()
 			var err error
-			producers, err = zmqConfig.ConfigureProducers(log)
+			producers, err = zmqConfig.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(producers["FS"]).NotTo(BeNil())
 		})

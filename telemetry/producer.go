@@ -2,6 +2,8 @@ package telemetry
 
 import (
 	"fmt"
+
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 )
 
 // Dispatcher type of telemetry record dispatcher
@@ -28,4 +30,5 @@ func BuildTopicName(namespace, recordName string) string {
 // Producer handles dispatching data received from the vehicle
 type Producer interface {
 	Produce(entry *Record)
+	ReportError(message string, err error, logInfo logrus.LogInfo)
 }
