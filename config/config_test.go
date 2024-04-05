@@ -145,6 +145,29 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
+	Context("configure airbrake", func() {
+		It("gets config from file", func() {
+			config, err := loadTestApplicationConfig(TestAirbrakeConfig)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, options, err := config.CreateAirbrakeNotifier(log)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(options.ProjectKey).To(Equal("test1"))
+		})
+
+		It("gets config from env variable", func() {
+			projectKey := "environmentProjectKey"
+			err := os.Setenv("AIRBRAKE_PROJECT_KEY", projectKey)
+			Expect(err).NotTo(HaveOccurred())
+			config, err := loadTestApplicationConfig(TestAirbrakeConfig)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, options, err := config.CreateAirbrakeNotifier(log)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(options.ProjectKey).To(Equal(projectKey))
+		})
+	})
+
 	Context("configure kinesis", func() {
 		It("returns an error if kinesis isn't included", func() {
 			log, _ := logrus.NoOpLogger()
@@ -179,10 +202,6 @@ var _ = Describe("Test full application config", func() {
 			var err error
 			pubsubConfig, err = loadTestApplicationConfig(TestPubsubConfig)
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.Clearenv()
 		})
 
 		It("pubsub does not work when both the environment variables are set", func() {
