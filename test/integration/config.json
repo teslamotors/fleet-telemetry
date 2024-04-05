@@ -24,7 +24,7 @@
         }
     },
     "zmq": {
-      "addr": "tcp://*:5284"
+        "addr": "tcp://*:5284"
     },
     "monitoring": {
         "prometheus_metrics_port": 9090,
@@ -49,5 +49,11 @@
         "ca_file": "/etc/tesla/certs/server/vehicle_device.CA.cert",
         "server_cert": "/etc/tesla/certs/server/vehicle_device.app.cert",
         "server_key": "/etc/tesla/certs/server/vehicle_device.app.key"
+    },
+    "airbrake": {
+        "project_id": 1,
+        "project_key": "test1",
+        "environment": "integration",
+        "host": "http://errbit:48088"
     }
 }

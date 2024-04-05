@@ -8,6 +8,7 @@ import (
 
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
+	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/server/monitoring"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
 )
@@ -40,8 +41,14 @@ func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 	logger.ActivityLog("starting_server", nil)
 	registry := streaming.NewSocketRegistry()
 
+	airbrakeNotifier, err := config.CreateAirbrakeNotifier()
+	if err != nil {
+		return err
+	}
+	airbrakeHandler := airbrake.NewAirbrakeHandler(airbrakeNotifier)
+
 	if config.StatusPort > 0 {
-		monitoring.StartStatusServer(config, logger)
+		monitoring.StartStatusServer(config, logger, airbrakeHandler)
 	}
 	if config.Monitoring != nil {
 		monitoring.StartServerMetrics(config, logger, registry)
@@ -51,8 +58,7 @@ func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 	if err != nil {
 		return err
 	}
-
-	server, _, err := streaming.InitServer(config, producerRules, logger, registry)
+	server, _, err := streaming.InitServer(config, airbrakeHandler, producerRules, logger, registry)
 	if err != nil {
 		return err
 	}

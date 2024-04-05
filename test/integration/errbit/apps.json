@@ -1,0 +1,21 @@
+{
+  "apps": [
+    {
+      "api_key": "test1",
+      "asset_host": "https://github.com/teslamotors/fleet-telemetry",
+      "bitbucket_repo": "",
+      "current_app_version": "",
+      "email_at_notices": [
+        1,
+        10,
+        100
+      ],
+      "github_repo": "https://github.com/teslamotors/fleet-telemetry",
+      "name": "Tesla Fleet Telemetry",
+      "notify_all_users": true,
+      "notify_on_errs": true,
+      "repository_branch": "main",
+      "watchers": []
+    }
+  ]
+}

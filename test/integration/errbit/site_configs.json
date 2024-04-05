@@ -1,0 +1,10 @@
+{
+  "notice_fingerprinter": {
+    "action": true,
+    "backtrace_lines": -1,
+    "component": true,
+    "environment_name": true,
+    "error_class": true,
+    "message": false
+  }
+}

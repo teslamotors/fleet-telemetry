@@ -7,11 +7,13 @@ import (
 	_ "embed" //Used for default CAs
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
+	githubairbrake "github.com/airbrake/gobrake/v5"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	githublogrus "github.com/sirupsen/logrus"
@@ -89,6 +91,18 @@ type Config struct {
 
 	// AckChan is a channel used to push acknowledgment from the datastore to connected clients
 	AckChan chan (*telemetry.Record)
+
+	// Airbrake config
+	Airbrake *Airbrake
+}
+
+type Airbrake struct {
+	Host        string `json:"host"`
+	ProjectKey  string `json:"project_key"`
+	Environment string `json:"environment"`
+	ProjectId   int64  `json:"project_id"`
+
+	TLS *TLS `json:"tls" yaml:"tls"`
 }
 
 // RateLimit config for the service to handle ratelimiting incoming requests
@@ -127,11 +141,42 @@ var defaultEngCA []byte
 //go:embed files/prod_ca.crt
 var defaultProdCA []byte
 
-// TLS config for the server
+// TLS config
 type TLS struct {
 	CAFile     string `json:"ca_file"`
 	ServerCert string `json:"server_cert"`
 	ServerKey  string `json:"server_key"`
+}
+
+// ExtractServiceTLSConfig return the TLS config needed for connecting with airbrake server
+func (c *Config) AirbrakeTlsConfig() (*tls.Config, error) {
+	if c.Airbrake.TLS == nil {
+		return nil, nil
+	}
+	caPath := c.Airbrake.TLS.CAFile
+	certPath := c.Airbrake.TLS.ServerCert
+	keyPath := c.Airbrake.TLS.ServerKey
+	tlsConfig := &tls.Config{}
+	if certPath != "" && keyPath != "" {
+		cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+		if err != nil {
+			return nil, fmt.Errorf("can't properly load cert pair (%s, %s): %s", certPath, keyPath, err.Error())
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+		tlsConfig.BuildNameToCertificate()
+	}
+
+	if caPath != "" {
+		clientCACert, err := os.ReadFile(caPath)
+		if err != nil {
+			return nil, fmt.Errorf("can't properly load ca cert (%s): %s", caPath, err.Error())
+		}
+		clientCertPool := x509.NewCertPool()
+		clientCertPool.AppendCertsFromPEM(clientCACert)
+		tlsConfig.RootCAs = clientCertPool
+	}
+
+	return tlsConfig, nil
 }
 
 // ExtractServiceTLSConfig return the TLS config needed for stating the mTLS Server
@@ -299,4 +344,35 @@ func (c *Config) CreateKinesisStreamMapping(recordNames []string) map[string]str
 		}
 	}
 	return streamMapping
+}
+
+// CreateAirbrakeNotifier intializes an airbrake notifier with standard configs
+func (c *Config) CreateAirbrakeNotifier() (*githubairbrake.Notifier, error) {
+	if c.Airbrake == nil {
+		return nil, nil
+	}
+	tlsConfig, err := c.AirbrakeTlsConfig()
+	if err != nil {
+		return nil, err
+	}
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+	httpClient := &http.Client{
+		Transport: transport,
+		Timeout:   10 * time.Second,
+	}
+	errbitHost := c.Airbrake.Host
+	projectKey := c.Airbrake.ProjectKey
+	return githubairbrake.NewNotifierWithOptions(&githubairbrake.NotifierOptions{
+		Host:                errbitHost,
+		RemoteConfigHost:    errbitHost,
+		DisableRemoteConfig: true,
+		APMHost:             errbitHost,
+		DisableAPM:          true,
+		ProjectId:           c.Airbrake.ProjectId,
+		ProjectKey:          projectKey,
+		Environment:         c.Airbrake.Environment,
+		HTTPClient:          httpClient,
+	}), nil
 }

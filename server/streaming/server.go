@@ -14,6 +14,7 @@ import (
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -36,10 +37,12 @@ type Server struct {
 	metricsCollector metrics.MetricCollector
 
 	reliableAck bool
+
+	airbrakeHandler *airbrake.AirbrakeHandler
 }
 
 // InitServer initializes the main server
-func InitServer(c *config.Config, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *Server, error) {
+func InitServer(c *config.Config, airbrakeHandler *airbrake.AirbrakeHandler, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *Server, error) {
 	reliableAck := false
 	if c.Kafka != nil {
 		reliableAck = c.ReliableAck
@@ -50,11 +53,12 @@ func InitServer(c *config.Config, producerRules map[string][]telemetry.Producer,
 		metricsCollector: c.MetricCollector,
 		reliableAck:      reliableAck,
 		logger:           logger,
+		airbrakeHandler:  airbrakeHandler,
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", socketServer.ServeBinaryWs(c, registry))
-	mux.HandleFunc("/status", socketServer.Status())
+	mux.Handle("/status", socketServer.airbrakeHandler.WithReporting(http.HandlerFunc(socketServer.Status())))
 
 	server := &http.Server{Addr: fmt.Sprintf("%v:%v", c.Host, c.Port), Handler: serveHTTPWithLogs(mux, logger)}
 	return server, socketServer, nil
@@ -107,6 +111,7 @@ func (s *Server) ServeBinaryWs(config *config.Config, registry *SocketRegistry) 
 func (s *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *websocket.Conn {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		s.airbrakeHandler.ReportError(r, err)
 		if _, ok := err.(websocket.HandshakeError); !ok {
 			s.logger.ErrorLog("websocket_promotion_error", err, nil)
 		}
