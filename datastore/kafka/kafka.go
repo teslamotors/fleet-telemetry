@@ -10,6 +10,7 @@ import (
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
+	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -20,6 +21,7 @@ type Producer struct {
 	prometheusEnabled bool
 	metricsCollector  metrics.MetricCollector
 	logger            *logrus.Logger
+	airbrakeHandler   *airbrake.AirbrakeHandler
 }
 
 // Metrics stores metrics reported from this package
@@ -36,7 +38,7 @@ var (
 
 // NewProducer establishes the kafka connection and define the dispatch method
 func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers int,
-	ackChan chan (*telemetry.Record), prometheusEnabled bool, metricsCollector metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+	ackChan chan (*telemetry.Record), prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	kafkaProducer, err := kafka.NewProducer(config)
@@ -50,6 +52,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 		metricsCollector:  metricsCollector,
 		prometheusEnabled: prometheusEnabled,
 		logger:            logger,
+		airbrakeHandler:   airbrakeHandler,
 	}
 
 	for i := 0; i < reliableAckWorkers; i++ {
@@ -84,6 +87,12 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 }
 
+// ReportError to airbrake and logger
+func (p *Producer) ReportError(message string, err error, logInfo logrus.LogInfo) {
+	p.airbrakeHandler.ReportLogMessage(logrus.ERROR, message, err, logInfo)
+	p.logger.ErrorLog(message, err, logInfo)
+}
+
 func headersFromRecord(record *telemetry.Record) (headers []kafka.Header) {
 	for key, val := range record.Metadata() {
 		headers = append(headers, kafka.Header{
@@ -111,7 +120,7 @@ func (p *Producer) handleProducerEvents(ackChan chan (*telemetry.Record)) {
 }
 
 func (p *Producer) logError(err error) {
-	p.logger.ErrorLog("kafka_err", err, nil)
+	p.ReportError("kafka_err", err, nil)
 	metricsRegistry.errorCount.Inc(map[string]string{})
 }
 

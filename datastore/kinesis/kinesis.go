@@ -12,6 +12,7 @@ import (
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
+	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -22,6 +23,7 @@ type Producer struct {
 	prometheusEnabled bool
 	metricsCollector  metrics.MetricCollector
 	streams           map[string]string
+	airbrakeHandler   *airbrake.AirbrakeHandler
 }
 
 // Metrics stores metrics reported from this package
@@ -37,7 +39,7 @@ var (
 )
 
 // NewProducer configures and tests the kinesis connection
-func NewProducer(maxRetries int, streams map[string]string, overrideHost string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(maxRetries int, streams map[string]string, overrideHost string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	config := &aws.Config{
@@ -66,6 +68,7 @@ func NewProducer(maxRetries int, streams map[string]string, overrideHost string,
 		prometheusEnabled: prometheusEnabled,
 		metricsCollector:  metricsCollector,
 		streams:           streams,
+		airbrakeHandler:   airbrakeHandler,
 	}, nil
 }
 
@@ -74,7 +77,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	entry.ProduceTime = time.Now()
 	stream, ok := p.streams[entry.TxType]
 	if !ok {
-		p.logger.ErrorLog("kinesis_produce_stream_not_configured", nil, logrus.LogInfo{"record_type": entry.TxType})
+		p.ReportError("kinesis_produce_stream_not_configured", nil, logrus.LogInfo{"record_type": entry.TxType})
 		return
 	}
 	kinesisRecord := &kinesis.PutRecordInput{
@@ -85,7 +88,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 
 	kinesisRecordOutput, err := p.kinesis.PutRecord(kinesisRecord)
 	if err != nil {
-		p.logger.ErrorLog("kinesis_err", err, nil)
+		p.ReportError("kinesis_err", err, nil)
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
 	}
@@ -93,6 +96,12 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	p.logger.Log(logrus.DEBUG, "kinesis_err", logrus.LogInfo{"vin": entry.Vin, "record_type": entry.TxType, "txid": entry.Txid, "shard_id": *kinesisRecordOutput.ShardId, "sequence_number": *kinesisRecordOutput.SequenceNumber})
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
 	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
+}
+
+// ReportError to airbrake and logger
+func (p *Producer) ReportError(message string, err error, logInfo logrus.LogInfo) {
+	p.airbrakeHandler.ReportLogMessage(logrus.ERROR, message, err, logInfo)
+	p.logger.ErrorLog(message, err, logInfo)
 }
 
 func registerMetricsOnce(metricsCollector metrics.MetricCollector) {

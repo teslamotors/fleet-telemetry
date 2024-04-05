@@ -25,6 +25,7 @@ import (
 	"github.com/teslamotors/fleet-telemetry/datastore/zmq"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -241,7 +242,7 @@ func (c *Config) prometheusEnabled() bool {
 }
 
 // ConfigureProducers validates and establishes connections to the producers (kafka/pubsub/logger)
-func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemetry.Producer, error) {
+func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (map[string][]telemetry.Producer, error) {
 	producers := make(map[telemetry.Dispatcher]telemetry.Producer)
 	producers[telemetry.Logger] = simple.NewProtoLogger(logger)
 
@@ -257,7 +258,7 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 			return nil, errors.New("Expected Kafka to be configured")
 		}
 		convertKafkaConfig(c.Kafka)
-		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.ReliableAckWorkers, c.AckChan, c.prometheusEnabled(), c.MetricCollector, logger)
+		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.ReliableAckWorkers, c.AckChan, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -268,7 +269,7 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 		if c.Pubsub == nil {
 			return nil, errors.New("Expected Pubsub to be configured")
 		}
-		googleProducer, err := googlepubsub.NewProducer(context.Background(), c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, logger)
+		googleProducer, err := googlepubsub.NewProducer(context.Background(), c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -284,7 +285,7 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 			maxRetries = *c.Kinesis.MaxRetries
 		}
 		streamMapping := c.CreateKinesisStreamMapping(recordNames)
-		kinesis, err := kinesis.NewProducer(maxRetries, streamMapping, c.Kinesis.OverrideHost, c.prometheusEnabled(), c.MetricCollector, logger)
+		kinesis, err := kinesis.NewProducer(maxRetries, streamMapping, c.Kinesis.OverrideHost, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -295,7 +296,7 @@ func (c *Config) ConfigureProducers(logger *logrus.Logger) (map[string][]telemet
 		if c.ZMQ == nil {
 			return nil, errors.New("Expected ZMQ to be configured")
 		}
-		zmqProducer, err := zmq.NewProducer(context.Background(), c.ZMQ, c.MetricCollector, c.Namespace, logger)
+		zmqProducer, err := zmq.NewProducer(context.Background(), c.ZMQ, c.MetricCollector, c.Namespace, airbrakeHandler, logger)
 		if err != nil {
 			return nil, err
 		}

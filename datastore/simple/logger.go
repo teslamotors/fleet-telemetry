@@ -24,3 +24,8 @@ func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 	}
 	p.logger.ActivityLog("logger_json_unmarshal", logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata(), "data": string(data)})
 }
+
+// ReportError noop method
+func (p *ProtoLogger) ReportError(message string, err error, logInfo logrus.LogInfo) {
+	return
+}

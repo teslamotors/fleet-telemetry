@@ -10,6 +10,7 @@ import (
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
+	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
@@ -58,10 +59,11 @@ const MonitorSocketAddr = "inproc://zmq_socket_monitor.rep"
 // ZMQProducer implements the telemetry.Producer interface by publishing to a
 // bound zmq socket.
 type ZMQProducer struct {
-	namespace string
-	ctx       context.Context
-	sock      *zmq4.Socket
-	logger    *logrus.Logger
+	namespace       string
+	ctx             context.Context
+	sock            *zmq4.Socket
+	logger          *logrus.Logger
+	airbrakeHandler *airbrake.AirbrakeHandler
 }
 
 // Publish the record to the socket.
@@ -71,11 +73,17 @@ func (p *ZMQProducer) Produce(rec *telemetry.Record) {
 	}
 	if nBytes, err := p.sock.SendMessage(telemetry.BuildTopicName(p.namespace, rec.TxType), rec.Payload()); err != nil {
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
-		p.logger.ErrorLog("zmq_dispatch_error", err, nil)
+		p.ReportError("zmq_dispatch_error", err, nil)
 	} else {
 		metricsRegistry.byteTotal.Add(int64(nBytes), map[string]string{"record_type": rec.TxType})
 		metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
 	}
+}
+
+// ReportError to airbrake and logger
+func (p *ZMQProducer) ReportError(message string, err error, logInfo logrus.LogInfo) {
+	p.airbrakeHandler.ReportLogMessage(logrus.ERROR, message, err, logInfo)
+	p.logger.ErrorLog(message, err, logInfo)
 }
 
 // Close the underlying socket.
@@ -90,7 +98,7 @@ func (p *ZMQProducer) Close() error {
 }
 
 // NewProducer creates a ZMQProducer with the given config.
-func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, logger *logrus.Logger) (producer telemetry.Producer, err error) {
+func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (producer telemetry.Producer, err error) {
 	registerMetricsOnce(metrics)
 	sock, err := zmq4.NewSocket(zmq4.PUB)
 	if err != nil {
@@ -146,7 +154,11 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 	}
 
 	return &ZMQProducer{
-		namespace, ctx, sock, logger,
+		namespace:       namespace,
+		ctx:             ctx,
+		sock:            sock,
+		logger:          logger,
+		airbrakeHandler: airbrakeHandler,
 	}, nil
 }
 
