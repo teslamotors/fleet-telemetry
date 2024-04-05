@@ -41,7 +41,7 @@ func startServer(config *config.Config, logger *logrus.Logger) (err error) {
 	logger.ActivityLog("starting_server", nil)
 	registry := streaming.NewSocketRegistry()
 
-	airbrakeNotifier, err := config.CreateAirbrakeNotifier()
+	airbrakeNotifier, _, err := config.CreateAirbrakeNotifier(logger)
 	if err != nil {
 		return err
 	}

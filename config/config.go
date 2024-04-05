@@ -29,6 +29,10 @@ import (
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
+const (
+	airbrakeProjectKeyEnv = "AIRBRAKE_PROJECT_KEY"
+)
+
 // Config object for server
 type Config struct {
 	// Host is the telemetry server hostname
@@ -149,7 +153,7 @@ type TLS struct {
 	ServerKey  string `json:"server_key"`
 }
 
-// ExtractServiceTLSConfig return the TLS config needed for connecting with airbrake server
+// AirbrakeTlsConfig return the TLS config needed for connecting with airbrake server
 func (c *Config) AirbrakeTlsConfig() (*tls.Config, error) {
 	if c.Airbrake.TLS == nil {
 		return nil, nil
@@ -348,13 +352,13 @@ func (c *Config) CreateKinesisStreamMapping(recordNames []string) map[string]str
 }
 
 // CreateAirbrakeNotifier intializes an airbrake notifier with standard configs
-func (c *Config) CreateAirbrakeNotifier() (*githubairbrake.Notifier, error) {
+func (c *Config) CreateAirbrakeNotifier(logger *logrus.Logger) (*githubairbrake.Notifier, *githubairbrake.NotifierOptions, error) {
 	if c.Airbrake == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	tlsConfig, err := c.AirbrakeTlsConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
@@ -364,8 +368,18 @@ func (c *Config) CreateAirbrakeNotifier() (*githubairbrake.Notifier, error) {
 		Timeout:   10 * time.Second,
 	}
 	errbitHost := c.Airbrake.Host
-	projectKey := c.Airbrake.ProjectKey
-	return githubairbrake.NewNotifierWithOptions(&githubairbrake.NotifierOptions{
+	projectKey, ok := os.LookupEnv(airbrakeProjectKeyEnv)
+	logInfo := logrus.LogInfo{}
+	if ok {
+		logInfo["source"] = "environment_variable"
+		logInfo["env_key"] = airbrakeProjectKeyEnv
+
+	} else {
+		projectKey = c.Airbrake.ProjectKey
+		logInfo["source"] = "config_file"
+	}
+	logger.ActivityLog("airbrake_configured", logInfo)
+	options := &githubairbrake.NotifierOptions{
 		Host:                errbitHost,
 		RemoteConfigHost:    errbitHost,
 		DisableRemoteConfig: true,
@@ -375,5 +389,6 @@ func (c *Config) CreateAirbrakeNotifier() (*githubairbrake.Notifier, error) {
 		ProjectKey:          projectKey,
 		Environment:         c.Airbrake.Environment,
 		HTTPClient:          httpClient,
-	}), nil
+	}
+	return githubairbrake.NewNotifierWithOptions(options), options, nil
 }

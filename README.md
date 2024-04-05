@@ -172,6 +172,8 @@ Data is encapsulated into protobuf messages of different types. Protos can be re
   ```sh
   make generate-protos
   ```
+## Airbrake
+Fleet telemetry allows you to monitor errors using [airbrake](https://www.airbrake.io/error-monitoring). The integration test runs fleet telemetry with [errbit](https://github.com/errbit/errbit), which is an airbrake compliant self-hosted error catcher. You can set a project key for airbrake using either the config file or via an environment variable `AIRBRAKE_PROJECT_KEY`. 
 
 # Testing
 
