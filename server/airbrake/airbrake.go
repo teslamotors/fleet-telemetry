@@ -48,20 +48,24 @@ func (a *AirbrakeHandler) WithReporting(next http.Handler) http.Handler {
 	})
 }
 
-// ReportLogMessage log message to airbrake
-func (a *AirbrakeHandler) ReportLogMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) {
-	if a.airbrakeNotifier == nil {
-		return
-	}
+func (a *AirbrakeHandler) logMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) *githubairbrake.Notice {
 	notice := githubairbrake.NewNotice(message, nil, 1)
-	notice.Params["log_type"] = logType
+	notice.Params["log_type"] = logrus.AllLogType[logType]
 	if err != nil {
-		notice.Params["error"] = err
+		notice.Params["error"] = err.Error()
 	}
 	if logInfo != nil {
 		for logKey, logValue := range logInfo {
 			notice.Params[logKey] = logValue
 		}
 	}
-	a.airbrakeNotifier.SendNoticeAsync(notice)
+	return notice
+}
+
+// ReportLogMessage log message to airbrake
+func (a *AirbrakeHandler) ReportLogMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) {
+	if a.airbrakeNotifier == nil {
+		return
+	}
+	a.airbrakeNotifier.SendNoticeAsync(a.logMessage(logType, message, err, logInfo))
 }
