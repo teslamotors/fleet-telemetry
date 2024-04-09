@@ -22,6 +22,7 @@ type Producer struct {
 	metricsCollector  metrics.MetricCollector
 	logger            *logrus.Logger
 	airbrakeHandler   *airbrake.AirbrakeHandler
+	reliableAck       bool
 }
 
 // Metrics stores metrics reported from this package
@@ -53,6 +54,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 		prometheusEnabled: prometheusEnabled,
 		logger:            logger,
 		airbrakeHandler:   airbrakeHandler,
+		reliableAck:       reliableAckWorkers > 0,
 	}
 
 	for i := 0; i < reliableAckWorkers; i++ {
@@ -72,11 +74,13 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		Key:            []byte(entry.Vin),
 		Headers:        headersFromRecord(entry),
 		Timestamp:      time.Now(),
-		Opaque:         entry,
 	}
 
 	// Note: confluent kafka supports the concept of one channel per connection, so we could add those here and get rid of reliableAckWorkers
 	// ex.: https://github.com/confluentinc/confluent-kafka-go/blob/master/examples/producer_custom_channel_example/producer_custom_channel_example.go#L79
+	if p.reliableAck {
+		msg.Opaque = entry
+	}
 	entry.ProduceTime = time.Now()
 	if err := p.kafkaProducer.Produce(msg, nil); err != nil {
 		p.logError(err)
