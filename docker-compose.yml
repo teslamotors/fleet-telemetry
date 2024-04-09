@@ -125,3 +125,25 @@ services:
       interval: 5s
     volumes:
       - ./test/integration/mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "19090:9090"
+    volumes:
+      - ./test/integration/prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "13000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./test/integration/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      prometheus:
+        condition: service_started
