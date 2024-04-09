@@ -161,7 +161,9 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L104)
 
 ## Metrics
-Configure and use Prometheus or a StatsD-interface supporting data store for metrics.
+Configure and use Prometheus or a StatsD-interface supporting data store for metrics. The integration test runs fleet telemetry with [grafana](https://grafana.com/docs/grafana/latest/datasources/google-cloud-monitoring/), which is compatible with prometheus. It also has an example dashboard which tracks important metrics related to the hosted server. Sample screenshot for the [sample dashboard](./test/integration/grafana/provisioning/dashboards/dashboard.json):-
+
+![Basic Dashboard](./doc/grafana-dashboard.png)
 
 ## Protos
 Data is encapsulated into protobuf messages of different types. Protos can be recompiled via:
