@@ -66,9 +66,16 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 func (p *Producer) Produce(entry *telemetry.Record) {
 	topic := telemetry.BuildTopicName(p.namespace, entry.TxType)
 
+	data, err := entry.GetJSONPayload()
+
+	if err != nil {
+		p.logger.ErrorLog("json_unmarshal_error", err, logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata()})
+		return
+	}
+
 	msg := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value:          entry.Payload(),
+		Value:          data,
 		Key:            []byte(entry.Vin),
 		Headers:        headersFromRecord(entry),
 		Timestamp:      time.Now(),
