@@ -42,17 +42,13 @@ func (bs *BinarySerializer) Deserialize(msg []byte, socketID string) (record *Re
 		}
 	}()
 
-	record = &Record{Serializer: bs, RawBytes: msg, SocketID: socketID}
+	record = &Record{Serializer: bs, SocketID: socketID}
 	streamMessage, err := messages.StreamMessageFromBytes(msg)
 	if err != nil {
 		return record, bs.guessError(record, msg)
 	}
 
 	streamMessage.SetDeliveredAt(time.Now())
-	record.RawBytes, err = streamMessage.ToBytes()
-	if err != nil {
-		bs.logger.ErrorLog("set_delivered_at_bytes_error", err, logrus.LogInfo{"record_type": record.TxType, "txid": record.Txid})
-	}
 
 	record.TxType = streamMessage.Topic()
 	record.Txid = string(streamMessage.TXID)

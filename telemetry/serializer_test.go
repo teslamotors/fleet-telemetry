@@ -2,7 +2,6 @@ package telemetry_test
 
 import (
 	"errors"
-	"reflect"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -74,7 +73,6 @@ var _ = Describe("BinarySerializer", func() {
 			},
 			wantRecord: &telemetry.Record{
 				Serializer: nil,
-				RawBytes:   nil,
 				TxType:     "T",
 				Txid:       "test-42",
 				SocketID:   "Socket-42",
@@ -95,7 +93,6 @@ var _ = Describe("BinarySerializer", func() {
 			},
 			wantRecord: &telemetry.Record{
 				Serializer: nil,
-				RawBytes:   nil,
 				TxType:     "T",
 				Txid:       "test-42",
 				SocketID:   "Socket-42",
@@ -122,7 +119,6 @@ var _ = Describe("BinarySerializer", func() {
 			},
 			wantRecord: &telemetry.Record{
 				Serializer: nil,
-				RawBytes:   nil,
 				TxType:     "T1",
 				Txid:       "test-42",
 				SocketID:   "Socket-42",
@@ -149,7 +145,6 @@ var _ = Describe("BinarySerializer", func() {
 			},
 			wantRecord: &telemetry.Record{
 				Serializer: nil,
-				RawBytes:   nil,
 				TxType:     "T1",
 				Txid:       "test-42",
 				SocketID:   "Socket-42",
@@ -173,10 +168,7 @@ var _ = Describe("BinarySerializer", func() {
 
 			gotRecord.ReceivedTimestamp = 0
 			tt.wantRecord.Serializer = bs
-			Expect(gotRecord.RawBytes).NotTo(BeEmpty())
-			Expect(reflect.DeepEqual(gotRecord.RawBytes, msgBytes)).To(BeFalse())
 
-			tt.wantRecord.RawBytes = gotRecord.RawBytes
 			tt.wantRecord.PayloadBytes = gotRecord.PayloadBytes
 
 			Expect(gotRecord).To(Equal(tt.wantRecord))

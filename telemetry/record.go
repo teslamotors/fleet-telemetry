@@ -51,7 +51,6 @@ type Record struct {
 	Version                int
 	Vin                    string
 	PayloadBytes           []byte
-	RawBytes               []byte
 	transmitDecodedRecords bool
 }
 
@@ -98,6 +97,11 @@ func (record *Record) Payload() []byte {
 	return record.PayloadBytes
 }
 
+// Length returns the length of payload
+func (record *Record) Length() int {
+	return len(record.PayloadBytes)
+}
+
 func (record *Record) GetJSONPayload() ([]byte, error) {
 	if record.transmitDecodedRecords {
 		return record.Payload(), nil
@@ -105,34 +109,11 @@ func (record *Record) GetJSONPayload() ([]byte, error) {
 	return record.toJSON()
 }
 
-// Raw returns the raw telemetry record
-func (record *Record) Raw() []byte {
-	return record.RawBytes
-}
-
-// Length gets the records byte size
-func (record *Record) Length() int {
-	record.ensureEncoded()
-	return len(record.RawBytes)
-}
-
-// Encode encodes the records into bytes
-func (record *Record) Encode() ([]byte, error) {
-	record.ensureEncoded()
-	return record.RawBytes, nil
-}
-
 // Dispatch uses the configuration to send records to the list of backends/data stores they belong
 func (record *Record) Dispatch() {
 	logger := record.Serializer.Logger()
-	logger.Log(logrus.DEBUG, "dispatching_message", logrus.LogInfo{"socket_id": record.SocketID, "payload": record.Raw()})
+	logger.Log(logrus.DEBUG, "dispatching_message", logrus.LogInfo{"socket_id": record.SocketID, "payload": record.Payload()})
 	record.Serializer.Dispatch(record)
-}
-
-func (record *Record) ensureEncoded() {
-	if record.RawBytes == nil && record.Serializer != nil && record.Serializer.Logger() != nil {
-		record.Serializer.Logger().ErrorLog("record_RawBytes_blank", nil, nil)
-	}
 }
 
 func (record *Record) applyProtoRecordTransforms() error {
