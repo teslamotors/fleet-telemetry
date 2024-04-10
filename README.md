@@ -165,6 +165,10 @@ Configure and use Prometheus or a StatsD-interface supporting data store for met
 
 ![Basic Dashboard](./doc/grafana-dashboard.png)
 
+## Logging
+
+To suppress [tls handshake error logging](https://cs.opensource.google/go/go/+/master:src/net/http/server.go;l=1933?q=%22TLS%20handshake%20error%20from%20%22&ss=go%2Fgo), set environment variable `SUPPRESS_TLS_HANDSHAKE_ERROR_LOGGING` to `true`. See [docker compose](./docker-compose.yml) for example.
+
 ## Protos
 Data is encapsulated into protobuf messages of different types. Protos can be recompiled via:
 

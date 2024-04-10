@@ -23,6 +23,7 @@ services:
       AWS_ACCESS_KEY_ID: ABC123
       AWS_SECRET_ACCESS_KEY: EFG456
       PUBSUB_EMULATOR_HOST: pubsub:8085
+      SUPPRESS_TLS_HANDSHAKE_ERROR_LOGGING: true
     depends_on:
       kinesis:
         condition: service_healthy

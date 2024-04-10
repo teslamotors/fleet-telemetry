@@ -6,5 +6,6 @@ import (
 
 func NoOpLogger() (*Logger, *test.Hook) {
 	log, hook := test.NewNullLogger()
-	return NewLogrusLogger("null_logger", map[string]interface{}{}, log.WithField("context", "test")), hook
+	logger, _ := NewLogrusLogger("null_logger", map[string]interface{}{}, log.WithField("context", "test"))
+	return logger, hook
 }
