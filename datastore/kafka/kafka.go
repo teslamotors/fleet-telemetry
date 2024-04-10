@@ -27,9 +27,11 @@ type Producer struct {
 
 // Metrics stores metrics reported from this package
 type Metrics struct {
-	produceCount adapter.Counter
-	byteTotal    adapter.Counter
-	errorCount   adapter.Counter
+	produceCount    adapter.Counter
+	bytesTotal      adapter.Counter
+	produceAckCount adapter.Counter
+	bytesAckTotal   adapter.Counter
+	errorCount      adapter.Counter
 }
 
 var (
@@ -57,9 +59,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 		reliableAck:       reliableAckWorkers > 0,
 	}
 
-	for i := 0; i < reliableAckWorkers; i++ {
-		go producer.handleProducerEvents(ackChan)
-	}
+	go producer.handleProducerEvents(ackChan)
 	producer.logger.ActivityLog("kafka_registered", logrus.LogInfo{"namespace": namespace})
 	return producer, nil
 }
@@ -74,21 +74,18 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		Key:            []byte(entry.Vin),
 		Headers:        headersFromRecord(entry),
 		Timestamp:      time.Now(),
+		Opaque:         entry,
 	}
 
 	// Note: confluent kafka supports the concept of one channel per connection, so we could add those here and get rid of reliableAckWorkers
 	// ex.: https://github.com/confluentinc/confluent-kafka-go/blob/master/examples/producer_custom_channel_example/producer_custom_channel_example.go#L79
-	if p.reliableAck {
-		msg.Opaque = entry
-	}
 	entry.ProduceTime = time.Now()
 	if err := p.kafkaProducer.Produce(msg, nil); err != nil {
 		p.logError(err)
 		return
 	}
-
 	metricsRegistry.produceCount.Inc(map[string]string{"record_type": entry.TxType})
-	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
+	metricsRegistry.bytesTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 }
 
 // ReportError to airbrake and logger
@@ -113,9 +110,14 @@ func (p *Producer) handleProducerEvents(ackChan chan (*telemetry.Record)) {
 		case kafka.Error:
 			p.logError(fmt.Errorf("producer_error %v", ev))
 		case *kafka.Message:
-			record, ok := ev.Opaque.(*telemetry.Record)
-			if ok {
-				ackChan <- record
+			entry, ok := ev.Opaque.(*telemetry.Record)
+			if !ok {
+				continue
+			}
+			metricsRegistry.produceAckCount.Inc(map[string]string{"record_type": entry.TxType})
+			metricsRegistry.bytesAckTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
+			if p.reliableAck {
+				ackChan <- entry
 			}
 		default:
 			p.logger.ActivityLog("kafka_event_ignored", logrus.LogInfo{"event": ev.String()})
@@ -139,9 +141,21 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 		Labels: []string{"record_type"},
 	})
 
-	metricsRegistry.byteTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+	metricsRegistry.bytesTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "kafka_produce_total_bytes",
 		Help:   "The number of bytes produced to Kafka.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.produceAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kafka_produce_ack_total",
+		Help:   "The number of records produced to Kafka for which we got an ACK.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.bytesAckTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kafka_produce_ack_total_bytes",
+		Help:   "The number of bytes produced to Kafka for which we got an ACK.",
 		Labels: []string{"record_type"},
 	})
 
