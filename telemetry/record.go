@@ -110,10 +110,15 @@ func (record *Record) Raw() []byte {
 	return record.RawBytes
 }
 
-// Length gets the records byte size
-func (record *Record) Length() int {
+// Length gets the records flatbuffer payload byte size
+func (record *Record) LengthRawBytes() int {
 	record.ensureEncoded()
 	return len(record.RawBytes)
+}
+
+// Length gets the records byte size
+func (record *Record) Length() int {
+	return len(record.PayloadBytes)
 }
 
 // Encode encodes the records into bytes
