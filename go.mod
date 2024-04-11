@@ -7,7 +7,7 @@ require (
 	github.com/airbrake/gobrake/v5 v5.6.1
 	github.com/aws/aws-sdk-go v1.44.278
 	github.com/beefsack/go-rate v0.0.0-20220214233405-116f4ca011a0
-	github.com/confluentinc/confluent-kafka-go/v2 v2.0.2
+	github.com/confluentinc/confluent-kafka-go/v2 v2.3.0
 	github.com/google/flatbuffers v23.3.3+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
@@ -40,6 +40,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.8.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.3.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
