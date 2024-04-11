@@ -27,11 +27,12 @@ type Producer struct {
 
 // Metrics stores metrics reported from this package
 type Metrics struct {
-	produceCount    adapter.Counter
-	bytesTotal      adapter.Counter
-	produceAckCount adapter.Counter
-	bytesAckTotal   adapter.Counter
-	errorCount      adapter.Counter
+	producerCount     adapter.Counter
+	bytesTotal        adapter.Counter
+	producerAckCount  adapter.Counter
+	bytesAckTotal     adapter.Counter
+	errorCount        adapter.Counter
+	producerQueueSize adapter.Gauge
 }
 
 var (
@@ -60,6 +61,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 	}
 
 	go producer.handleProducerEvents(ackChan)
+	go producer.reportProducerMetrics()
 	producer.logger.ActivityLog("kafka_registered", logrus.LogInfo{"namespace": namespace})
 	return producer, nil
 }
@@ -84,7 +86,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		p.logError(err)
 		return
 	}
-	metricsRegistry.produceCount.Inc(map[string]string{"record_type": entry.TxType})
+	metricsRegistry.producerCount.Inc(map[string]string{"record_type": entry.TxType})
 	metricsRegistry.bytesTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 }
 
@@ -114,7 +116,7 @@ func (p *Producer) handleProducerEvents(ackChan chan (*telemetry.Record)) {
 			if !ok {
 				continue
 			}
-			metricsRegistry.produceAckCount.Inc(map[string]string{"record_type": entry.TxType})
+			metricsRegistry.producerAckCount.Inc(map[string]string{"record_type": entry.TxType})
 			metricsRegistry.bytesAckTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 			if p.reliableAck {
 				ackChan <- entry
@@ -130,12 +132,24 @@ func (p *Producer) logError(err error) {
 	metricsRegistry.errorCount.Inc(map[string]string{})
 }
 
+func (p *Producer) reportProducerMetrics() {
+	interval := 5 * time.Second
+	t := time.NewTicker(interval)
+	for range t.C {
+		total := p.kafkaProducer.Len()
+		eventsCount := len(p.kafkaProducer.Events())
+		metricsRegistry.producerQueueSize.Set(int64(total), map[string]string{"type": "total"})
+		metricsRegistry.producerQueueSize.Set(int64(eventsCount), map[string]string{"type": "events"})
+		metricsRegistry.producerQueueSize.Set(int64(total-eventsCount), map[string]string{"type": "buffer"})
+	}
+}
+
 func registerMetricsOnce(metricsCollector metrics.MetricCollector) {
 	metricsOnce.Do(func() { registerMetrics(metricsCollector) })
 }
 
 func registerMetrics(metricsCollector metrics.MetricCollector) {
-	metricsRegistry.produceCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+	metricsRegistry.producerCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "kafka_produce_total",
 		Help:   "The number of records produced to Kafka.",
 		Labels: []string{"record_type"},
@@ -147,7 +161,7 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 		Labels: []string{"record_type"},
 	})
 
-	metricsRegistry.produceAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+	metricsRegistry.producerAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "kafka_produce_ack_total",
 		Help:   "The number of records produced to Kafka for which we got an ACK.",
 		Labels: []string{"record_type"},
@@ -163,5 +177,11 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 		Name:   "kafka_err",
 		Help:   "The number of errors while producing to Kafka.",
 		Labels: []string{},
+	})
+
+	metricsRegistry.producerQueueSize = metricsCollector.RegisterGauge(adapter.CollectorOptions{
+		Name:   "kafka_produce_queue_size",
+		Help:   "Total pending messages to produce",
+		Labels: []string{"type"},
 	})
 }
