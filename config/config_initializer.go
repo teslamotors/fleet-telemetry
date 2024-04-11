@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"log"
 	"os"
 
 	"github.com/sirupsen/logrus/hooks/test"
@@ -15,7 +16,11 @@ import (
 // LoadApplicationConfiguration loads the configuration from args and config files
 func LoadApplicationConfiguration() (config *Config, logger *logrus.Logger, err error) {
 
-	logger = logrus.NewBasicLogrusLogger("fleet-telemetry")
+	logger, err = logrus.NewBasicLogrusLogger("fleet-telemetry")
+	if err != nil {
+		return nil, nil, err
+	}
+	log.SetOutput(logger)
 
 	configFilePath := loadConfigFlags()
 
@@ -38,9 +43,15 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 
 	config := &Config{}
 	err = json.NewDecoder(configFile).Decode(&config)
+	if err != nil {
+		return nil, err
+	}
 
 	log, _ := test.NewNullLogger()
-	logger := logrus.NewLogrusLogger("null_logger", map[string]interface{}{}, log.WithField("context", "metrics"))
+	logger, err := logrus.NewLogrusLogger("null_logger", map[string]interface{}{}, log.WithField("context", "metrics"))
+	if err != nil {
+		return nil, err
+	}
 	config.MetricCollector = metrics.NewCollector(config.Monitoring, logger)
 
 	config.AckChan = make(chan *telemetry.Record)

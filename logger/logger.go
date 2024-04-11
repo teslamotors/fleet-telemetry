@@ -2,6 +2,8 @@ package logrus
 
 import (
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
@@ -19,6 +21,10 @@ const (
 	FATAL
 )
 
+const (
+	tlsFilter = "http: TLS handshake error from"
+)
+
 // AllLogType is a map of LogType to string names
 var AllLogType = map[LogType]string{
 	DEBUG: "debug",
@@ -34,29 +40,43 @@ type LogInfo map[string]interface{}
 // Logger a logrus implementer of the JSON logger interface
 type Logger struct {
 	logger *logrus.Entry
+
+	suppressionFilter string
 }
 
 // NewLogrusLogger return a LogrusLogger
-func NewLogrusLogger(context string, info LogInfo, logger *logrus.Entry) *Logger {
+func NewLogrusLogger(context string, info LogInfo, logger *logrus.Entry) (*Logger, error) {
 	if logger == nil {
 		logger = logrus.WithField("context", context)
 	}
-
 	l := &Logger{logger: logger}
 	l.logger = l.getEntry(info)
-	return l
+	value, ok := os.LookupEnv("SUPPRESS_TLS_HANDSHAKE_ERROR_LOGGING")
+	if ok {
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, err
+		}
+		if b {
+			l.suppressionFilter = tlsFilter
+		}
+	}
+	return l, nil
 }
 
 // NewBasicLogrusLogger creates a logrus logger with a context but no other options
-func NewBasicLogrusLogger(context string) *Logger {
+func NewBasicLogrusLogger(context string) (*Logger, error) {
 	return NewLogrusLogger(context, nil, nil)
 }
 
 // NewColorLogrusLogger creates a logrus logger with a context and colorized output support
-func NewColorLogrusLogger(context string) *Logger {
-	logger := NewLogrusLogger(context, nil, nil)
+func NewColorLogrusLogger(context string) (*Logger, error) {
+	logger, err := NewLogrusLogger(context, nil, nil)
+	if err != nil {
+		return nil, err
+	}
 	logger.SetColorFormatter(true)
-	return logger
+	return logger, nil
 }
 
 // Set minimum log level for messages
@@ -69,8 +89,18 @@ func SetLogLevel(name string) {
 	logrus.SetLevel(level)
 }
 
+func (l *Logger) shouldSuppress(message string) bool {
+	if l.suppressionFilter == "" {
+		return false
+	}
+	return strings.Contains(message, l.suppressionFilter)
+}
+
 // Log logs a message on a particular log level
 func (l *Logger) Log(logType LogType, message string, info LogInfo) {
+	if l.shouldSuppress(message) {
+		return
+	}
 	entry := l.getEntry(info)
 
 	switch logType {
@@ -87,6 +117,12 @@ func (l *Logger) Log(logType LogType, message string, info LogInfo) {
 	}
 }
 
+// Write implements the Write method of the io.Writer interface
+func (l *Logger) Write(p []byte) (n int, err error) {
+	l.ActivityLog(string(p), nil)
+	return len(p), nil
+}
+
 // Print allows Printing on the logger
 func (l *Logger) Print(v ...interface{}) {
 	l.logger.Print(v...)
@@ -94,6 +130,9 @@ func (l *Logger) Print(v ...interface{}) {
 
 // Printf allows Printf'ing on the logger
 func (l *Logger) Printf(format string, v ...interface{}) {
+	if l.shouldSuppress(format) {
+		return
+	}
 	l.logger.Printf(format, v...)
 }
 
@@ -104,31 +143,28 @@ func (l *Logger) Println(v ...interface{}) {
 
 // Fatalf allows Fatalf'ing on the logger
 func (l *Logger) Fatalf(format string, v ...interface{}) {
+	if l.shouldSuppress(format) {
+		return
+	}
 	l.logger.Fatalf(format, v...)
 }
 
 // ActivityLog is used for web activity logs
 func (l *Logger) ActivityLog(message string, info LogInfo) {
+	if l.shouldSuppress(message) {
+		return
+	}
 	entry := l.getEntry(info)
 	entry.WithField("activity", true).Info(message)
 }
 
-// AnomalyLog is used to tag a log line as an anomaly
-func (l *Logger) AnomalyLog(message string, info LogInfo) {
-	entry := l.getEntry(info)
-	entry.WithField("anomaly", true).Error(message)
-}
-
 // ErrorLog log an error message
 func (l *Logger) ErrorLog(message string, err error, info LogInfo) {
+	if l.shouldSuppress(message) {
+		return
+	}
 	entry := l.getEntry(info)
 	entry.WithError(err).Error(message)
-}
-
-// AnomalyLogError log an error that is an anomaly
-func (l *Logger) AnomalyLogError(message string, err error, info LogInfo) {
-	entry := l.getEntry(info)
-	entry.WithError(err).WithField("anomaly", true).Error(message)
 }
 
 // SetJSONFormatter sets logger to emit JSON or false => TextFormatter
