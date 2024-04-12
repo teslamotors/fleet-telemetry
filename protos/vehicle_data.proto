@@ -175,6 +175,17 @@ enum Field {
   DiInverterTF = 165;
   DiInverterTREL = 166;
   DiInverterTRER = 167;
+  Experimental_5 = 168;
+  Experimental_6 = 169;
+  Experimental_7 = 170;
+  Experimental_8 = 171;
+  Experimental_9 = 172;
+  Experimental_10 = 173;
+  Experimental_11 = 174;
+  Experimental_12 = 175;
+  Experimental_13 = 176;
+  Experimental_14 = 177;
+  Experimental_15 = 178;
 }
 
 // ChargingState are the charging options
