@@ -186,17 +186,28 @@ enum Field {
   Experimental_13 = 176;
   Experimental_14 = 177;
   Experimental_15 = 178;
+  // fields below here are always returned typed
+  DetailedChargeState = 179;
 }
 
-// ChargingState are the charging options
+// ChargingState is deprecated and not used
 enum ChargingState {
-    ChargeStateUnknown = 0;
-    ChargeStateDisconnected = 1;
-    ChargeStateNoPower = 2;
-    ChargeStateStarting = 3;
-    ChargeStateCharging = 4;
-    ChargeStateComplete = 5;
-    ChargeStateStopped = 6;
+  ChargeStateUnknown = 0;
+  ChargeStateDisconnected = 1;
+  ChargeStateNoPower = 2;
+  ChargeStateStarting = 3;
+  ChargeStateCharging = 4;
+  ChargeStateComplete = 5;
+  ChargeStateStopped = 6;
+}
+
+enum DetailedChargeStateEnum {
+  DetailedChargeStateDisconnected = 0;
+  DetailedChargeStateNoPower = 1;
+  DetailedChargeStateStarting = 2;
+  DetailedChargeStateCharging = 3;
+  DetailedChargeStateComplete = 4;
+  DetailedChargeStateStopped = 5;
 }
 
 // ShiftState are the gear options
