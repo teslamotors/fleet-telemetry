@@ -5,8 +5,6 @@
     "log_level": "info",
     "json_log_enable": true,
     "namespace": "tesla_telemetry",
-    "reliable_ack": true,
-    "reliable_ack_workers": 15,
     "kafka": {
         "bootstrap.servers": "kafka:9092",
         "queue.buffering.max.messages": 1000000,

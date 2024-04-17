@@ -22,7 +22,7 @@ type Producer struct {
 	metricsCollector  metrics.MetricCollector
 	logger            *logrus.Logger
 	airbrakeHandler   *airbrake.AirbrakeHandler
-	reliableAck       bool
+	deliveryChan      chan kafka.Event
 }
 
 // Metrics stores metrics reported from this package
@@ -41,8 +41,7 @@ var (
 )
 
 // NewProducer establishes the kafka connection and define the dispatch method
-func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers int,
-	ackChan chan (*telemetry.Record), prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	kafkaProducer, err := kafka.NewProducer(config)
@@ -57,10 +56,10 @@ func NewProducer(config *kafka.ConfigMap, namespace string, reliableAckWorkers i
 		prometheusEnabled: prometheusEnabled,
 		logger:            logger,
 		airbrakeHandler:   airbrakeHandler,
-		reliableAck:       reliableAckWorkers > 0,
+		deliveryChan:      make(chan kafka.Event),
 	}
 
-	go producer.handleProducerEvents(ackChan)
+	go producer.handleProducerEvents()
 	go producer.reportProducerMetrics()
 	producer.logger.ActivityLog("kafka_registered", logrus.LogInfo{"namespace": namespace})
 	return producer, nil
@@ -82,7 +81,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	// Note: confluent kafka supports the concept of one channel per connection, so we could add those here and get rid of reliableAckWorkers
 	// ex.: https://github.com/confluentinc/confluent-kafka-go/blob/master/examples/producer_custom_channel_example/producer_custom_channel_example.go#L79
 	entry.ProduceTime = time.Now()
-	if err := p.kafkaProducer.Produce(msg, nil); err != nil {
+	if err := p.kafkaProducer.Produce(msg, p.deliveryChan); err != nil {
 		p.logError(err)
 		return
 	}
@@ -106,21 +105,23 @@ func headersFromRecord(record *telemetry.Record) (headers []kafka.Header) {
 	return
 }
 
-func (p *Producer) handleProducerEvents(ackChan chan (*telemetry.Record)) {
-	for e := range p.kafkaProducer.Events() {
+func (p *Producer) handleProducerEvents() {
+	for e := range p.deliveryChan {
 		switch ev := e.(type) {
 		case kafka.Error:
 			p.logError(fmt.Errorf("producer_error %v", ev))
 		case *kafka.Message:
+			if ev.TopicPartition.Error != nil {
+				p.logError(fmt.Errorf("topic_partition_error %v", ev))
+				continue
+			}
 			entry, ok := ev.Opaque.(*telemetry.Record)
 			if !ok {
+				p.logError(fmt.Errorf("opaque_record_missing %v", ev))
 				continue
 			}
 			metricsRegistry.producerAckCount.Inc(map[string]string{"record_type": entry.TxType})
 			metricsRegistry.bytesAckTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
-			if p.reliableAck {
-				ackChan <- entry
-			}
 		default:
 			p.logger.ActivityLog("kafka_event_ignored", logrus.LogInfo{"event": ev.String()})
 		}
