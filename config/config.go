@@ -245,6 +245,10 @@ func (c *Config) prometheusEnabled() bool {
 	return false
 }
 
+func (c *Config) ReliableAcksDisabled() bool {
+	return c.ReliableAck == false && c.ReliableAckWorkers == 0
+}
+
 // ConfigureProducers validates and establishes connections to the producers (kafka/pubsub/logger)
 func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (map[string][]telemetry.Producer, error) {
 	producers := make(map[telemetry.Dispatcher]telemetry.Producer)
@@ -262,7 +266,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 			return nil, errors.New("Expected Kafka to be configured")
 		}
 		convertKafkaConfig(c.Kafka)
-		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.ReliableAckWorkers, c.AckChan, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, logger)
+		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, logger)
 		if err != nil {
 			return nil, err
 		}

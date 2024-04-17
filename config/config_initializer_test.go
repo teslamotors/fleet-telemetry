@@ -23,8 +23,8 @@ var _ = Describe("Test application config initialization", func() {
 			Namespace:          "tesla_telemetry",
 			TLS:                &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
 			RateLimit:          &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
-			ReliableAck:        true,
-			ReliableAckWorkers: 15,
+			ReliableAck:        false,
+			ReliableAckWorkers: 0,
 			Kafka: &confluent.ConfigMap{
 				"bootstrap.servers":            "some.broker1:9093,some.broker1:9093",
 				"ssl.ca.location":              "kafka.ca",
@@ -71,6 +71,11 @@ var _ = Describe("Test application config initialization", func() {
 		expectedConfig.MetricCollector = loadedConfig.MetricCollector
 		expectedConfig.AckChan = loadedConfig.AckChan
 		Expect(loadedConfig).To(Equal(expectedConfig))
+	})
+
+	It("fails when reliable acks are set", func() {
+		_, err := loadTestApplicationConfig(TestReliableAckConfig)
+		Expect(err).Should(MatchError("reliable acks not support yet. Unset `reliable_ack` and `reliable_ack_workers` in the config file"))
 	})
 
 	It("returns an error if config is not appropriate", func() {

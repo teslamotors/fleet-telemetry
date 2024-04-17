@@ -324,26 +324,6 @@ func (sm SocketManager) ReportMetricBytesPerRecords(recordType string, byteSize 
 	metricsRegistry.recordCount.Inc(map[string]string{"record_type": recordType})
 }
 
-// DatastoreAckProcessor records metrics after acking records
-func (sm SocketManager) DatastoreAckProcessor(ackChan chan (*telemetry.Record)) {
-	for record := range ackChan {
-		durationMs := time.Since(record.ProduceTime) / time.Millisecond
-
-		metricsRegistry.kafkaWriteMs.Observe(int64(durationMs), map[string]string{})
-		metricsRegistry.kafkaWriteBytesTotal.Add(int64(record.Length()), map[string]string{"record_type": record.TxType})
-		metricsRegistry.kafkaWriteCount.Inc(map[string]string{"record_type": record.TxType})
-
-		if record.Serializer != nil && record.Serializer.ReliableAck() {
-			if socket := sm.registry.GetSocket(record.SocketID); socket != nil {
-				metricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": record.TxType})
-				socket.respondToVehicle(record, nil)
-			} else {
-				metricsRegistry.reliableAckMissCount.Inc(map[string]string{"record_type": record.TxType})
-			}
-		}
-	}
-}
-
 func registerMetricsOnce(metricsCollector metrics.MetricCollector) {
 	metricsOnce.Do(func() { registerMetrics(metricsCollector) })
 }
