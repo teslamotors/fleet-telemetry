@@ -6,6 +6,7 @@ import (
 
 	_ "go.uber.org/automaxprocs"
 
+	"github.com/airbrake/gobrake/v5"
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
@@ -34,17 +35,21 @@ func main() {
 		}()
 	}
 
-	panic(startServer(config, logger))
+	airbrakeNotifier, _, err := config.CreateAirbrakeNotifier(logger)
+	if err != nil {
+		panic(err)
+	}
+	if airbrakeNotifier != nil {
+		defer airbrakeNotifier.NotifyOnPanic()
+		defer airbrakeNotifier.Close()
+	}
+	panic(startServer(config, airbrakeNotifier, logger))
 }
 
-func startServer(config *config.Config, logger *logrus.Logger) (err error) {
+func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logger *logrus.Logger) (err error) {
 	logger.ActivityLog("starting_server", nil)
 	registry := streaming.NewSocketRegistry()
 
-	airbrakeNotifier, _, err := config.CreateAirbrakeNotifier(logger)
-	if err != nil {
-		return err
-	}
 	airbrakeHandler := airbrake.NewAirbrakeHandler(airbrakeNotifier)
 
 	if config.StatusPort > 0 {
