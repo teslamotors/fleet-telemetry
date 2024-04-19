@@ -11,6 +11,10 @@ The service handles device connectivity as well as receiving and storing transmi
 
 ## Configuring and running the service
 
+This diagram shows a summary of steps taken during configuration and how the system will operate.
+
+![](doc/system_overview.png)
+
 ### Setup steps
 
 1. Create a third-party application on [developer.tesla.com](https://developer.tesla.com).
