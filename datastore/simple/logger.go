@@ -15,6 +15,10 @@ func NewProtoLogger(logger *logrus.Logger) telemetry.Producer {
 	return &ProtoLogger{logger: logger}
 }
 
+// SetReliableAckTxType no-op for logger datastore
+func (p *ProtoLogger) ProcessReliableAck(entry *telemetry.Record) {
+}
+
 // Produce sends the data to the logger
 func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 	data, err := entry.GetJSONPayload()

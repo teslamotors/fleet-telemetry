@@ -20,6 +20,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/protos"
 )
 
@@ -93,10 +94,12 @@ var _ = Describe("Test messages", Ordered, func() {
 		os.Clearenv()
 	})
 
-	It("reads vehicle data from consumer", func() {
+	It("reads vehicle data from kafka consumer", func() {
+		defer GinkgoRecover()
 		err := kafkaConsumer.Subscribe(vehicleTopic, nil)
 		Expect(err).NotTo(HaveOccurred())
 		err = connection.WriteMessage(websocket.BinaryMessage, GenerateVehicleMessage(vehicleName, location, timestamp))
+		verifyAckMessage(connection, "V")
 		Expect(err).NotTo(HaveOccurred())
 		msg, err := kafkaConsumer.ReadMessage(10 * time.Second)
 		Expect(err).NotTo(HaveOccurred())
@@ -172,6 +175,16 @@ var _ = Describe("Test messages", Ordered, func() {
 		VerifyMessageBody(data, vehicleName)
 	})
 })
+
+func verifyAckMessage(connection *websocket.Conn, expectedTxType string) {
+	mType, msg, err := connection.ReadMessage()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(mType).To(Equal(websocket.BinaryMessage))
+	streamMessage, err := messages.StreamAckMessageFromBytes(msg)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(streamMessage.MessageTopic).To(Equal([]byte(expectedTxType)))
+	Expect(streamMessage.TXID).To(Equal([]byte("integration-test-txid")))
+}
 
 // VerifyHTTPSRequest validates API returns 200 status code
 func VerifyHTTPSRequest(url string, path string, tlsConfig *tls.Config) ([]byte, error) {

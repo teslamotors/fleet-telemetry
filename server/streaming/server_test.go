@@ -13,6 +13,7 @@ import (
 
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter/noop"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -44,6 +45,7 @@ var _ = Describe("Socket handler test", func() {
 				MessageLimit:              1,
 				MessageIntervalTimeSecond: 1 * time.Second,
 			},
+			MetricCollector: noop.NewCollector(),
 		}
 
 		registry := streaming.NewSocketRegistry()
@@ -53,7 +55,7 @@ var _ = Describe("Socket handler test", func() {
 		_, s, err := streaming.InitServer(conf, airbrake.NewAirbrakeHandler(nil), producerRules, logger, registry)
 		Expect(err).NotTo(HaveOccurred())
 
-		srv := httptest.NewServer(http.HandlerFunc(s.ServeBinaryWs(conf, registry)))
+		srv := httptest.NewServer(http.HandlerFunc(s.ServeBinaryWs(conf)))
 		u, _ := url.Parse(srv.URL)
 		u.Scheme = "ws"
 

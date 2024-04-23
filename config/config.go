@@ -53,11 +53,8 @@ type Config struct {
 	// RateLimit is a configuration for the ratelimit
 	RateLimit *RateLimit `json:"rate_limit,omitempty"`
 
-	// ReliableAck if true, the server will send an ack back to the client only when the message has been stored in a datastore
-	ReliableAck bool `json:"reliable_ack,omitempty"`
-
-	// ReliableAckWorkers is the number of workers that will handle the acknowledgment
-	ReliableAckWorkers int `json:"reliable_ack_workers,omitempty"`
+	// ReliableAckSources is a mapping of record types to a dispatcher that will be used for reliable ack
+	ReliableAckSources map[string]telemetry.Dispatcher `json:"reliable_ack_sources,omitempty"`
 
 	// Kafka is a configuration for the standard librdkafka configuration properties
 	// seen here: https://raw.githubusercontent.com/confluentinc/librdkafka/master/CONFIGURATION.md
@@ -245,12 +242,13 @@ func (c *Config) prometheusEnabled() bool {
 	return false
 }
 
-func (c *Config) ReliableAcksDisabled() bool {
-	return c.ReliableAck == false && c.ReliableAckWorkers == 0
-}
-
 // ConfigureProducers validates and establishes connections to the producers (kafka/pubsub/logger)
 func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (map[string][]telemetry.Producer, error) {
+	reliableAckSources, err := c.configureReliableAckSources()
+	if err != nil {
+		return nil, err
+	}
+
 	producers := make(map[telemetry.Dispatcher]telemetry.Producer)
 	producers[telemetry.Logger] = simple.NewProtoLogger(logger)
 
@@ -266,7 +264,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 			return nil, errors.New("Expected Kafka to be configured")
 		}
 		convertKafkaConfig(c.Kafka)
-		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, logger)
+		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Kafka], logger)
 		if err != nil {
 			return nil, err
 		}
@@ -277,7 +275,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 		if c.Pubsub == nil {
 			return nil, errors.New("Expected Pubsub to be configured")
 		}
-		googleProducer, err := googlepubsub.NewProducer(context.Background(), c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, logger)
+		googleProducer, err := googlepubsub.NewProducer(context.Background(), c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +291,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 			maxRetries = *c.Kinesis.MaxRetries
 		}
 		streamMapping := c.CreateKinesisStreamMapping(recordNames)
-		kinesis, err := kinesis.NewProducer(maxRetries, streamMapping, c.Kinesis.OverrideHost, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, logger)
+		kinesis, err := kinesis.NewProducer(maxRetries, streamMapping, c.Kinesis.OverrideHost, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Kinesis], logger)
 		if err != nil {
 			return nil, err
 		}
@@ -304,7 +302,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 		if c.ZMQ == nil {
 			return nil, errors.New("Expected ZMQ to be configured")
 		}
-		zmqProducer, err := zmq.NewProducer(context.Background(), c.ZMQ, c.MetricCollector, c.Namespace, airbrakeHandler, logger)
+		zmqProducer, err := zmq.NewProducer(context.Background(), c.ZMQ, c.MetricCollector, c.Namespace, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.ZMQ], logger)
 		if err != nil {
 			return nil, err
 		}
@@ -325,6 +323,43 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 	}
 
 	return dispatchProducerRules, nil
+}
+
+func (c *Config) configureReliableAckSources() (map[telemetry.Dispatcher]map[string]interface{}, error) {
+	reliableAckSources := make(map[telemetry.Dispatcher]map[string]interface{}, 0)
+	for txType, dispatchRule := range c.ReliableAckSources {
+		if dispatchRule == telemetry.Logger {
+			return nil, fmt.Errorf("logger cannot be configured as reliable ack for record: %s", txType)
+		}
+		dispatchers, ok := c.Records[txType]
+		if !ok {
+			return nil, fmt.Errorf("%s cannot be configured as reliable ack for record: %s since no record mapping exists", dispatchRule, txType)
+		}
+		dispatchRuleFound := false
+		validDispatchers := parseValidDispatchers(dispatchers)
+		for _, dispatcher := range validDispatchers {
+			if dispatcher == dispatchRule {
+				dispatchRuleFound = true
+				reliableAckSources[dispatchRule] = map[string]interface{}{txType: true}
+				break
+			}
+		}
+		if !dispatchRuleFound {
+			return nil, fmt.Errorf("%s cannot be configured as reliable ack for record: %s. Valid datastores configured %v", dispatchRule, txType, validDispatchers)
+		}
+	}
+	return reliableAckSources, nil
+}
+
+// parseValidDispatchers removes no-op dispatcher from the input i.e. Logger
+func parseValidDispatchers(input []telemetry.Dispatcher) []telemetry.Dispatcher {
+	var result []telemetry.Dispatcher
+	for _, v := range input {
+		if v != telemetry.Logger {
+			result = append(result, v)
+		}
+	}
+	return result
 }
 
 // convertKafkaConfig will prioritize int over float

@@ -20,17 +20,15 @@ type BinarySerializer struct {
 	DispatchRules   map[string][]Producer
 	RequestIdentity *RequestIdentity
 
-	logger      *logrus.Logger
-	reliableAck bool
+	logger *logrus.Logger
 }
 
 // NewBinarySerializer returns a dedicated serializer for a current socket connection
-func NewBinarySerializer(requestIdentity *RequestIdentity, dispatchRules map[string][]Producer, reliableAck bool, logger *logrus.Logger) *BinarySerializer {
+func NewBinarySerializer(requestIdentity *RequestIdentity, dispatchRules map[string][]Producer, logger *logrus.Logger) *BinarySerializer {
 	return &BinarySerializer{
 		DispatchRules:   dispatchRules,
 		RequestIdentity: requestIdentity,
 		logger:          logger,
-		reliableAck:     reliableAck,
 	}
 }
 
@@ -91,11 +89,6 @@ func (bs *BinarySerializer) Dispatch(record *Record) {
 	for _, producer := range bs.DispatchRules[record.TxType] {
 		producer.Produce(record)
 	}
-}
-
-// ReliableAck returns true if serializer supports reliable acks (only ack to car once datastore acked the data)
-func (bs *BinarySerializer) ReliableAck() bool {
-	return bs.reliableAck
 }
 
 // Logger returns logger for the serializer

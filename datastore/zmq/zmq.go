@@ -42,9 +42,10 @@ type KeyJSON struct {
 
 // Metrics stores metrics reported from this package
 type Metrics struct {
-	errorCount   adapter.Counter
-	publishCount adapter.Counter
-	byteTotal    adapter.Counter
+	errorCount       adapter.Counter
+	publishCount     adapter.Counter
+	byteTotal        adapter.Counter
+	reliableAckCount adapter.Counter
 }
 
 var (
@@ -59,11 +60,13 @@ const MonitorSocketAddr = "inproc://zmq_socket_monitor.rep"
 // ZMQProducer implements the telemetry.Producer interface by publishing to a
 // bound zmq socket.
 type ZMQProducer struct {
-	namespace       string
-	ctx             context.Context
-	sock            *zmq4.Socket
-	logger          *logrus.Logger
-	airbrakeHandler *airbrake.AirbrakeHandler
+	namespace          string
+	ctx                context.Context
+	sock               *zmq4.Socket
+	logger             *logrus.Logger
+	airbrakeHandler    *airbrake.AirbrakeHandler
+	ackChan            chan (*telemetry.Record)
+	reliableAckTxTypes map[string]interface{}
 }
 
 // Publish the record to the socket.
@@ -71,13 +74,16 @@ func (p *ZMQProducer) Produce(rec *telemetry.Record) {
 	if p.ctx.Err() != nil {
 		return
 	}
-	if nBytes, err := p.sock.SendMessage(telemetry.BuildTopicName(p.namespace, rec.TxType), rec.Payload()); err != nil {
+	nBytes, err := p.sock.SendMessage(telemetry.BuildTopicName(p.namespace, rec.TxType), rec.Payload())
+	if err != nil {
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
 		p.ReportError("zmq_dispatch_error", err, nil)
+		return
 	} else {
-		metricsRegistry.byteTotal.Add(int64(nBytes), map[string]string{"record_type": rec.TxType})
-		metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
+		p.ProcessReliableAck(rec)
 	}
+	metricsRegistry.byteTotal.Add(int64(nBytes), map[string]string{"record_type": rec.TxType})
+	metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
 }
 
 // ReportError to airbrake and logger
@@ -97,8 +103,17 @@ func (p *ZMQProducer) Close() error {
 	return nil
 }
 
+// ProcessReliableAck sends to ackChan if reliable ack is configured
+func (p *ZMQProducer) ProcessReliableAck(entry *telemetry.Record) {
+	_, ok := p.reliableAckTxTypes[entry.TxType]
+	if ok {
+		p.ackChan <- entry
+		metricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": entry.TxType})
+	}
+}
+
 // NewProducer creates a ZMQProducer with the given config.
-func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (producer telemetry.Producer, err error) {
+func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (producer telemetry.Producer, err error) {
 	registerMetricsOnce(metrics)
 	sock, err := zmq4.NewSocket(zmq4.PUB)
 	if err != nil {
@@ -154,11 +169,13 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 	}
 
 	return &ZMQProducer{
-		namespace:       namespace,
-		ctx:             ctx,
-		sock:            sock,
-		logger:          logger,
-		airbrakeHandler: airbrakeHandler,
+		namespace:          namespace,
+		ctx:                ctx,
+		sock:               sock,
+		logger:             logger,
+		airbrakeHandler:    airbrakeHandler,
+		ackChan:            ackChan,
+		reliableAckTxTypes: reliableAckTxTypes,
 	}, nil
 }
 
@@ -213,6 +230,12 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 	metricsRegistry.byteTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "zmq_publish_total_bytes",
 		Help:   "The number of bytes published to ZMQ.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "zmq_reliable_ack_total",
+		Help:   "The number of records produced to ZMQ for which we sent a reliable ACK.",
 		Labels: []string{"record_type"},
 	})
 }

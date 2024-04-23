@@ -16,13 +16,15 @@ import (
 
 // Producer client to handle kafka interactions
 type Producer struct {
-	kafkaProducer     *kafka.Producer
-	namespace         string
-	prometheusEnabled bool
-	metricsCollector  metrics.MetricCollector
-	logger            *logrus.Logger
-	airbrakeHandler   *airbrake.AirbrakeHandler
-	deliveryChan      chan kafka.Event
+	kafkaProducer      *kafka.Producer
+	namespace          string
+	prometheusEnabled  bool
+	metricsCollector   metrics.MetricCollector
+	logger             *logrus.Logger
+	airbrakeHandler    *airbrake.AirbrakeHandler
+	deliveryChan       chan kafka.Event
+	ackChan            chan (*telemetry.Record)
+	reliableAckTxTypes map[string]interface{}
 }
 
 // Metrics stores metrics reported from this package
@@ -32,6 +34,7 @@ type Metrics struct {
 	producerAckCount  adapter.Counter
 	bytesAckTotal     adapter.Counter
 	errorCount        adapter.Counter
+	reliableAckCount  adapter.Counter
 	producerQueueSize adapter.Gauge
 }
 
@@ -41,7 +44,7 @@ var (
 )
 
 // NewProducer establishes the kafka connection and define the dispatch method
-func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	kafkaProducer, err := kafka.NewProducer(config)
@@ -50,13 +53,15 @@ func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bo
 	}
 
 	producer := &Producer{
-		kafkaProducer:     kafkaProducer,
-		namespace:         namespace,
-		metricsCollector:  metricsCollector,
-		prometheusEnabled: prometheusEnabled,
-		logger:            logger,
-		airbrakeHandler:   airbrakeHandler,
-		deliveryChan:      make(chan kafka.Event),
+		kafkaProducer:      kafkaProducer,
+		namespace:          namespace,
+		metricsCollector:   metricsCollector,
+		prometheusEnabled:  prometheusEnabled,
+		logger:             logger,
+		airbrakeHandler:    airbrakeHandler,
+		deliveryChan:       make(chan kafka.Event),
+		ackChan:            ackChan,
+		reliableAckTxTypes: reliableAckTxTypes,
 	}
 
 	go producer.handleProducerEvents()
@@ -120,11 +125,21 @@ func (p *Producer) handleProducerEvents() {
 				p.logError(fmt.Errorf("opaque_record_missing %v", ev))
 				continue
 			}
+			p.ProcessReliableAck(entry)
 			metricsRegistry.producerAckCount.Inc(map[string]string{"record_type": entry.TxType})
 			metricsRegistry.bytesAckTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 		default:
 			p.logger.ActivityLog("kafka_event_ignored", logrus.LogInfo{"event": ev.String()})
 		}
+	}
+}
+
+// ProcessReliableAck sends to ackChan if reliable ack is configured
+func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
+	_, ok := p.reliableAckTxTypes[entry.TxType]
+	if ok {
+		p.ackChan <- entry
+		metricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": entry.TxType})
 	}
 }
 
@@ -165,6 +180,12 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 	metricsRegistry.producerAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "kafka_produce_ack_total",
 		Help:   "The number of records produced to Kafka for which we got an ACK.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kafka_reliable_ack_total",
+		Help:   "The number of records produced to Kafka for which we sent a reliable ACK.",
 		Labels: []string{"record_type"},
 	})
 

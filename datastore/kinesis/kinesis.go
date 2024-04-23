@@ -18,19 +18,22 @@ import (
 
 // Producer client to handle kinesis interactions
 type Producer struct {
-	kinesis           *kinesis.Kinesis
-	logger            *logrus.Logger
-	prometheusEnabled bool
-	metricsCollector  metrics.MetricCollector
-	streams           map[string]string
-	airbrakeHandler   *airbrake.AirbrakeHandler
+	kinesis            *kinesis.Kinesis
+	logger             *logrus.Logger
+	prometheusEnabled  bool
+	metricsCollector   metrics.MetricCollector
+	streams            map[string]string
+	airbrakeHandler    *airbrake.AirbrakeHandler
+	ackChan            chan (*telemetry.Record)
+	reliableAckTxTypes map[string]interface{}
 }
 
 // Metrics stores metrics reported from this package
 type Metrics struct {
-	errorCount   adapter.Counter
-	publishCount adapter.Counter
-	byteTotal    adapter.Counter
+	errorCount       adapter.Counter
+	publishCount     adapter.Counter
+	byteTotal        adapter.Counter
+	reliableAckCount adapter.Counter
 }
 
 var (
@@ -39,7 +42,7 @@ var (
 )
 
 // NewProducer configures and tests the kinesis connection
-func NewProducer(maxRetries int, streams map[string]string, overrideHost string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(maxRetries int, streams map[string]string, overrideHost string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	config := &aws.Config{
@@ -63,12 +66,14 @@ func NewProducer(maxRetries int, streams map[string]string, overrideHost string,
 	}
 
 	return &Producer{
-		kinesis:           service,
-		logger:            logger,
-		prometheusEnabled: prometheusEnabled,
-		metricsCollector:  metricsCollector,
-		streams:           streams,
-		airbrakeHandler:   airbrakeHandler,
+		kinesis:            service,
+		logger:             logger,
+		prometheusEnabled:  prometheusEnabled,
+		metricsCollector:   metricsCollector,
+		streams:            streams,
+		airbrakeHandler:    airbrakeHandler,
+		ackChan:            ackChan,
+		reliableAckTxTypes: reliableAckTxTypes,
 	}, nil
 }
 
@@ -91,11 +96,22 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		p.ReportError("kinesis_err", err, nil)
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
+	} else {
+		p.ProcessReliableAck(entry)
 	}
 
-	p.logger.Log(logrus.DEBUG, "kinesis_err", logrus.LogInfo{"vin": entry.Vin, "record_type": entry.TxType, "txid": entry.Txid, "shard_id": *kinesisRecordOutput.ShardId, "sequence_number": *kinesisRecordOutput.SequenceNumber})
+	p.logger.Log(logrus.DEBUG, "kinesis_message_dispatched", logrus.LogInfo{"vin": entry.Vin, "record_type": entry.TxType, "txid": entry.Txid, "shard_id": *kinesisRecordOutput.ShardId, "sequence_number": *kinesisRecordOutput.SequenceNumber})
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
 	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
+}
+
+// ProcessReliableAck sends to ackChan if reliable ack is configured
+func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
+	_, ok := p.reliableAckTxTypes[entry.TxType]
+	if ok {
+		p.ackChan <- entry
+		metricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": entry.TxType})
+	}
 }
 
 // ReportError to airbrake and logger
@@ -124,6 +140,12 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 	metricsRegistry.byteTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "kinesis_publish_total_bytes",
 		Help:   "The number of bytes published to Kinesis.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "kinesis_reliable_ack_total",
+		Help:   "The number of records produced to Kinesis for which we sent a reliable ACK.",
 		Labels: []string{"record_type"},
 	})
 }

@@ -67,11 +67,6 @@ type Metrics struct {
 	socketErrorCount             adapter.Counter
 	recordSizeBytesTotal         adapter.Counter
 	recordCount                  adapter.Counter
-	kafkaWriteCount              adapter.Counter
-	kafkaWriteBytesTotal         adapter.Counter
-	kafkaWriteMs                 adapter.Timer
-	reliableAckCount             adapter.Counter
-	reliableAckMissCount         adapter.Counter
 }
 
 var (
@@ -257,9 +252,14 @@ func (sm *SocketManager) ParseAndProcessRecord(serializer *telemetry.BinarySeria
 	sm.processRecord(record)
 
 	// respond instantly to the client if we are not doing reliable ACKs
-	if !serializer.ReliableAck() {
+	if !sm.reliableAck(record) {
 		sm.respondToVehicle(record, nil)
 	}
+}
+
+func (sm *SocketManager) reliableAck(record *telemetry.Record) bool {
+	_, ok := sm.config.ReliableAckSources[record.TxType]
+	return ok
 }
 
 func (sm *SocketManager) processRecord(record *telemetry.Record) {
@@ -383,33 +383,4 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 		Labels: []string{"record_type"},
 	})
 
-	metricsRegistry.kafkaWriteCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
-		Name:   "kafka_write_total",
-		Help:   "The number of writes to Kafka.",
-		Labels: []string{"record_type"},
-	})
-
-	metricsRegistry.kafkaWriteBytesTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
-		Name:   "kafka_write_total_bytes",
-		Help:   "The number of bytes written to Kafka.",
-		Labels: []string{"record_type"},
-	})
-
-	metricsRegistry.kafkaWriteMs = metricsCollector.RegisterTimer(adapter.CollectorOptions{
-		Name:   "kafka_write_ms",
-		Help:   "The ms spent writing to Kafka.",
-		Labels: []string{},
-	})
-
-	metricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
-		Name:   "reliable_ack",
-		Help:   "The number of reliable acknowledgements.",
-		Labels: []string{"record_type"},
-	})
-
-	metricsRegistry.reliableAckMissCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
-		Name:   "reliable_ack_miss",
-		Help:   "The number of missing reliable acknowledgements.",
-		Labels: []string{"record_type"},
-	})
 }

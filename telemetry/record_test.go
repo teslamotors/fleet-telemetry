@@ -31,7 +31,6 @@ var _ = Describe("Socket handler test", func() {
 				SenderID: "vehicle_device.42",
 			},
 			map[string][]telemetry.Producer{"D4": nil},
-			false,
 			logger,
 		)
 	})

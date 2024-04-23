@@ -7,6 +7,9 @@ const TestConfig = `{
 	"log_level": "info",
 	"json_log_enable": true,
 	"namespace": "tesla_telemetry",
+	"reliable_ack_sources": {
+		"V": "kafka"
+	},
 	"kafka": {
 		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
 		"ssl.ca.location": "kafka.ca",
@@ -25,7 +28,7 @@ const TestConfig = `{
 		"message_limit": 1000
 	},
 	"records": {
-		"FS": ["kafka"]
+		"V": ["kafka"]
 	},
 	"tls": {
 		"ca_file": "tesla.ca",
@@ -49,7 +52,7 @@ const TestSmallConfig = `
 		"queue.buffering.max.messages": 1000000
 	},
 	"records": {
-		"FS": ["kafka"]
+		"V": ["kafka"]
 	},
 	"tls": {
 		"ca_file": "tesla.ca",
@@ -59,14 +62,15 @@ const TestSmallConfig = `
 }
 `
 
-const TestReliableAckConfig = `
+const TestBadReliableAckConfig = `
 {
 	"host": "127.0.0.1",
 	"port": 443,
 	"status_port": 8080,
 	"namespace": "tesla_telemetry",
-	"reliable_ack": true,
-	"reliable_ack_workers": 15,
+	"reliable_ack_sources": {
+		"V": "pubsub"
+	},
 	"kafka": {
 		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
 		"ssl.ca.location": "kafka.ca",
@@ -75,7 +79,61 @@ const TestReliableAckConfig = `
 		"queue.buffering.max.messages": 1000000
 	},
 	"records": {
-		"FS": ["kafka"]
+		"V": ["kafka"]
+	},
+	"tls": {
+		"ca_file": "tesla.ca",
+		"server_cert": "your_own_cert.crt",
+		"server_key": "your_own_key.key"
+	}
+}
+`
+
+const TestLoggerAsReliableAckConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"reliable_ack_sources": {
+		"V": "logger"
+	},
+	"kafka": {
+		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
+		"ssl.ca.location": "kafka.ca",
+		"ssl.certificate.location": "kafka.crt",
+		"ssl.key.location": "kafka.key",
+		"queue.buffering.max.messages": 1000000
+	},
+	"records": {
+		"V": ["kafka", "logger"]
+	},
+	"tls": {
+		"ca_file": "tesla.ca",
+		"server_cert": "your_own_cert.crt",
+		"server_key": "your_own_key.key"
+	}
+}
+`
+
+const TestUnusedTxTypeAsReliableAckConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"reliable_ack_sources": {
+		"error": "kafka"
+	},
+	"kafka": {
+		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
+		"ssl.ca.location": "kafka.ca",
+		"ssl.certificate.location": "kafka.crt",
+		"ssl.key.location": "kafka.key",
+		"queue.buffering.max.messages": 1000000
+	},
+	"records": {
+		"V": ["kafka", "logger"]
 	},
 	"tls": {
 		"ca_file": "tesla.ca",
@@ -95,7 +153,7 @@ const TestPubsubConfig = `
 		"reliable_ack": "true"
     },
 	"records": {
-		"FS": ["pubsub"]
+		"V": ["pubsub"]
 	}
 }
 `
@@ -115,7 +173,7 @@ const TestZMQConfig = `
     "addr": "tcp://127.0.0.1:5288"
   },
   "records": {
-    "FS": ["zmq"]
+    "V": ["zmq"]
   }
 }
 `
@@ -127,7 +185,7 @@ const TestTransmitDecodedRecords = `
 	"status_port": 8080,
 	"transmit_decoded_records": true,
 	"records": {
-		"FS": ["logger"]
+		"V": ["logger"]
 	}
 }
 `
@@ -146,7 +204,7 @@ const TestAirbrakeConfig = `
 		"queue.buffering.max.messages": 1000000
 	},
 	"records": {
-		"FS": ["kafka"]
+		"V": ["kafka"]
 	},
 	"tls": {
 		"ca_file": "tesla.ca",

@@ -35,7 +35,6 @@ var _ = Describe("Socket test", func() {
 		serializer = telemetry.NewBinarySerializer(
 			requestIdentity,
 			map[string][]telemetry.Producer{"D4": nil},
-			false,
 			logger,
 		)
 		sm = streaming.NewSocketManager(context.Background(), requestIdentity, nil, conf, logger)
