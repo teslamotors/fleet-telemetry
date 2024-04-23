@@ -30,5 +30,6 @@ func BuildTopicName(namespace, recordName string) string {
 // Producer handles dispatching data received from the vehicle
 type Producer interface {
 	Produce(entry *Record)
+	ProcessReliableAck(entry *Record)
 	ReportError(message string, err error, logInfo logrus.LogInfo)
 }

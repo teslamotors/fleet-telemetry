@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,7 @@ import (
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
@@ -25,7 +27,16 @@ var (
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
+
+	serverMetricsRegistry ServerMetrics
+	serverMetricsOnce     sync.Once
 )
+
+// Metrics stores metrics reported from this package
+type ServerMetrics struct {
+	reliableAckCount     adapter.Counter
+	reliableAckMissCount adapter.Counter
+}
 
 // Server stores server resources
 type Server struct {
@@ -36,32 +47,50 @@ type Server struct {
 	// Metrics collects metrics for the application
 	metricsCollector metrics.MetricCollector
 
-	reliableAck bool
-
 	airbrakeHandler *airbrake.AirbrakeHandler
+
+	registry *SocketRegistry
+
+	ackChan chan (*telemetry.Record)
+
+	reliableAckSources map[string]telemetry.Dispatcher
 }
 
 // InitServer initializes the main server
 func InitServer(c *config.Config, airbrakeHandler *airbrake.AirbrakeHandler, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *Server, error) {
-	reliableAck := false
-	if c.Kafka != nil {
-		reliableAck = c.ReliableAck
-	}
 
 	socketServer := &Server{
-		DispatchRules:    producerRules,
-		metricsCollector: c.MetricCollector,
-		reliableAck:      reliableAck,
-		logger:           logger,
-		airbrakeHandler:  airbrakeHandler,
+		DispatchRules:      producerRules,
+		metricsCollector:   c.MetricCollector,
+		logger:             logger,
+		airbrakeHandler:    airbrakeHandler,
+		registry:           registry,
+		ackChan:            c.AckChan,
+		reliableAckSources: c.ReliableAckSources,
 	}
+	registerServerMetricsOnce(socketServer.metricsCollector)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", socketServer.ServeBinaryWs(c, registry))
+	mux.HandleFunc("/", socketServer.ServeBinaryWs(c))
 	mux.Handle("/status", socketServer.airbrakeHandler.WithReporting(http.HandlerFunc(socketServer.Status())))
 
 	server := &http.Server{Addr: fmt.Sprintf("%v:%v", c.Host, c.Port), Handler: serveHTTPWithLogs(mux, logger)}
+	go socketServer.handleAcks()
 	return server, socketServer, nil
+}
+
+func (s *Server) handleAcks() {
+	for record := range s.ackChan {
+		reliableAckSource := string(s.reliableAckSources[record.TxType])
+		if record.Serializer != nil {
+			if socket := s.registry.GetSocket(record.SocketID); socket != nil {
+				serverMetricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": record.TxType, "dispatcher": reliableAckSource})
+				socket.respondToVehicle(record, nil)
+			} else {
+				serverMetricsRegistry.reliableAckMissCount.Inc(map[string]string{"record_type": record.TxType, "dispatcher": reliableAckSource})
+			}
+		}
+	}
 }
 
 // serveHTTPWithLogs wraps a handler and logs the request
@@ -89,7 +118,7 @@ func (s *Server) Status() func(w http.ResponseWriter, r *http.Request) {
 }
 
 // ServeBinaryWs serves a http query and upgrades it to a websocket -- only serves binary data coming from the ws
-func (s *Server) ServeBinaryWs(config *config.Config, registry *SocketRegistry) func(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if ws := s.promoteToWebsocket(w, r); ws != nil {
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
@@ -99,10 +128,10 @@ func (s *Server) ServeBinaryWs(config *config.Config, registry *SocketRegistry) 
 			}
 
 			socketManager := NewSocketManager(ctx, requestIdentity, ws, config, s.logger)
-			registry.RegisterSocket(socketManager)
-			defer registry.DeregisterSocket(socketManager)
+			s.registry.RegisterSocket(socketManager)
+			defer s.registry.DeregisterSocket(socketManager)
 
-			binarySerializer := telemetry.NewBinarySerializer(requestIdentity, s.DispatchRules, s.reliableAck, s.logger)
+			binarySerializer := telemetry.NewBinarySerializer(requestIdentity, s.DispatchRules, s.logger)
 			socketManager.ProcessTelemetry(binarySerializer)
 		}
 	}
@@ -144,4 +173,23 @@ func extractCertFromHeaders(ctx context.Context, r *http.Request) (*x509.Certifi
 	}
 
 	return r.TLS.PeerCertificates[nbCerts-1], nil
+}
+
+func registerServerMetricsOnce(metricsCollector metrics.MetricCollector) {
+	serverMetricsOnce.Do(func() { registerServerMetrics(metricsCollector) })
+}
+
+func registerServerMetrics(metricsCollector metrics.MetricCollector) {
+
+	serverMetricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "reliable_ack",
+		Help:   "The number of reliable acknowledgements.",
+		Labels: []string{"record_type", "dispatcher"},
+	})
+
+	serverMetricsRegistry.reliableAckMissCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "reliable_ack_miss",
+		Help:   "The number of missing reliable acknowledgements.",
+		Labels: []string{"record_type", "dispatcher"},
+	})
 }

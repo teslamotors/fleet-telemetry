@@ -19,13 +19,15 @@ import (
 
 // Producer client to handle google pubsub interactions
 type Producer struct {
-	pubsubClient      *pubsub.Client
-	projectID         string
-	namespace         string
-	metricsCollector  metrics.MetricCollector
-	prometheusEnabled bool
-	logger            *logrus.Logger
-	airbrakeHandler   *airbrake.AirbrakeHandler
+	pubsubClient       *pubsub.Client
+	projectID          string
+	namespace          string
+	metricsCollector   metrics.MetricCollector
+	prometheusEnabled  bool
+	logger             *logrus.Logger
+	airbrakeHandler    *airbrake.AirbrakeHandler
+	ackChan            chan (*telemetry.Record)
+	reliableAckTxTypes map[string]interface{}
 }
 
 // Metrics stores metrics reported from this package
@@ -34,6 +36,7 @@ type Metrics struct {
 	publishCount      adapter.Counter
 	publishBytesTotal adapter.Counter
 	errorCount        adapter.Counter
+	reliableAckCount  adapter.Counter
 }
 
 var (
@@ -54,7 +57,7 @@ func configurePubsub(projectID string) (*pubsub.Client, error) {
 }
 
 // NewProducer establishes the pubsub connection and define the dispatch method
-func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, namespace string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, namespace string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 	pubsubClient, err := configurePubsub(projectID)
 	if err != nil {
@@ -62,13 +65,15 @@ func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, 
 	}
 
 	p := &Producer{
-		projectID:         projectID,
-		namespace:         namespace,
-		pubsubClient:      pubsubClient,
-		prometheusEnabled: prometheusEnabled,
-		metricsCollector:  metricsCollector,
-		logger:            logger,
-		airbrakeHandler:   airbrakeHandler,
+		projectID:          projectID,
+		namespace:          namespace,
+		pubsubClient:       pubsubClient,
+		prometheusEnabled:  prometheusEnabled,
+		metricsCollector:   metricsCollector,
+		logger:             logger,
+		airbrakeHandler:    airbrakeHandler,
+		ackChan:            ackChan,
+		reliableAckTxTypes: reliableAckTxTypes,
 	}
 	p.logger.ActivityLog("pubsub_registerd", logrus.LogInfo{"project": projectID, "namespace": namespace})
 	return p, nil
@@ -103,10 +108,21 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		p.ReportError("pubsub_err", err, logInfo)
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
+	} else {
+		p.ProcessReliableAck(entry)
 	}
 	metricsRegistry.publishBytesTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
 
+}
+
+// ProcessReliableAck sends to ackChan if reliable ack is configured
+func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
+	_, ok := p.reliableAckTxTypes[entry.TxType]
+	if ok {
+		p.ackChan <- entry
+		metricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": entry.TxType})
+	}
 }
 
 func (p *Producer) createTopicIfNotExists(ctx context.Context, topic string) (*pubsub.Topic, error) {
@@ -154,6 +170,12 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 	metricsRegistry.errorCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "pubsub_err",
 		Help:   "The number of errors while publishing to pubsub.",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "pubsub_reliable_ack_total",
+		Help:   "The number of records produced to pubsub for which we sent a reliable ACK.",
 		Labels: []string{"record_type"},
 	})
 }

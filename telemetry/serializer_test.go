@@ -13,12 +13,17 @@ import (
 )
 
 type CallbackTester struct {
-	counter int
-	errors  int
+	counter     int
+	errors      int
+	reliableAck int
 }
 
 func (c *CallbackTester) Produce(entry *telemetry.Record) {
 	c.counter++
+}
+
+func (c *CallbackTester) ProcessReliableAck(entry *telemetry.Record) {
+	c.reliableAck++
 }
 
 func (c *CallbackTester) ReportError(message string, err error, logInfo logrus.LogInfo) {
@@ -26,7 +31,7 @@ func (c *CallbackTester) ReportError(message string, err error, logInfo logrus.L
 }
 
 var _ = Describe("BinarySerializer", func() {
-	DispatchKafkaGlobal := &CallbackTester{counter: 0, errors: 0}
+	DispatchKafkaGlobal := &CallbackTester{counter: 0, errors: 0, reliableAck: 0}
 	DispatchRules := map[string][]telemetry.Producer{
 		"T":   {DispatchKafkaGlobal},
 		"D7":  {DispatchKafkaGlobal},
@@ -161,7 +166,7 @@ var _ = Describe("BinarySerializer", func() {
 	for _, tt := range tests {
 		It(tt.name, func() {
 			logger, _ := logrus.NoOpLogger()
-			bs := telemetry.NewBinarySerializer(&telemetry.RequestIdentity{DeviceID: tt.fields.DeviceID, SenderID: tt.fields.SenderID}, tt.fields.DispatchRules, false, logger)
+			bs := telemetry.NewBinarySerializer(&telemetry.RequestIdentity{DeviceID: tt.fields.DeviceID, SenderID: tt.fields.SenderID}, tt.fields.DispatchRules, logger)
 
 			msgBytes, err := tt.args.msg.ToBytes()
 			Expect(err).NotTo(HaveOccurred())
@@ -249,12 +254,4 @@ var _ = Describe("BinarySerializer", func() {
 		Expect(string(result.Payload)).To(Equal("a bug"))
 	})
 
-	It("Serializer Errors with no record", func() {
-		logger, _ := logrus.NoOpLogger()
-		serializer := telemetry.NewBinarySerializer(&telemetry.RequestIdentity{DeviceID: "42", SenderID: "vehicle_device.42"}, DispatchRules, true, logger)
-		Expect(serializer.ReliableAck()).To(BeTrue())
-
-		serializer = telemetry.NewBinarySerializer(&telemetry.RequestIdentity{DeviceID: "42", SenderID: "vehicle_device.42"}, DispatchRules, false, logger)
-		Expect(serializer.ReliableAck()).To(BeFalse())
-	})
 })

@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"log"
 	"os"
@@ -54,11 +53,6 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 		return nil, err
 	}
 	config.MetricCollector = metrics.NewCollector(config.Monitoring, logger)
-
-	// TODO disble this check when reliable acks are properly supported
-	if !config.ReliableAcksDisabled() {
-		return nil, errors.New("reliable acks not support yet. Unset `reliable_ack` and `reliable_ack_workers` in the config file")
-	}
 	config.AckChan = make(chan *telemetry.Record)
 	return config, err
 }

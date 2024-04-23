@@ -27,14 +27,12 @@ var _ = Describe("Test full application config", func() {
 	BeforeEach(func() {
 		log, _ = logrus.NoOpLogger()
 		config = &Config{
-			Host:               "127.0.0.1",
-			Port:               443,
-			StatusPort:         8080,
-			Namespace:          "tesla_telemetry",
-			TLS:                &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
-			RateLimit:          &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
-			ReliableAck:        true,
-			ReliableAckWorkers: 15,
+			Host:       "127.0.0.1",
+			Port:       443,
+			StatusPort: 8080,
+			Namespace:  "tesla_telemetry",
+			TLS:        &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
+			RateLimit:  &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
 			Kafka: &confluent.ConfigMap{
 				"bootstrap.servers":        "some.broker:9093",
 				"ssl.ca.location":          "kafka.ca",
@@ -44,7 +42,7 @@ var _ = Describe("Test full application config", func() {
 			Monitoring:    &metrics.MonitoringConfig{PrometheusMetricsPort: 9090, ProfilerPort: 4269, ProfilingPath: "/tmp/fleet-telemetry/profile/"},
 			LogLevel:      "info",
 			JSONLogEnable: true,
-			Records:       map[string][]telemetry.Dispatcher{"FS": {"kafka"}},
+			Records:       map[string][]telemetry.Dispatcher{"V": {"kafka"}},
 		}
 	})
 
@@ -137,7 +135,7 @@ var _ = Describe("Test full application config", func() {
 
 			producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(producers["FS"]).To(HaveLen(1))
+			Expect(producers["V"]).To(HaveLen(1))
 
 			value, err := config.Kafka.Get("queue.buffering.max.messages", 10)
 			Expect(err).NotTo(HaveOccurred())
@@ -168,10 +166,29 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
+	Context("configure reliable acks", func() {
+
+		DescribeTable("fails",
+			func(configInput string, errMessage string) {
+
+				config, err := loadTestApplicationConfig(configInput)
+				Expect(err).NotTo(HaveOccurred())
+
+				producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
+				Expect(err).To(MatchError(errMessage))
+				Expect(producers).To(BeNil())
+			},
+			Entry("when reliable ack is mapped incorrectly", TestBadReliableAckConfig, "pubsub cannot be configured as reliable ack for record: V. Valid datastores configured [kafka]"),
+			Entry("when logger is configured as reliable ack", TestLoggerAsReliableAckConfig, "logger cannot be configured as reliable ack for record: V"),
+			Entry("when reliable ack is configured for unmapped txtype", TestUnusedTxTypeAsReliableAckConfig, "kafka cannot be configured as reliable ack for record: error since no record mapping exists"),
+		)
+
+	})
+
 	Context("configure kinesis", func() {
 		It("returns an error if kinesis isn't included", func() {
 			log, _ := logrus.NoOpLogger()
-			config.Records = map[string][]telemetry.Dispatcher{"FS": {"kinesis"}}
+			config.Records = map[string][]telemetry.Dispatcher{"V": {"kinesis"}}
 
 			var err error
 			producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
@@ -218,7 +235,7 @@ var _ = Describe("Test full application config", func() {
 			var err error
 			producers, err = pubsubConfig.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(producers["FS"]).NotTo(BeNil())
+			Expect(producers["V"]).NotTo(BeNil())
 		})
 	})
 
@@ -233,7 +250,7 @@ var _ = Describe("Test full application config", func() {
 
 		It("returns an error if zmq isn't included", func() {
 			log, _ := logrus.NoOpLogger()
-			config.Records = map[string][]telemetry.Dispatcher{"FS": {"zmq"}}
+			config.Records = map[string][]telemetry.Dispatcher{"V": {"zmq"}}
 			var err error
 			producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).To(MatchError("Expected ZMQ to be configured"))
@@ -249,7 +266,7 @@ var _ = Describe("Test full application config", func() {
 			var err error
 			producers, err = zmqConfig.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(producers["FS"]).NotTo(BeNil())
+			Expect(producers["V"]).NotTo(BeNil())
 		})
 	})
 
