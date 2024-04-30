@@ -186,6 +186,7 @@ enum Field {
   Experimental_13 = 176;
   Experimental_14 = 177;
   Experimental_15 = 178;
+  DetailedChargeState = 179;
 }
 
 // ChargingState are the charging options
@@ -197,6 +198,7 @@ enum ChargingState {
     ChargeStateCharging = 4;
     ChargeStateComplete = 5;
     ChargeStateStopped = 6;
+    ChargeStateCalibrating = 7;
 }
 
 // ShiftState are the gear options

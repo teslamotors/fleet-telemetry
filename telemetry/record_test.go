@@ -2,6 +2,7 @@ package telemetry_test
 
 import (
 	"crypto/rand"
+	"fmt"
 	"sort"
 	"time"
 
@@ -199,6 +200,30 @@ var _ = Describe("Socket handler test", func() {
 		Entry("for inactive alert with microsecond timestamp", timestamppb.New(time.Unix(1692044886337, 0)), timestamppb.New(time.Unix(1692044886, 337000000)), false),
 		Entry("for active alert with regular timestamp", timestamppb.New(time.Unix(1600000000, 337000000)), timestamppb.New(time.Unix(1600000000, 337000000)), true),
 		Entry("for inactive alert with regular timestamp", timestamppb.New(time.Unix(1600000000, 337000000)), timestamppb.New(time.Unix(1600000000, 337000000)), false),
+	)
+
+	DescribeTable("DetailedChargeSate",
+		func(chargeState string, expected protos.ChargingState) {
+			msg := generatePayload("cybertruck", "42", nil, stringDatum(protos.Field_DetailedChargeState, chargeState))
+			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: msg}
+			recordMsg, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(record).NotTo(BeNil())
+			expectedJSON := fmt.Sprintf("{\"data\":[{\"key\":\"VehicleName\",\"value\":{\"stringValue\":\"cybertruck\"}},{\"key\":\"DetailedChargeState\",\"value\":{\"chargingValue\":\"%s\"}}],\"createdAt\":null,\"vin\":\"42\"}", expected.String())
+			data, err := record.GetJSONPayload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(data)).To(MatchJSON(expectedJSON))
+		},
+		Entry("for invalid string", "fakeValue", protos.ChargingState_ChargeStateUnknown),
+		Entry("For ChargeStateDisconnected", "Disconnected", protos.ChargingState_ChargeStateDisconnected),
+		Entry("For ChargeStateNoPower", "NoPower", protos.ChargingState_ChargeStateNoPower),
+		Entry("For ChargeStateStarting", "Starting", protos.ChargingState_ChargeStateStarting),
+		Entry("For ChargeStateCharging", "Charging", protos.ChargingState_ChargeStateCharging),
+		Entry("For ChargeStateComplete", "Complete", protos.ChargingState_ChargeStateComplete),
+		Entry("For ChargeStateStopped", "Stopped", protos.ChargingState_ChargeStateStopped),
+		Entry("For ChargeStateCalibrating", "Calibrating", protos.ChargingState_ChargeStateCalibrating),
 	)
 
 	DescribeTable("ParseLocation",

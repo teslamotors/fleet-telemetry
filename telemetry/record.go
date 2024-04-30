@@ -168,12 +168,18 @@ func (record *Record) applyProtoRecordTransforms() error {
 			return err
 		}
 		message.Vin = record.Vin
-		transformLocation(message)
+		applyVRecordTransforms(message)
 		record.PayloadBytes, err = proto.Marshal(message)
 		return err
 	default:
 		return nil
 	}
+}
+
+// applyVRecordTransforms backend transformation for txtype: V messages
+func applyVRecordTransforms(message *protos.Payload) {
+	transformDetailedChargeState(message)
+	transformLocation(message)
 }
 
 func (record *Record) applyRecordTransforms() error {
@@ -223,6 +229,28 @@ func transformLocation(message *protos.Payload) {
 			return
 		}
 	}
+}
+
+// transformDetailedChargeState does a best-effort attempt to convert the DetailedChargeState field to a proper ChargingState Emum
+func transformDetailedChargeState(message *protos.Payload) {
+	for _, datum := range message.Data {
+		if datum.GetKey() == protos.Field_DetailedChargeState {
+			if strVal := datum.GetValue().GetStringValue(); strVal != "" {
+				datum.Value = &protos.Value{Value: &protos.Value_ChargingValue{ChargingValue: parseDetailedChargeState(strVal)}}
+			}
+			// There can be only one Field_DetailedChargeState Datum in the proto; abort once we've seen it.
+			return
+		}
+	}
+}
+
+// parseDetailedChargeState parses a location string (such as "Disconnected") into a *proto.Location type.
+func parseDetailedChargeState(s string) protos.ChargingState {
+	v, ok := protos.ChargingState_value[fmt.Sprintf("ChargeState%s", s)]
+	if !ok {
+		return protos.ChargingState_ChargeStateUnknown
+	}
+	return protos.ChargingState(v)
 }
 
 // ParseLocation parses a location string (such as "(37.412374 N, 122.145867 W)") into a *proto.Location type.
