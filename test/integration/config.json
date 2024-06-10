@@ -56,5 +56,18 @@
         "project_key": "test1",
         "environment": "integration",
         "host": "http://errbit:48088"
+    },
+    "data_connector": {
+        "sources": {
+            "redis": {
+                "client": {
+                    "Addr": "redis:6379"
+                },
+                "vin_allowed_prefix": "vin_allowed:"
+            }
+        },
+        "capabilities": {
+            "redis": ["vin_allowed"]
+        }
     }
 }

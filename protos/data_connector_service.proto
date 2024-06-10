@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package telemetry.connectors;
+
+option go_package = "github.com/teslamotors/fleet-telemetry/protos";
+
+service VehicleService {
+  rpc VinAllowed(VinAllowedRequest) returns (VinAllowedResponse);
+}
+
+message VinAllowedRequest {
+    string Vin = 1;
+}
+
+message VinAllowedResponse {
+    bool Allowed = 1;
+}

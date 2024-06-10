@@ -26,6 +26,12 @@
           "logger"
       ]
   },
+  "data_connectors": {
+    "file": {
+        "capabilities": ["vin_allowed"],
+        "path": "examples/data.json"
+    }
+  },
   "tls": {
       "server_cert": "/etc/certs/server/tls.crt",
       "server_key": "/etc/certs/server/tls.key"
