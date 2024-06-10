@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gorilla/websocket"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -25,16 +27,17 @@ import (
 )
 
 const (
-	vehicleName       = "My Test Vehicle"
-	location          = "(37.412374 S, 122.145867 E)"
-	projectID         = "test-project-id"
-	subscriptionID    = "sub-id-1"
-	kafkaGroup        = "test-kafka-consumer"
-	kafkaBroker       = "kafka:9092"
-	pubsubHost        = "pubsub:8085"
-	zmqAddr           = "tcp://app:5284"
-	kinesisHost       = "http://kinesis:4567"
-	kinesisStreamName = "test_V"
+	vehicleName           = "My Test Vehicle"
+	location              = "(37.412374 S, 122.145867 E)"
+	projectID             = "test-project-id"
+	subscriptionID        = "sub-id-1"
+	kafkaGroup            = "test-kafka-consumer"
+	kafkaBroker           = "kafka:9092"
+	pubsubHost            = "pubsub:8085"
+	zmqAddr               = "tcp://app:5284"
+	kinesisHost           = "http://kinesis:4567"
+	kinesisStreamName     = "test_V"
+	redisVinAllowedPrefix = "vin_allowed:"
 )
 
 var expectedLocation = &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}
@@ -56,6 +59,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		tlsConfig       *tls.Config
 		timestamp       *timestamppb.Timestamp
 		logger          *logrus.Logger
+		redisClient     *redis.Client
 	)
 
 	BeforeAll(func() {
@@ -64,6 +68,10 @@ var _ = Describe("Test messages", Ordered, func() {
 		tlsConfig, err = GetTLSConfig()
 		Expect(err).NotTo(HaveOccurred())
 		timestamp = timestamppb.Now()
+
+		redisClient = redis.NewClient(&redis.Options{
+			Addr: "redis:6379",
+		})
 
 		payload = GenerateVehicleMessage(vehicleName, location, timestamp)
 		connection = CreateWebSocket(tlsConfig)
@@ -92,6 +100,26 @@ var _ = Describe("Test messages", Ordered, func() {
 		_ = connection.Close()
 		zmqConsumer.Close()
 		os.Clearenv()
+	})
+
+	It("enforces vin allowed on connection creation", func() {
+		connection = CreateWebSocket(tlsConfig)
+		terminated := false
+		connection.SetCloseHandler(func(code int, text string) error {
+			terminated = true
+			return nil
+		})
+
+		// vin not allowed, connection should be terminated
+		Eventually(func() {
+			Expect(terminated).To(BeTrue())
+		})
+
+		// allow the vin so other tests may proceed
+		status := redisClient.Set(context.Background(), fmt.Sprintf("%s%s", redisVinAllowedPrefix, deviceID), "1", 0)
+		Expect(status.Err()).NotTo(HaveOccurred())
+
+		connection = CreateWebSocket(tlsConfig)
 	})
 
 	It("reads vehicle data from kafka consumer", func() {

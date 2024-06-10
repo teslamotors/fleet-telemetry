@@ -63,19 +63,14 @@ generate-certs:
 clean:
 	find $(PROTO_DIR) -type f ! -name '*.proto' -delete
 
-generate-golang:
-	protoc --go_out=./ --go_opt=paths=source_relative $(PROTO_DIR)/*.proto
+generate-mocks:
+	mockgen -source protos/data_connector_service_grpc.pb.go -destination=test/mocks/data_connector_service_grpc.go -package mocks
 
-generate-python:
-	protoc -I=$(PROTO_DIR) --python_out=$(PROTO_DIR)/python/ $(PROTO_DIR)/*.proto
-
-generate-ruby:
-	protoc --ruby_out=$(PROTO_DIR)/ruby/ --proto_path=$(PROTO_DIR) $(PROTO_FILES)
-
-generate-protos: clean generate-golang generate-python generate-ruby
+generate-protos: clean
+	docker run -v ./protos:/protos:rw --rm `docker build -qf Dockerfile.protos .`
 
 image-gen:
 	docker build -t $(ALPHA_IMAGE_NAME) .
 	docker save $(ALPHA_IMAGE_NAME) | gzip > $(ALPHA_IMAGE_COMPRESSED_FILENAME).tar.gz
 
-.PHONY: test build vet linters install integration image-gen generate-protos generate-golang generate-python generate-ruby clean
+.PHONY: test build vet linters install integration image-gen generate-protos generate-mocks clean

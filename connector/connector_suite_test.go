@@ -1,4 +1,4 @@
-package integration_test
+package connector_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestTelemetry(t *testing.T) {
+func TestConfigs(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Integration Suite Tests")
+	RunSpecs(t, "Connector")
 }

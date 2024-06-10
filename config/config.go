@@ -18,6 +18,7 @@ import (
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	githublogrus "github.com/sirupsen/logrus"
 
+	"github.com/teslamotors/fleet-telemetry/connector"
 	"github.com/teslamotors/fleet-telemetry/datastore/googlepubsub"
 	"github.com/teslamotors/fleet-telemetry/datastore/kafka"
 	"github.com/teslamotors/fleet-telemetry/datastore/kinesis"
@@ -87,6 +88,12 @@ type Config struct {
 
 	// TransmitDecodedRecords if true decodes proto message before dispatching it to supported datastores
 	TransmitDecodedRecords bool `json:"transmit_decoded_records,omitempty"`
+
+	// DataConnector defines sources of supplemental data to enhance the server's functionality
+	DataConnectorConfig connector.Config `json:"data_connectors,omitempty"`
+
+	// DataConnector manages accessing supplemental data from external sources
+	DataConnector *connector.ConnectorProvider
 
 	// MetricCollector collects metrics for the application
 	MetricCollector metrics.MetricCollector
@@ -233,6 +240,10 @@ func (c *Config) configureLogger(logger *logrus.Logger) {
 
 func (c *Config) configureMetricsCollector(logger *logrus.Logger) {
 	c.MetricCollector = metrics.NewCollector(c.Monitoring, logger)
+}
+
+func (c *Config) configureDataConnector(logger *logrus.Logger) {
+	c.DataConnector = connector.NewConnectorProvider(c.DataConnectorConfig, c.MetricCollector, logger)
 }
 
 func (c *Config) prometheusEnabled() bool {

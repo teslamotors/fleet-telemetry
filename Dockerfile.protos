@@ -1,0 +1,44 @@
+FROM debian:12.5-slim
+
+WORKDIR /
+
+ENV GO_VERSION=1.20
+ENV RUBY_VERSION=3.2
+ENV PYTHON_VERSION=3.10
+
+RUN apt-get update && \
+    apt-get install -y \
+    git \
+    wget \
+    unzip \
+    ruby-dev \
+    python3-dev \
+    python3-pip \
+    python3-grpcio \
+    python3-grpc-tools
+
+# protobuf compiler
+ENV PROTOC_VERSION=25.1
+RUN PROTOC_ZIP=protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
+    wget https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/$PROTOC_ZIP -O /tmp/$PROTOC_ZIP && \
+    unzip /tmp/$PROTOC_ZIP -d /usr/local bin/protoc && \
+    unzip /tmp/$PROTOC_ZIP -d /usr/local 'include/*' && \
+    rm -f /tmp/$PROTOC_ZIP
+
+# Go
+ENV PATH="/usr/local/go/bin:$PATH"
+ENV PATH="/root/go/bin:$PATH"
+RUN wget https://dl.google.com/go/go$GO_VERSION.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go$GO_VERSION.linux-amd64.tar.gz && \
+    rm go$GO_VERSION.linux-amd64.tar.gz
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28 && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+
+# Ruby
+RUN gem install grpc grpc-tools
+
+ENV PROTO_DIR=./protos
+COPY generate_protos.sh /generate_protos.sh
+RUN chmod +x /generate_protos.sh
+
+CMD ["/generate_protos.sh"]

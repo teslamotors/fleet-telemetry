@@ -34,8 +34,10 @@ var (
 
 // Metrics stores metrics reported from this package
 type ServerMetrics struct {
-	reliableAckCount     adapter.Counter
-	reliableAckMissCount adapter.Counter
+	reliableAckCount      adapter.Counter
+	reliableAckMissCount  adapter.Counter
+	vinAllowedResultCount adapter.Counter
+	vinAllowedErrorCount  adapter.Counter
 }
 
 // Server stores server resources
@@ -127,6 +129,12 @@ func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter
 				s.logger.ErrorLog("extract_sender_id_err", err, nil)
 			}
 
+			allowed := s.isConnectionAllowed(config, requestIdentity.DeviceID)
+			if !allowed {
+				ws.Close()
+				return
+			}
+
 			socketManager := NewSocketManager(ctx, requestIdentity, ws, config, s.logger)
 			s.registry.RegisterSocket(socketManager)
 			defer s.registry.DeregisterSocket(socketManager)
@@ -148,6 +156,20 @@ func (s *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *web
 	}
 
 	return ws
+}
+
+func (s *Server) isConnectionAllowed(config *config.Config, deviceID string) bool {
+	allowed, err := config.DataConnector.VinAllowed(deviceID)
+	if err != nil {
+		serverMetricsRegistry.vinAllowedErrorCount.Inc(nil)
+		s.logger.ErrorLog("check_vin_allowed_error", err, logrus.LogInfo{"vin": deviceID})
+	}
+	if !allowed {
+		s.logger.Log(logrus.INFO, "vin_rejected", logrus.LogInfo{"vin": deviceID})
+	}
+
+	serverMetricsRegistry.vinAllowedResultCount.Inc(adapter.Labels{"allowed": fmt.Sprintf("%t", allowed)})
+	return allowed
 }
 
 func extractIdentityFromConnection(ctx context.Context, r *http.Request) (*telemetry.RequestIdentity, error) {
@@ -191,5 +213,17 @@ func registerServerMetrics(metricsCollector metrics.MetricCollector) {
 		Name:   "reliable_ack_miss",
 		Help:   "The number of missing reliable acknowledgements.",
 		Labels: []string{"record_type", "dispatcher"},
+	})
+
+	serverMetricsRegistry.vinAllowedResultCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "vin_allowed_result_count",
+		Help:   "The number of vins checked from data connector.",
+		Labels: []string{"allowed"},
+	})
+
+	serverMetricsRegistry.vinAllowedErrorCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "vin_allowed_error_count",
+		Help:   "The number of errors responses from data connector.",
+		Labels: []string{},
 	})
 }

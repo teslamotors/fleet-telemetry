@@ -32,6 +32,7 @@ func LoadApplicationConfiguration() (config *Config, logger *logrus.Logger, err 
 
 	config.configureLogger(logger)
 	config.configureMetricsCollector(logger)
+	config.configureDataConnector(logger)
 	return config, logger, nil
 }
 

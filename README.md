@@ -160,6 +160,21 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
   
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
 
+## Data Connectors
+
+Data connectors can be configured to fetch data from a external sources to enhance server functionality.
+
+**Available capabilities**:
+- `vin_allowed`: checks if a vin is allowed to connect to the server. It is recommended to configure this to enhance security.
+
+**Available data connectors**:
+- Redis
+- GRPC
+- HTTP
+- File
+
+To learn about configuring, see their [full documentation](./connector/README.md).
+
 ## Reliable Acks
 Fleet telemetry allows you to send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`) in the config file. You can only set reliable acks to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
 
@@ -175,9 +190,8 @@ To suppress [tls handshake error logging](https://cs.opensource.google/go/go/+/m
 ## Protos
 Data is encapsulated into protobuf messages of different types. Protos can be recompiled via:
 
-  1. Install protoc, currently on version 4.25.1: https://grpc.io/docs/protoc-installation/
-  2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
-  3. Run make command
+  1. Install Docker
+  2. Run make command
   ```sh
   make generate-protos
   ```
