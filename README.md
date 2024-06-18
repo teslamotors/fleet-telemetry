@@ -272,3 +272,4 @@ Moreover, the following application-specific considerations apply:
   the frequency they need.
 * Providers agree to take full responsibility for privacy risks, as soon as data
   leave the devices (for more info read our privacy policies).
+* If (and only if!) your're running your Fleet Telemetry instance behind a reverse proxy which takes care of mTLS handling, set ```"disable_tls"``` to ```true``` in the config.
