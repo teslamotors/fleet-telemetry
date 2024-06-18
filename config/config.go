@@ -47,6 +47,10 @@ type Config struct {
 	// TLS contains certificates & CA info for the webserver
 	TLS *TLS `json:"tls,omitempty"`
 
+	// DisableTLS disables mTLS
+	// Only set to true if there's a reverse proxy in front taking care of mTLS handling
+	DisableTLS bool `json:"disable_tls,omitempty"`
+
 	// UseDefaultEngCA overrides default CA to eng
 	UseDefaultEngCA bool `json:"use_default_eng_ca"`
 
@@ -183,8 +187,12 @@ func (c *Config) AirbrakeTlsConfig() (*tls.Config, error) {
 
 // ExtractServiceTLSConfig return the TLS config needed for stating the mTLS Server
 func (c *Config) ExtractServiceTLSConfig(logger *logrus.Logger) (*tls.Config, error) {
-	if c.TLS == nil {
+	if c.TLS == nil && !c.DisableTLS {
 		return nil, errors.New("tls config is empty - telemetry server is mTLS only, make sure to provide certificates in the config")
+	}
+
+	if c.DisableTLS {
+		return nil, nil
 	}
 
 	var caFileBytes []byte
