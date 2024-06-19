@@ -114,7 +114,7 @@ func serveHTTPWithLogs(h http.Handler, logger *logrus.Logger) http.Handler {
 func (s *Server) Status(config *config.Config) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if config.DisableTLS {
-			fmt.Fprint(w, "mtls disabled")
+			fmt.Fprint(w, "ok")
 		} else {
 			fmt.Fprint(w, "mtls ok")
 		}
