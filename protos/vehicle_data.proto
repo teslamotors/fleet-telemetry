@@ -230,6 +230,7 @@ message Value {
     LocationValue location_value = 7;
     ChargingState charging_value = 8;
     ShiftState shift_state_value = 9;
+    bool invalid = 10;
   }
 }
 
