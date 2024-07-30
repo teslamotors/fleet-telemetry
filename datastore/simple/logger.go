@@ -23,10 +23,10 @@ func (p *ProtoLogger) ProcessReliableAck(entry *telemetry.Record) {
 func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 	data, err := entry.GetJSONPayload()
 	if err != nil {
-		p.logger.ErrorLog("json_unmarshal_error", err, logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata()})
+		p.logger.ErrorLog("json_unmarshal_error", err, logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata(), "txid": entry.Txid})
 		return
 	}
-	p.logger.ActivityLog("logger_json_unmarshal", logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata(), "data": string(data)})
+	p.logger.ActivityLog("logger_json_unmarshal", logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata(), "data": string(data), "txid": entry.Txid})
 }
 
 // ReportError noop method
