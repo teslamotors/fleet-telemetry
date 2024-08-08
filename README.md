@@ -24,8 +24,8 @@ The service handles device connectivity as well as receiving and storing transmi
    - `openssl req -out your-domain.com.csr -key private-key.pem -subj /CN=your-domain.com/ -new`
 6. Ensure the generated CSR passes [check_csr.sh](https://github.com/teslamotors/fleet-telemetry/blob/main/tools/check_csr.sh).
    - `./check_csr.sh your-domain.com.csr`
-7. Generate a Partner Authentication Token. ([docs](https://developer.tesla.com/docs/fleet-api#partner-authentication-token))
-8. Register your application with Fleet API by sending `domain` and `csr` to the [register](https://developer.tesla.com/docs/fleet-api#register) endpoint. Use the partner authentication token generated in step 7 as a Bearer token.
+7. Generate a Partner Authentication Token. ([docs](https://developer.tesla.com/docs/fleet-api/authentication/partner-tokens))
+8. Register your application with Fleet API by sending `domain` and `csr` to the [register](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#register) endpoint. Use the partner authentication token generated in step 7 as a Bearer token.
 9. Wait for Tesla to process your CSR. This may take up to two weeks. Once complete, you will receive an email from Tesla. The generated certificate will not be sent back to you; it is attached to your account on the backend and is used internally when configuring a vehicle to stream data.
 10. Configure your fleet-telemetry server. Full details are described in [install steps](#install-steps).
 11. Validate server configuration using [check_server_cert.sh](https://github.com/teslamotors/fleet-telemetry/blob/main/tools/check_server_cert.sh).
@@ -34,10 +34,10 @@ The service handles device connectivity as well as receiving and storing transmi
       - `port`: the port your fleet-telemetry server is available on. Defaults to 443.
       - `ca`: the full certificate chain used to generate the server's TLS cert/key.
     - `./check_server_cert.sh validate_server.json`
-12. Ensure your virtual key has been added to the vehicle you intend to configure. To add your virtual key to the vehicle, redirect the owner to https://tesla.com/_ak/your-domain.com. If using authorization code flow, the owner of the vehicle must have [authorized your application](https://developer.tesla.com/docs/fleet-api#third-party-token) with `vehicle_device_data` scope before they are able to add your key.
-13. Send your configuration to a vehicle. Using a third-party token, send a [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-create) request.
-14. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_config-get).
-15. At this point, the vehicle should be streaming data to your fleet-telemetry server. If you are not seeing messages come through, call [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api#fleet_telemetry_errors).
+12. Ensure your virtual key has been added to the vehicle you intend to configure. To add your virtual key to the vehicle, redirect the owner to https://tesla.com/_ak/your-domain.com. If using authorization code flow, the owner of the vehicle must have [authorized your application](https://developer.tesla.com/docs/fleet-api/authentication/third-party-tokens) with `vehicle_device_data` scope before they are able to add your key.
+13. Send your configuration to a vehicle. Using a third-party token, send a [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create) request.
+14. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
+15. At this point, the vehicle should be streaming data to your fleet-telemetry server. If you are not seeing messages come through, call [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors).
     - If fleet_telemetry_errors is not yielding any results, please reach out to [fleetapisupport@tesla.com](mailto:fleetapisupport@tesla.com). Include your client ID and the VIN you are trying to setup.
 
 ### Install on Kubernetes with Helm Chart (recommended)
