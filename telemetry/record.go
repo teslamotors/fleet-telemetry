@@ -7,6 +7,7 @@ import (
 
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/protos"
+
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
