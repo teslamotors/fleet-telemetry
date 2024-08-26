@@ -50,4 +50,4 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: tesla/fleet-telemetry:${{ steps.release.outputs.version }}
+          tags: tesla/fleet-telemetry:latest,tesla/fleet-telemetry:${{ steps.release.outputs.version }}
