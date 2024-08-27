@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus/hooks/test"
 
+	"github.com/teslamotors/fleet-telemetry/datastore/simple"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -41,7 +42,9 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 		return nil, err
 	}
 
-	config := &Config{}
+	config := &Config{
+		LoggerConfig: &simple.Config{},
+	}
 	err = json.NewDecoder(configFile).Decode(&config)
 	if err != nil {
 		return nil, err

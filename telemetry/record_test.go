@@ -346,6 +346,83 @@ func locationDatum(field protos.Field, location *protos.LocationValue) *protos.D
 	}
 }
 
+func intDatum(field protos.Field, value int32) *protos.Datum {
+	return &protos.Datum{
+		Key: field,
+		Value: &protos.Value{
+			Value: &protos.Value_IntValue{
+				IntValue: value,
+			},
+		},
+	}
+}
+
+func doubleDatum(field protos.Field, value float64) *protos.Datum {
+	return &protos.Datum{
+		Key: field,
+		Value: &protos.Value{
+			Value: &protos.Value_DoubleValue{
+				DoubleValue: value,
+			},
+		},
+	}
+}
+
+func boolDatum(field protos.Field, value bool) *protos.Datum {
+	return &protos.Datum{
+		Key: field,
+		Value: &protos.Value{
+			Value: &protos.Value_BooleanValue{
+				BooleanValue: value,
+			},
+		},
+	}
+}
+
+func floatDatum(field protos.Field, value float32) *protos.Datum {
+	return &protos.Datum{
+		Key: field,
+		Value: &protos.Value{
+			Value: &protos.Value_FloatValue{
+				FloatValue: value,
+			},
+		},
+	}
+}
+
+func longDatum(field protos.Field, value int64) *protos.Datum {
+	return &protos.Datum{
+		Key: field,
+		Value: &protos.Value{
+			Value: &protos.Value_LongValue{
+				LongValue: value,
+			},
+		},
+	}
+}
+
+func chargingStateDatum(field protos.Field, value protos.ChargingState) *protos.Datum {
+	return &protos.Datum{
+		Key: field,
+		Value: &protos.Value{
+			Value: &protos.Value_ChargingValue{
+				ChargingValue: value,
+			},
+		},
+	}
+}
+
+func shiftStateDatum(field protos.Field, value protos.ShiftState) *protos.Datum {
+	return &protos.Datum{
+		Key: field,
+		Value: &protos.Value{
+			Value: &protos.Value_ShiftStateValue{
+				ShiftStateValue: value,
+			},
+		},
+	}
+}
+
 // clone creates a "clean" clone of the given proto.LocationValue so we can use DeepEqual freely.
 func clone(o *protos.LocationValue) *protos.LocationValue {
 	if o == nil {

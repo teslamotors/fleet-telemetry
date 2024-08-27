@@ -76,6 +76,9 @@ type Config struct {
 	// Monitoring defines information for metrics
 	Monitoring *metrics.MonitoringConfig `json:"monitoring,omitempty"`
 
+	// LoggerConfig configures the simple logger
+	LoggerConfig *simple.Config `json:"logger,omitempty"`
+
 	// LogLevel set the log-level
 	LogLevel string `json:"log_level,omitempty"`
 
@@ -250,7 +253,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 	}
 
 	producers := make(map[telemetry.Dispatcher]telemetry.Producer)
-	producers[telemetry.Logger] = simple.NewProtoLogger(logger)
+	producers[telemetry.Logger] = simple.NewProtoLogger(c.LoggerConfig, logger)
 
 	requiredDispatchers := make(map[telemetry.Dispatcher][]string)
 	for recordName, dispatchRules := range c.Records {

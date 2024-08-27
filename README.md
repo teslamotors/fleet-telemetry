@@ -70,6 +70,9 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
       "flush_period": int - ms flush period
     }
   },
+  "logger": {
+    "verbose": bool - include data types in the logs. Only applicable for records of type 'V'
+  },
   "kafka": { // librdkafka kafka config, seen here: https://raw.githubusercontent.com/confluentinc/librdkafka/master/CONFIGURATION.md
     "bootstrap.servers": "kafka:9092",
     "queue.buffering.max.messages": 1000000

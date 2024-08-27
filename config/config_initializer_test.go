@@ -42,6 +42,7 @@ var _ = Describe("Test application config initialization", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		expectedConfig.MetricCollector = loadedConfig.MetricCollector
+		expectedConfig.LoggerConfig = loadedConfig.LoggerConfig
 		expectedConfig.AckChan = loadedConfig.AckChan
 		Expect(loadedConfig).To(Equal(expectedConfig))
 	})
@@ -67,6 +68,8 @@ var _ = Describe("Test application config initialization", func() {
 		loadedConfig, err := loadTestApplicationConfig(TestSmallConfig)
 		Expect(err).NotTo(HaveOccurred())
 
+		Expect(loadedConfig.LoggerConfig).ToNot(BeNil())
+		expectedConfig.LoggerConfig = loadedConfig.LoggerConfig
 		expectedConfig.MetricCollector = loadedConfig.MetricCollector
 		expectedConfig.AckChan = loadedConfig.AckChan
 		Expect(loadedConfig).To(Equal(expectedConfig))
