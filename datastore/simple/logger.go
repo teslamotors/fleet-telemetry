@@ -33,15 +33,14 @@ func (p *ProtoLogger) ProcessReliableAck(entry *telemetry.Record) {
 func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 	data, err := p.recordToLogMap(entry)
 	if err != nil {
-		p.logger.ErrorLog("json_unmarshal_error", err, logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata()})
+		p.logger.ErrorLog("record_logging_error", err, logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata()})
 		return
 	}
-	p.logger.ActivityLog("logger_json_unmarshal", logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata(), "data": data})
+	p.logger.ActivityLog("record_payload", logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata(), "data": data})
 }
 
 // ReportError noop method
 func (p *ProtoLogger) ReportError(message string, err error, logInfo logrus.LogInfo) {
-	return
 }
 
 // recordToLogMap converts the data of a record to a map or slice of maps
