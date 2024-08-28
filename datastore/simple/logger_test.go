@@ -82,7 +82,7 @@ var _ = Describe("ProtoLogger", func() {
 			protoLogger.Produce(record)
 
 			lastLog := hook.LastEntry()
-			Expect(lastLog.Message).To(Equal("logger_json_unmarshal"))
+			Expect(lastLog.Message).To(Equal("record_payload"))
 			Expect(lastLog.Data).To(HaveKeyWithValue("vin", "TEST123"))
 			Expect(lastLog.Data).To(HaveKey("data"))
 
@@ -101,7 +101,7 @@ var _ = Describe("ProtoLogger", func() {
 			protoLogger.Produce(record)
 
 			lastLog := hook.LastEntry()
-			Expect(lastLog.Message).To(Equal("json_unmarshal_error"))
+			Expect(lastLog.Message).To(Equal("record_logging_error"))
 			Expect(lastLog.Data).To(HaveKeyWithValue("vin", "TEST123"))
 			Expect(lastLog.Data).To(HaveKey("metadata"))
 		})
