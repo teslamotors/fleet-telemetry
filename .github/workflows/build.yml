@@ -19,8 +19,8 @@ jobs:
 
     - name: Set up protoc
       run: |
-        wget https://github.com/protocolbuffers/protobuf/releases/download/v25.1/protoc-25.1-linux-x86_64.zip
-        unzip protoc-25.1-linux-x86_64.zip
+        wget https://github.com/protocolbuffers/protobuf/releases/download/v26.1/protoc-26.1-linux-x86_64.zip
+        unzip protoc-26.1-linux-x86_64.zip
         sudo mv bin/protoc /usr/local/bin/protoc
         sudo mv include/* /usr/local/include/
 
