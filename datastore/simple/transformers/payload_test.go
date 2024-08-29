@@ -162,15 +162,6 @@ var _ = Describe("Payload", func() {
 					"shiftStateValue": "ShiftStateD",
 				},
 			),
-			Entry("ChargeState with types excluded",
-				&protos.Datum{
-					Key:   protos.Field_ChargeState,
-					Value: &protos.Value{Value: &protos.Value_ChargingValue{ChargingValue: protos.ChargingState_ChargeStateCharging}},
-				},
-				excludeTypes,
-				"ChargeState",
-				"ChargeStateCharging",
-			),
 			Entry("Invalid with types excluded",
 				&protos.Datum{
 					Key:   protos.Field_BMSState,

@@ -1,6 +1,7 @@
 package transformers
 
 import (
+	"fmt"
 	"time"
 
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
@@ -68,9 +69,79 @@ func transformValue(value interface{}, includeTypes bool) (interface{}, bool) {
 	case *protos.Value_ShiftStateValue:
 		outputType = "shiftStateValue"
 		outputValue = v.ShiftStateValue.String()
-	case *protos.Value_ChargingValue:
-		outputType = "chargingValue"
-		outputValue = v.ChargingValue.String()
+	case *protos.Value_LaneAssistLevelValue:
+		outputType = "laneAssistLevel"
+		outputValue = v.LaneAssistLevelValue.String()
+	case *protos.Value_ScheduledChargingModeValue:
+		outputType = "scheduledChargingMode"
+		outputValue = v.ScheduledChargingModeValue.String()
+	case *protos.Value_SentryModeStateValue:
+		outputType = "sentryModeState"
+		outputValue = v.SentryModeStateValue.String()
+	case *protos.Value_SpeedAssistLevelValue:
+		outputType = "speedAssistLevel"
+		outputValue = v.SpeedAssistLevelValue.String()
+	case *protos.Value_BmsStateValue:
+		outputType = "bmsState"
+		outputValue = v.BmsStateValue.String()
+	case *protos.Value_BuckleStatusValue:
+		outputType = "buckleStatus"
+		outputValue = v.BuckleStatusValue.String()
+	case *protos.Value_CarTypeValue:
+		outputType = "carType"
+		outputValue = v.CarTypeValue.String()
+	case *protos.Value_ChargePortValue:
+		outputType = "chargePort"
+		outputValue = v.ChargePortValue.String()
+	case *protos.Value_ChargePortLatchValue:
+		outputType = "chargePortLatch"
+		outputValue = v.ChargePortLatchValue.String()
+	case *protos.Value_CruiseStateValue:
+		outputType = "cruiseState"
+		outputValue = v.CruiseStateValue.String()
+	case *protos.Value_DoorValue:
+		outputType = "doorValue"
+		outputValue = map[string]bool{
+			"DriverFront":    v.DoorValue.DriverFront,
+			"PassengerFront": v.DoorValue.PassengerFront,
+			"DriverRear":     v.DoorValue.DriverRear,
+			"PassengerRear":  v.DoorValue.PassengerRear,
+			"TrunkFront":     v.DoorValue.TrunkFront,
+			"TrunkRear":      v.DoorValue.TrunkRear,
+		}
+	case *protos.Value_DriveInverterStateValue:
+		outputType = "driveInverterState"
+		outputValue = v.DriveInverterStateValue.String()
+	case *protos.Value_HvilStatusValue:
+		outputType = "hvilStatus"
+		outputValue = v.HvilStatusValue.String()
+	case *protos.Value_WindowStateValue:
+		outputType = "windowState"
+		outputValue = v.WindowStateValue.String()
+	case *protos.Value_SeatFoldPositionValue:
+		outputType = "seatFoldPosition"
+		outputValue = v.SeatFoldPositionValue.String()
+	case *protos.Value_TractorAirStatusValue:
+		outputType = "tractorAirStatus"
+		outputValue = v.TractorAirStatusValue.String()
+	case *protos.Value_FollowDistanceValue:
+		outputType = "followDistance"
+		outputValue = v.FollowDistanceValue.String()
+	case *protos.Value_ForwardCollisionSensitivityValue:
+		outputType = "forwardCollisionSensitivity"
+		outputValue = v.ForwardCollisionSensitivityValue.String()
+	case *protos.Value_GuestModeMobileAccessValue:
+		outputType = "guestModeMobileAccess"
+		outputValue = v.GuestModeMobileAccessValue.String()
+	case *protos.Value_TrailerAirStatusValue:
+		outputType = "trailerAirStatus"
+		outputValue = v.TrailerAirStatusValue.String()
+	case *protos.Value_TimeValue:
+		outputType = "time"
+		outputValue = fmt.Sprintf("%02d:%02d:%02d", v.TimeValue.Hour, v.TimeValue.Minute, v.TimeValue.Second)
+	case *protos.Value_DetailedChargeStateValue:
+		outputType = "detailedChargeState"
+		outputValue = v.DetailedChargeStateValue.String()
 	default:
 		return nil, false
 	}

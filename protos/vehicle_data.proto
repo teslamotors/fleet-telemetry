@@ -186,9 +186,12 @@ enum Field {
   Experimental_13 = 176;
   Experimental_14 = 177;
   Experimental_15 = 178;
+
+  // fields below here are always returned typed
+  DetailedChargeState = 179;
 }
 
-// ChargingState are the charging options
+// ChargingState is deprecated and not used
 enum ChargingState {
     ChargeStateUnknown = 0;
     ChargeStateDisconnected = 1;
@@ -199,14 +202,24 @@ enum ChargingState {
     ChargeStateStopped = 6;
 }
 
+enum DetailedChargeStateValue {
+    DetailedChargeStateUnknown = 0;
+    DetailedChargeStateDisconnected = 1;
+    DetailedChargeStateNoPower = 2;
+    DetailedChargeStateStarting = 3;
+    DetailedChargeStateCharging = 4;
+    DetailedChargeStateComplete = 5;
+    DetailedChargeStateStopped = 6;
+}
+
 // ShiftState are the gear options
 enum ShiftState {
     ShiftStateUnknown = 0;
     ShiftStateInvalid = 1;
     ShiftStateP = 2;
     ShiftStateR = 3;
-    ShiftStateD = 4;
-    ShiftStateN = 5;
+    ShiftStateN = 4;
+    ShiftStateD = 5;
     ShiftStateSNA = 6;
 }
 
@@ -214,6 +227,204 @@ enum ShiftState {
 message LocationValue {
   double latitude = 1;
   double longitude = 2;
+}
+
+enum FollowDistance {
+    FollowDistanceUnknown = 0;
+    FollowDistance1 = 1;
+    FollowDistance2 = 2;
+    FollowDistance3 = 3;
+    FollowDistance4 = 4;
+    FollowDistance5 = 5;
+    FollowDistance6 = 6;
+    FollowDistance7 = 7;
+}
+
+enum ForwardCollisionSensitivity {
+  ForwardCollisionSensitivityUnknown = 0;
+  ForwardCollisionSensitivityOff = 1;
+  ForwardCollisionSensitivityLate = 2;
+  ForwardCollisionSensitivityAverage = 3;
+  ForwardCollisionSensitivityEarly = 4;
+}
+
+enum GuestModeMobileAccess {
+    GuestModeMobileAccessUnknown = 0;
+    GuestModeMobileAccessInit = 1;
+    GuestModeMobileAccessNotAuthenticated = 2;
+    GuestModeMobileAccessAuthenticated = 3;
+    GuestModeMobileAccessAbortedDriving = 4;
+    GuestModeMobileAccessAbortedUsingRemoteStart = 5;
+    GuestModeMobileAccessAbortedUsingBLEKeys = 6;
+    GuestModeMobileAccessAbortedValetMode = 7;
+    GuestModeMobileAccessAbortedGuestModeOff = 8;
+    GuestModeMobileAccessAbortedDriveAuthTimeExceeded = 9;
+    GuestModeMobileAccessAbortedNoDataReceived = 10;
+    GuestModeMobileAccessRequestingFromMothership = 11;
+    GuestModeMobileAccessRequestingFromAuthD = 12;
+    GuestModeMobileAccessAbortedFetchFailed = 13;
+    GuestModeMobileAccessAbortedBadDataReceived = 14;
+    GuestModeMobileAccessShowingQRCode = 15;
+    GuestModeMobileAccessSwipedAway = 16;
+    GuestModeMobileAccessDismissedQRCodeExpired = 17;
+    GuestModeMobileAccessSucceededPairedNewBLEKey = 18;
+}
+
+enum LaneAssistLevel {
+  LaneAssistLevelUnknown = 0;
+  LaneAssistLevelNone = 1;
+  LaneAssistLevelWarning = 2;
+  LaneAssistLevelAssist = 3;
+}
+
+enum ScheduledChargingModeValue {
+  ScheduledChargingModeUnknown = 0;
+  ScheduledChargingModeOff = 1;
+  ScheduledChargingModeStartAt = 2;
+  ScheduledChargingModeDepartBy = 3;
+}
+
+enum SentryModeState {
+    SentryModeStateUnknown = 0;
+    SentryModeStateOff = 1;
+    SentryModeStateIdle = 2;
+    SentryModeStateArmed = 3;
+    SentryModeStateAware = 4;
+    SentryModeStatePanic = 5;
+    SentryModeStateQuiet = 6;
+}
+
+enum SpeedAssistLevel {
+    SpeedAssistLevelUnknown = 0;
+    SpeedAssistLevelNone = 1;
+    SpeedAssistLevelDisplay = 2;
+    SpeedAssistLevelChime = 3;
+}
+
+enum BMSStateValue {
+    BMSStateUnknown = 0;
+    BMSStateStandby = 1;
+    BMSStateDrive = 2;
+    BMSStateSupport = 3;
+    BMSStateCharge = 4;
+    BMSStateFEIM = 5;
+    BMSStateClearFault = 6;
+    BMSStateFault = 7;
+    BMSStateWeld = 8;
+    BMSStateTest = 9;
+    BMSStateSNA = 10;
+}
+
+enum BuckleStatus {
+    BuckleStatusUnknown = 0;
+    BuckleStatusUnlatched = 1;
+    BuckleStatusLatched = 2;
+    BuckleStatusFaulted = 3;
+}
+
+enum CarTypeValue {
+    CarTypeUnknown = 0;
+    CarTypeModelS = 1;
+    CarTypeModelX = 2;
+    CarTypeModel3 = 3;
+    CarTypeModelY = 4;
+    CarTypeSemiTruck = 5;
+    CarTypeCybertruck = 6;
+}
+
+enum ChargePortValue {
+    ChargePortUnknown = 0;
+    ChargePortUS = 1;
+    ChargePortEU = 2;
+    ChargePortGB = 3;
+    ChargePortCCS = 4;
+}
+
+enum ChargePortLatchValue {
+    ChargePortLatchUnknown = 0;
+    ChargePortLatchSNA = 1;
+    ChargePortLatchDisengaged = 2;
+    ChargePortLatchEngaged = 3;
+    ChargePortLatchBlocking = 4;
+}
+
+enum CruiseStateValue {
+    CruiseStateUnknown = 0;
+    CruiseStateOff = 1;
+    CruiseStateStandby = 2;
+    CruiseStateOn = 3;
+    CruiseStateStandstill = 4;
+    CruiseStateOverride = 5;
+    CruiseStateFault = 6;
+    CruiseStatePreFault = 7;
+    CruiseStatePreCancel = 8;
+}
+
+message Doors {
+  bool DriverFront = 1;
+  bool PassengerFront = 2;
+  bool DriverRear = 3;
+  bool PassengerRear = 4;
+  bool TrunkFront = 5;
+  bool TrunkRear = 6;
+}
+
+enum DriveInverterState {
+    DriveInverterStateUnknown = 0;
+    DriveInverterStateUnavailable = 1;
+    DriveInverterStateStandby = 2;
+    DriveInverterStateFault = 3;
+    DriveInverterStateAbort = 4;
+    DriveInverterStateEnable = 5;
+}
+
+enum HvilStatus {
+    HvilStatusUnknown = 0;
+    HvilStatusFault = 1;
+    HvilStatusOK = 2;
+}
+
+enum WindowState {
+    WindowStateUnknown = 0;
+    WindowStateClosed = 1;
+    WindowStatePartiallyOpen = 2;
+    WindowStateOpened = 3;
+}
+
+enum SeatFoldPosition {
+    SeatFoldPositionUnknown = 0;
+    SeatFoldPositionSNA = 1;
+    SeatFoldPositionFaulted = 2;
+    SeatFoldPositionNotConfigured = 3;
+    SeatFoldPositionFolded = 4;
+    SeatFoldPositionUnfolded = 5;
+}
+
+enum TractorAirStatus {
+    TractorAirStatusUnknown = 0;
+    TractorAirStatusNotAvailable = 1;
+    TractorAirStatusError = 2;
+    TractorAirStatusCharged = 3;
+    TractorAirStatusBuildingPressureIntermediate = 4;
+    TractorAirStatusExhaustingPressureIntermediate = 5;
+    TractorAirStatusExhausted = 6;
+}
+
+enum TrailerAirStatus {
+    TrailerAirStatusUnknown = 0;
+    TrailerAirStatusSNA = 1;
+    TrailerAirStatusInvalid = 2;
+    TrailerAirStatusBobtailMode = 3;
+    TrailerAirStatusCharged = 4;
+    TrailerAirStatusBuildingPressureIntermediate = 5;
+    TrailerAirStatusExhaustingPressureIntermediate = 6;
+    TrailerAirStatusExhausted = 7;
+}
+
+message Time {
+  int32 hour = 1;
+  int32 minute = 2;
+  int32 second = 3;
 }
 
 // Value is a dynamic Datum type.  Most Datums are strings and is the default format
@@ -231,6 +442,28 @@ message Value {
     ChargingState charging_value = 8;
     ShiftState shift_state_value = 9;
     bool invalid = 10;
+    LaneAssistLevel lane_assist_level_value = 11;
+    ScheduledChargingModeValue scheduled_charging_mode_value = 12;
+    SentryModeState sentry_mode_state_value = 13;
+    SpeedAssistLevel speed_assist_level_value = 14;
+    BMSStateValue bms_state_value = 15;
+    BuckleStatus buckle_status_value = 16;
+    CarTypeValue car_type_value = 17;
+    ChargePortValue charge_port_value = 18;
+    ChargePortLatchValue charge_port_latch_value = 19;
+    CruiseStateValue cruise_state_value = 20;
+    Doors door_value = 21;
+    DriveInverterState drive_inverter_state_value = 22;
+    HvilStatus hvil_status_value = 23;
+    WindowState window_state_value = 24;
+    SeatFoldPosition seat_fold_position_value = 25;
+    TractorAirStatus tractor_air_status_value = 26;
+    FollowDistance follow_distance_value = 27;
+    ForwardCollisionSensitivity forward_collision_sensitivity_value = 28;
+    GuestModeMobileAccess guest_mode_mobile_access_value = 29;
+    TrailerAirStatus trailer_air_status_value = 30;
+    Time time_value = 31;
+    DetailedChargeStateValue detailed_charge_state_value = 32;
   }
 }
 
