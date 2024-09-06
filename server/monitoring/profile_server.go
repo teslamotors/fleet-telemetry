@@ -40,7 +40,7 @@ func (p *profileServer) liveProfiler(config *config.Config) func(w http.Response
 }
 
 // gcStats display GC stats
-func (p *profileServer) gcStats(config *config.Config) func(w http.ResponseWriter, r *http.Request) {
+func (p *profileServer) gcStats() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		stats := &debug.GCStats{}
 		debug.ReadGCStats(stats)
@@ -59,7 +59,7 @@ func (p *profileServer) gcStats(config *config.Config) func(w http.ResponseWrite
 // StartProfilerServer initializes the profiler on http
 func StartProfilerServer(config *config.Config, mux *http.ServeMux, logger *logrus.Logger) {
 	profileServer := &profileServer{}
-	mux.HandleFunc("/gc_stats", profileServer.gcStats(config))
+	mux.HandleFunc("/gc_stats", profileServer.gcStats())
 	mux.HandleFunc("/live_profiler", profileServer.liveProfiler(config))
 
 	logger.ActivityLog("profiler_started", logrus.LogInfo{"port": config.Monitoring.ProfilerPort})
