@@ -13,32 +13,27 @@ The service handles device connectivity as well as receiving and storing transmi
 
 ### Setup steps
 
-1. Create a third-party application on [developer.tesla.com](https://developer.tesla.com).
+1. Create a developer application via [developer.tesla.com](https://developer.tesla.com).
    - In the "Client Details" step, it is recommended to select "Authorization Code and Machine-to-Machine" for most use cases. "Machine-to-Machine" (M2M) should only be selected for business accounts that own vehicles.
 2. Generate an EC private key using the secp256r1 curve (prime256v1).
    - `openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem`
 3. Derive its public key.
    - `openssl ec -in private-key.pem -pubout -out public-key.pem`
-4. Host this public key at: `https://your-domain.com/.well-known/appspecific/com.tesla.3p.public-key.pem`.
-5. Generate a Certificate Signing Request (CSR).
-   - `openssl req -out your-domain.com.csr -key private-key.pem -subj /CN=your-domain.com/ -new`
-6. Ensure the generated CSR passes [check_csr.sh](https://github.com/teslamotors/fleet-telemetry/blob/main/tools/check_csr.sh).
-   - `./check_csr.sh your-domain.com.csr`
-7. Generate a Partner Authentication Token. ([docs](https://developer.tesla.com/docs/fleet-api/authentication/partner-tokens))
-8. Register your application with Fleet API by sending `domain` and `csr` to the [register](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#register) endpoint. Use the partner authentication token generated in step 7 as a Bearer token.
-9. Wait for Tesla to process your CSR. This may take up to two weeks. Once complete, you will receive an email from Tesla. The generated certificate will not be sent back to you; it is attached to your account on the backend and is used internally when configuring a vehicle to stream data.
-10. Configure your fleet-telemetry server. Full details are described in [install steps](#install-steps).
-11. Validate server configuration using [check_server_cert.sh](https://github.com/teslamotors/fleet-telemetry/blob/main/tools/check_server_cert.sh).
-    - From your local computer, create `validate_server.json` with the following fields:
-      - `hostname`: the hostname your fleet-telemetry server is available on.
-      - `port`: the port your fleet-telemetry server is available on. Defaults to 443.
-      - `ca`: the full certificate chain used to generate the server's TLS cert/key.
-    - `./check_server_cert.sh validate_server.json`
-12. Ensure your virtual key has been added to the vehicle you intend to configure. To add your virtual key to the vehicle, redirect the owner to https://tesla.com/_ak/your-domain.com. If using authorization code flow, the owner of the vehicle must have [authorized your application](https://developer.tesla.com/docs/fleet-api/authentication/third-party-tokens) with `vehicle_device_data` scope before they are able to add your key.
-13. Send your configuration to a vehicle. Using a third-party token, send a [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create) request.
-14. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
-15. At this point, the vehicle should be streaming data to your fleet-telemetry server. If you are not seeing messages come through, call [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors).
-    - If fleet_telemetry_errors is not yielding any results, please reach out to [fleetapisupport@tesla.com](mailto:fleetapisupport@tesla.com). Include your client ID and the VIN you are trying to setup.
+4. Host this public key at: `https://*application-domain.com*/.well-known/appspecific/com.tesla.3p.public-key.pem`.
+5. Generate a Partner Authentication Token. ([docs](https://developer.tesla.com/docs/fleet-api/authentication/partner-tokens))
+6. Register the application with Fleet API via the [register](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#register) endpoint.
+7. Configure a fleet-telemetry server. Full details are described in [install steps](#install-steps).
+8. Validate the server configuration using [check_server_cert.sh](https://github.com/teslamotors/fleet-telemetry/blob/main/tools/check_server_cert.sh).
+    - From a local computer, create `validate_server.json` with the following fields:
+      - `hostname`: The hostname the fleet-telemetry server.
+      - `port`: The port the fleet-telemetry server -- Default 443.
+      - `ca`: The full certificate chain used to generate the server's TLS certificate.
+    - Run `./check_server_cert.sh validate_server.json`
+9. Ensure the application's virtual key has been added to the vehicle(s). See documentation here: https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-commands#key-pairing.
+10. Configure and run the [vehicle-command proxy](https://github.com/teslamotors/vehicle-command#installation-and-configuration) with the application private key.
+11. Configure vehicle(s) with the [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create) endpoint.
+12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
+13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
@@ -63,7 +58,7 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
     "prometheus_metrics_port": int,
     "profiler_port": int,
     "profiling_path": string - out path,
-    "statsd": { if you are not using prometheus
+    "statsd": { if not using prometheus
       "host": string - host:port of the statsd server,
       "prefix": string - prefix for statsd metrics,
       "sample_rate": int - 0 to 100 percentage to sample stats,
@@ -165,7 +160,7 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
 
 ## Reliable Acks
-Fleet telemetry allows you to send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`) in the config file. You can only set reliable acks to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+Fleet telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
 
 ## Metrics
 Configure and use Prometheus or a StatsD-interface supporting data store for metrics. The integration test runs fleet telemetry with [grafana](https://grafana.com/docs/grafana/latest/datasources/google-cloud-monitoring/), which is compatible with prometheus. It also has an example dashboard which tracks important metrics related to the hosted server. Sample screenshot for the [sample dashboard](./test/integration/grafana/provisioning/dashboards/dashboard.json):-
@@ -186,7 +181,7 @@ Data is encapsulated into protobuf messages of different types. Protos can be re
   make generate-protos
   ```
 ## Airbrake
-Fleet telemetry allows you to monitor errors using [airbrake](https://www.airbrake.io/error-monitoring). The integration test runs fleet telemetry with [errbit](https://github.com/errbit/errbit), which is an airbrake compliant self-hosted error catcher. You can set a project key for airbrake using either the config file or via an environment variable `AIRBRAKE_PROJECT_KEY`. 
+Fleet telemetry can publish errors to [airbrake](https://www.airbrake.io/error-monitoring). The integration test runs fleet telemetry with [errbit](https://github.com/errbit/errbit), which is an airbrake compliant self-hosted error catcher. A project key can be set for airbrake using either the config file or via an environment variable `AIRBRAKE_PROJECT_KEY`. 
 
 # Testing
 
@@ -206,7 +201,7 @@ No package 'rdkafka' found
 pkg-config: exit status 1
 make: *** [install] Error 1
 ```
-librdkafka is missing, on macOS you can install it via `brew install librdkafka pkg-config` or follow instructions here https://github.com/confluentinc/confluent-kafka-go#getting-started
+librdkafka is missing, on macOS install it via `brew install librdkafka pkg-config` or follow instructions here https://github.com/confluentinc/confluent-kafka-go#getting-started
 
 ```
 ~/fleet-telemetry➜ git:(main) ✗  make test
