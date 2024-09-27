@@ -68,6 +68,13 @@ var _ = Describe("Test full application config", func() {
 			Expect(err).To(MatchError("tls config is empty - telemetry server is mTLS only, make sure to provide certificates in the config"))
 		})
 
+		It("does not fail when TLS is nil but DisableTLS is true ", func() {
+			config = &Config{}
+			config.DisableTLS = true
+			_, err := config.ExtractServiceTLSConfig(log)
+			Expect(err).To(BeNil())
+		})
+
 		It("fails when files are missing", func() {
 			_, err := config.ExtractServiceTLSConfig(log)
 			Expect(err).To(MatchError("open tesla.ca: no such file or directory"))
@@ -113,6 +120,12 @@ var _ = Describe("Test full application config", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(config.Port).To(BeEquivalentTo(443))
 			Expect(config.StatusPort).To(BeEquivalentTo(8080))
+		})
+
+		It("not disable TLS", func() {
+			config, err := loadTestApplicationConfig(TestSmallConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.DisableTLS).To(BeFalse())
 		})
 
 		It("transmitrecords disabled by default", func() {
