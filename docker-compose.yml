@@ -33,7 +33,8 @@ services:
         condition: service_started
       errbit:
         condition: service_healthy
-      #   condition: service_started
+      mqtt:
+       condition: service_started
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.6
