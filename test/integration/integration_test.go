@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,6 +36,8 @@ const (
 	zmqAddr           = "tcp://app:5284"
 	kinesisHost       = "http://kinesis:4567"
 	kinesisStreamName = "test_V"
+	mqttBroker        = "mqtt:1883"
+	mqttTopic         = "telemetry/vin/device-1/VehicleName"
 )
 
 var expectedLocation = &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}
@@ -53,6 +56,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		kinesisConsumer *TestKinesisConsumer
 		kafkaConsumer   *kafka.Consumer
 		zmqConsumer     *TestZMQConsumer
+		mqttConsumer    *TestMQTTConsumer
 		tlsConfig       *tls.Config
 		timestamp       *timestamppb.Timestamp
 		logger          *logrus.Logger
@@ -83,6 +87,9 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		zmqConsumer, err = NewTestZMQConsumer(zmqAddr, vehicleTopic, logger)
+		Expect(err).NotTo(HaveOccurred())
+
+		mqttConsumer, err = NewTestMQTTConsumer(mqttBroker, mqttTopic, logger)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -173,6 +180,33 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(data).NotTo(BeNil())
 		Expect(topic).To(Equal(vehicleTopic))
 		VerifyMessageBody(data, vehicleName)
+	})
+
+	It("reads vehicle data from MQTT broker", func() {
+		// Wait a bit for the MQTT consumer to establish its subscription
+		time.Sleep(1 * time.Second)
+
+		err := connection.WriteMessage(websocket.BinaryMessage, payload)
+		Expect(err).NotTo(HaveOccurred())
+
+		var msg []byte
+		Eventually(func() error {
+			msg, err = mqttConsumer.FetchMQTTMessage()
+			return err
+		}, time.Second*5, time.Millisecond*100).Should(BeNil())
+		Expect(msg).NotTo(BeNil())
+
+		// Parse the JSON message
+		var jsonMsg map[string]interface{}
+		err = json.Unmarshal(msg, &jsonMsg)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Verify the "value" field exists and contains the vehicle name
+		value, ok := jsonMsg["value"]
+		Expect(ok).To(BeTrue(), "JSON message should contain a 'value' field")
+
+		// The value should directly contain the vehicle name
+		Expect(value).To(Equal(vehicleName), "Vehicle name %s not found in MQTT message", vehicleName)
 	})
 })
 

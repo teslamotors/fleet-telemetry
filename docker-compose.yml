@@ -33,6 +33,7 @@ services:
         condition: service_started
       errbit:
         condition: service_healthy
+      #   condition: service_started
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.6
@@ -68,6 +69,14 @@ services:
       KAFKA_ENABLE_IDEMPOTENCE: "true"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  mqtt:
+    image: eclipse-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./test/integration/mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
 
   pubsub:
     image: google/cloud-sdk:415.0.0
