@@ -183,9 +183,6 @@ var _ = Describe("Test messages", Ordered, func() {
 	})
 
 	It("reads vehicle data from MQTT broker", func() {
-		// Wait a bit for the MQTT consumer to establish its subscription
-		time.Sleep(1 * time.Second)
-
 		err := connection.WriteMessage(websocket.BinaryMessage, payload)
 		Expect(err).NotTo(HaveOccurred())
 
