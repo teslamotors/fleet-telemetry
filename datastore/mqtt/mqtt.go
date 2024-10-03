@@ -38,6 +38,7 @@ type Config struct {
 	QoS            byte   `json:"qos"`
 	Retained       bool   `json:"retained"`
 	ConnectTimeout int    `json:"connect_timeout"`
+	PublishTimeout int    `json:"publish_timeout"`
 }
 
 type Metrics struct {
@@ -57,6 +58,13 @@ var PahoNewClient = pahomqtt.NewClient
 
 func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metrics)
+
+	if config.PublishTimeout == 0 {
+		config.PublishTimeout = 1 // Default to 1 second
+	}
+	if config.ConnectTimeout == 0 {
+		config.ConnectTimeout = 30 // Default to 30 seconds
+	}
 
 	opts := pahomqtt.NewClientOptions().
 		AddBroker(config.Broker).
@@ -131,15 +139,24 @@ func (p *MQTTProducer) Produce(rec *telemetry.Record) {
 		metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
 	}
 
+	var publishError bool
 	// Wait for all topics to be published
 	for _, token := range tokens {
-		if token.Wait() && token.Error() != nil {
+		if !token.WaitTimeout(time.Duration(p.config.PublishTimeout) * time.Second) {
+			metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
+			p.ReportError("mqtt_publish_timeout", fmt.Errorf("publish operation timed out"), logrus.LogInfo{"topic": "multiple"})
+			publishError = true
+		} else if token.Error() != nil {
 			metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
 			p.ReportError("mqtt_dispatch_error", token.Error(), logrus.LogInfo{"topic": "multiple"})
+			publishError = true
 		}
 	}
-	// Ok, all published topics have been acknowledged (received) by the MQTT broker
-	p.ProcessReliableAck(rec)
+
+	// Only process reliable ACK if no errors were reported
+	if !publishError {
+		p.ProcessReliableAck(rec)
+	}
 }
 
 func (p *MQTTProducer) ProcessReliableAck(entry *telemetry.Record) {
