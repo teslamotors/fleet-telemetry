@@ -155,6 +155,10 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
+* MQTT: Configure with the config.json file. See implementation here: [config/config.go](./config/config.go)
+  * Messages will be published to topics in the format: `<topic_base>/vin/<VIN>/<field_name>`
+  * Each field in the payload is published as a separate MQTT message
+  * The payload is a JSON object with a "value" key containing the field value
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
   
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)

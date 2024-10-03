@@ -199,8 +199,13 @@ var _ = Describe("MQTTProducer", func() {
 			vehicleNameTopic := "test/topic/vin/TEST123/VehicleName"
 			batteryLevelTopic := "test/topic/vin/TEST123/BatteryLevel"
 
+			vehicleNameValue := "{\"value\":\"My Tesla\"}"
+			batterLevelValue := "{\"value\":75.5}"
+
 			Expect(publishedTopics).To(HaveKey(vehicleNameTopic))
 			Expect(publishedTopics).To(HaveKey(batteryLevelTopic))
+			Expect(publishedTopics[vehicleNameTopic]).To(Equal([]byte(vehicleNameValue)))
+			Expect(publishedTopics[batteryLevelTopic]).To(Equal([]byte(batterLevelValue)))
 		})
 	})
 
