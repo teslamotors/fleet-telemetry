@@ -33,7 +33,8 @@
         "topic_base": "telemetry",
         "qos": 1,
         "retained": false,
-        "connect_timeout": 30
+        "connect_timeout": 30,
+        "publish_timeout": 1
     },
     "monitoring": {
         "prometheus_metrics_port": 9090,

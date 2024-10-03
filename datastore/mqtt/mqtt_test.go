@@ -116,8 +116,9 @@ func mockPahoNewClient(o *pahomqtt.ClientOptions) pahomqtt.Client {
 		PublishFunc: func(topic string, qos byte, retained bool, payload interface{}) pahomqtt.Token {
 			publishedTopics[topic] = payload.([]byte)
 			return &MockToken{
-				WaitFunc:  func() bool { return true },
-				ErrorFunc: func() error { return nil },
+				WaitTimeoutFunc: func(d time.Duration) bool { return true },
+				WaitFunc:        func() bool { return true },
+				ErrorFunc:       func() error { return nil },
 			}
 		},
 	}
