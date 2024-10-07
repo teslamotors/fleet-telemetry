@@ -37,7 +37,7 @@ const (
 	kinesisHost       = "http://kinesis:4567"
 	kinesisStreamName = "test_V"
 	mqttBroker        = "mqtt:1883"
-	mqttTopic         = "telemetry/vin/device-1/VehicleName"
+	mqttTopic         = "telemetry/device-1/v/VehicleName"
 )
 
 var expectedLocation = &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}

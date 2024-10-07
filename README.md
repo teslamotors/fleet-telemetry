@@ -155,16 +155,25 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
-* MQTT: Configure with the config.json file. See implementation here: [config/config.go](./config/config.go)
-  * Messages will be published to topics in the format: `<topic_base>/vin/<VIN>/<field_name>`
-  * Each field in the payload is published as a separate MQTT message
-  * The payload is a JSON object with a "value" key containing the field value
-* Logger: This is a simple STDOUT logger that serializes the protos to json.
-  
+* MQTT: Configure using the config.json file. See implementation in [config/config.go](./config/config.go)
+  * Topic structure:
+    - Metrics: `<topic_base>/<VIN>/v/<field_name>`
+    - Alerts: `<topic_base>/<VIN>/alerts/<alert_name>/current`
+    - Alert history: `<topic_base>/<VIN>/alerts/<alert_name>/history`
+    - Errors: `<topic_base>/<VIN>/errors/<error_name>`
+  * Each field is published as a separate MQTT message
+  * Payload formats:
+    - Metrics: `{"value": <field_value>}`
+    - Alerts: `{"Name": <string>, "StartedAt": <timestamp>, "EndedAt": <timestamp>, "Audiences": [<string>]}`
+    - Errors: `{"Name": <string>, "Body": <string>, "Tags": {<string>: <string>}, "CreatedAt": <timestamp>}`
+  * Each field is published as a separate MQTT message
+  * Active alerts don't have a "EndedAt" value.
+* Logger: Simple STDOUT logger that serializes protos to JSON
+
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
 
 ## Reliable Acks
-Fleet telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+Fleet telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
 
 ## Metrics
 Configure and use Prometheus or a StatsD-interface supporting data store for metrics. The integration test runs fleet telemetry with [grafana](https://grafana.com/docs/grafana/latest/datasources/google-cloud-monitoring/), which is compatible with prometheus. It also has an example dashboard which tracks important metrics related to the hosted server. Sample screenshot for the [sample dashboard](./test/integration/grafana/provisioning/dashboards/dashboard.json):-
