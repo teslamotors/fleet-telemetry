@@ -156,18 +156,7 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 * MQTT: Configure using the config.json file. See implementation in [config/config.go](./config/config.go)
-  * Topic structure:
-    - Metrics: `<topic_base>/<VIN>/v/<field_name>`
-    - Alerts: `<topic_base>/<VIN>/alerts/<alert_name>/current`
-    - Alert history: `<topic_base>/<VIN>/alerts/<alert_name>/history`
-    - Errors: `<topic_base>/<VIN>/errors/<error_name>`
-  * Each field is published as a separate MQTT message
-  * Payload formats:
-    - Metrics: `{"value": <field_value>}`
-    - Alerts: `{"Name": <string>, "StartedAt": <timestamp>, "EndedAt": <timestamp>, "Audiences": [<string>]}`
-    - Errors: `{"Name": <string>, "Body": <string>, "Tags": {<string>: <string>}, "CreatedAt": <timestamp>}`
-  * Each field is published as a separate MQTT message
-  * Active alerts don't have a "EndedAt" value.
+  * See detailed MQTT information in the [MQTT README](./datastore/mqtt/README.md)
 * Logger: Simple STDOUT logger that serializes protos to JSON
 
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
