@@ -28,7 +28,7 @@ ENV CGO_LDFLAGS="-lstdc++"
 RUN make
 
 # hadolint ignore=DL3006
-FROM gcr.io/distroless/cc-debian11
+FROM gcr.io/distroless/cc-debian11:nonroot
 WORKDIR /
 COPY --from=build /go/bin/fleet-telemetry /
 
