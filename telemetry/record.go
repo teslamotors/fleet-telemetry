@@ -2,6 +2,8 @@ package telemetry
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,6 +38,7 @@ var (
 			return &protos.Payload{}
 		},
 	}
+	scientificNotationFloatRegex = regexp.MustCompile("^[+-]?(\\d*\\.\\d+|\\d+\\.\\d*)([eE][+-]?\\d+)$")
 )
 
 // Record is a structs that represents the telemetry records vehicles send to the backend
@@ -170,6 +173,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 		}
 		message.Vin = record.Vin
 		transformLocation(message)
+		transformScientificNotation(message)
 		record.PayloadBytes, err = proto.Marshal(message)
 		return err
 	default:
@@ -222,6 +226,20 @@ func transformLocation(message *protos.Payload) {
 			}
 			// There can be only one Field_Location Datum in the proto; abort once we've seen it.
 			return
+		}
+	}
+}
+
+// transformScientificNotation fixes floating point values which are represented in scientific notation
+// example: 1e-3 => 0.001
+func transformScientificNotation(message *protos.Payload) {
+	for _, datum := range message.Data {
+		if strVal := datum.GetValue().GetStringValue(); strVal != "" {
+			if scientificNotationFloatRegex.MatchString(strVal) {
+				if floatVal, err := strconv.ParseFloat(strVal, 32); err == nil {
+					datum.Value = &protos.Value{Value: &protos.Value_StringValue{StringValue: fmt.Sprintf("%.5f", floatVal)}}
+				}
+			}
 		}
 	}
 }

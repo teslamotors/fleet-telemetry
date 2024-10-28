@@ -152,6 +152,42 @@ var _ = Describe("Socket handler test", func() {
 		Expect(second.Key).To(Equal(protos.Field_VehicleName))
 	})
 
+	DescribeTable("number formatting fixes",
+		func(in string, expected string) {
+			brakePedalPos := stringDatum(protos.Field_BrakePedalPos, in)
+
+			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: generatePayload("cybertruck", "42", nil, brakePedalPos)}
+			recordMsg, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(record).NotTo(BeNil())
+
+			data := &protos.Payload{}
+			err = proto.Unmarshal(record.Payload(), data)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(data.Data).To(HaveLen(2))
+
+			// Give some predictability to the test
+			sort.Slice(data.Data, func(i, j int) bool {
+				return data.Data[i].Key < data.Data[j].Key
+			})
+
+			first := data.Data[0]
+			Expect(first.Key).To(Equal(protos.Field_VehicleName))
+
+			second := data.Data[1]
+			Expect(second.Key).To(Equal(protos.Field_BrakePedalPos))
+			Expect(second.Value.GetStringValue()).To(Equal(expected))
+		},
+		Entry("scientific notation is reported as regular float", "1.1920928955078125e-05", "0.00001"),
+		Entry("scientific notation close to zero turns to zero", "1.23e-9", "0.00000"),
+		Entry("long floats are not modified", "0.00000012", "0.00000012"),
+		Entry("regular floats are not modified", "0.03", "0.03"),
+		Entry("integers are not modified", "3", "3"),
+	)
+
 	DescribeTable("handleAlerts",
 		func(payloadTimestamp *timestamppb.Timestamp, expectedTimestamp *timestamppb.Timestamp, isActive bool) {
 			alert := &protos.VehicleAlert{
