@@ -264,7 +264,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 
 	if _, ok := requiredDispatchers[telemetry.Kafka]; ok {
 		if c.Kafka == nil {
-			return nil, errors.New("Expected Kafka to be configured")
+			return nil, errors.New("expected Kafka to be configured")
 		}
 		convertKafkaConfig(c.Kafka)
 		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Kafka], logger)
@@ -276,7 +276,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 
 	if _, ok := requiredDispatchers[telemetry.Pubsub]; ok {
 		if c.Pubsub == nil {
-			return nil, errors.New("Expected Pubsub to be configured")
+			return nil, errors.New("expected Pubsub to be configured")
 		}
 		googleProducer, err := googlepubsub.NewProducer(context.Background(), c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
 		if err != nil {
@@ -287,7 +287,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 
 	if recordNames, ok := requiredDispatchers[telemetry.Kinesis]; ok {
 		if c.Kinesis == nil {
-			return nil, errors.New("Expected Kinesis to be configured")
+			return nil, errors.New("expected Kinesis to be configured")
 		}
 		maxRetries := 1
 		if c.Kinesis.MaxRetries != nil {
@@ -303,7 +303,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 
 	if _, ok := requiredDispatchers[telemetry.ZMQ]; ok {
 		if c.ZMQ == nil {
-			return nil, errors.New("Expected ZMQ to be configured")
+			return nil, errors.New("expected ZMQ to be configured")
 		}
 		zmqProducer, err := zmq.NewProducer(context.Background(), c.ZMQ, c.MetricCollector, c.Namespace, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.ZMQ], logger)
 		if err != nil {
@@ -331,6 +331,9 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 func (c *Config) configureReliableAckSources() (map[telemetry.Dispatcher]map[string]interface{}, error) {
 	reliableAckSources := make(map[telemetry.Dispatcher]map[string]interface{}, 0)
 	for txType, dispatchRule := range c.ReliableAckSources {
+		if txType == "connectivity" {
+			return nil, fmt.Errorf("reliable ack not needed for txType: %s", txType)
+		}
 		if dispatchRule == telemetry.Logger {
 			return nil, fmt.Errorf("logger cannot be configured as reliable ack for record: %s", txType)
 		}

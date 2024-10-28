@@ -65,6 +65,8 @@ func (p *ProtoLogger) recordToLogMap(record *telemetry.Record) (interface{}, err
 			errorMaps[i] = transformers.VehicleErrorToMap(vehicleError)
 		}
 		return errorMaps, nil
+	case *protos.VehicleConnectivity:
+		return transformers.VehicleConnectivityToMap(payload), nil
 	default:
 		return nil, fmt.Errorf("unknown txType: %s", record.TxType)
 	}

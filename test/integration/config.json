@@ -21,7 +21,8 @@
         "override_host": "http://kinesis:4567",
         "max_retries": 3,
         "streams": {
-            "V": "test_V"
+            "V": "test_V",
+            "connectivity": "test_connectivity"
         }
     },
     "zmq": {
@@ -39,6 +40,13 @@
     },
     "records": {
         "V": [
+            "kafka",
+            "kinesis",
+            "pubsub",
+            "logger",
+            "zmq"
+        ],
+        "connectivity": [
             "kafka",
             "kinesis",
             "pubsub",

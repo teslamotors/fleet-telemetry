@@ -75,7 +75,7 @@ func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, 
 		ackChan:            ackChan,
 		reliableAckTxTypes: reliableAckTxTypes,
 	}
-	p.logger.ActivityLog("pubsub_registerd", logrus.LogInfo{"project": projectID, "namespace": namespace})
+	p.logger.ActivityLog("pubsub_registered", logrus.LogInfo{"project": projectID, "namespace": namespace})
 	return p, nil
 }
 

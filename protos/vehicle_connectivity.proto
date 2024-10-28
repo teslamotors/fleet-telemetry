@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package telemetry.vehicle_connectivity;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/teslamotors/fleet-telemetry/protos";
+
+// VehicleConnectivity represents connection status change for the vehicle
+message VehicleConnectivity {
+  string vin = 1;
+  string connection_id = 2;
+  ConnectivityEvent status = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// ConnectivityEvent represents connection state of the vehicle
+enum ConnectivityEvent {
+  UNKNOWN = 0;
+  CONNECTED = 1;
+  DISCONNECTED = 2;
+}

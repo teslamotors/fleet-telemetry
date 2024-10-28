@@ -1,33 +1,41 @@
 package integration_test
 
 import (
+	"fmt"
+
+	. "github.com/onsi/gomega"
 	"github.com/pebbe/zmq4"
-	"github.com/sirupsen/logrus"
 )
 
 type TestZMQConsumer struct {
-	sock *zmq4.Socket
+	socks map[string]*zmq4.Socket
 }
 
-func NewTestZMQConsumer(addr string, subscription string, logger *logrus.Logger) (*TestZMQConsumer, error) {
-	sock, err := zmq4.NewSocket(zmq4.SUB)
-	if err != nil {
-		return nil, err
+func NewTestZMQConsumer(addr string, topics []string) (*TestZMQConsumer, error) {
+	socks := make(map[string]*zmq4.Socket)
+	for _, topicID := range topics {
+		sock, err := zmq4.NewSocket(zmq4.SUB)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := sock.SetSubscribe(topicID); err != nil {
+			return nil, err
+		}
+
+		if err := sock.Connect(addr); err != nil {
+			return nil, err
+		}
+		socks[topicID] = sock
 	}
 
-	if err := sock.SetSubscribe(subscription); err != nil {
-		return nil, err
-	}
-
-	if err := sock.Connect(addr); err != nil {
-		return nil, err
-	}
-
-	return &TestZMQConsumer{sock}, nil
+	return &TestZMQConsumer{socks: socks}, nil
 }
 
 func (t *TestZMQConsumer) Close() {
-	t.sock.Close()
+	for _, sock := range t.socks {
+		Expect(sock.Close()).NotTo(HaveOccurred())
+	}
 }
 
 type malformedZMQMessage struct{}
@@ -38,8 +46,12 @@ func (malformedZMQMessage) Error() string {
 
 var ErrMalformedZMQMessage malformedZMQMessage
 
-func (t *TestZMQConsumer) NextMessage() (topic string, data []byte, err error) {
-	messages, err := t.sock.RecvMessageBytes(zmq4.Flag(0))
+func (t *TestZMQConsumer) NextMessage(topicId string) (topic string, data []byte, err error) {
+	sock, ok := t.socks[topicId]
+	if !ok {
+		return "", nil, fmt.Errorf("no consumer for %s", topicId)
+	}
+	messages, err := sock.RecvMessageBytes(0)
 	if err != nil {
 		return "", nil, err
 	}
@@ -48,7 +60,5 @@ func (t *TestZMQConsumer) NextMessage() (topic string, data []byte, err error) {
 		return "", nil, ErrMalformedZMQMessage
 	}
 
-	topic = string(messages[0])
-	data = messages[1]
-	return
+	return string(messages[0]), messages[1], nil
 }

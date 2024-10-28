@@ -181,6 +181,7 @@ var _ = Describe("Test full application config", func() {
 			Entry("when reliable ack is mapped incorrectly", TestBadReliableAckConfig, "pubsub cannot be configured as reliable ack for record: V. Valid datastores configured [kafka]"),
 			Entry("when logger is configured as reliable ack", TestLoggerAsReliableAckConfig, "logger cannot be configured as reliable ack for record: V"),
 			Entry("when reliable ack is configured for unmapped txtype", TestUnusedTxTypeAsReliableAckConfig, "kafka cannot be configured as reliable ack for record: error since no record mapping exists"),
+			Entry("when reliable ack is mapped with unsupported txtype", TestBadTxTypeReliableAckConfig, "reliable ack not needed for txType: connectivity"),
 		)
 
 	})
@@ -192,7 +193,7 @@ var _ = Describe("Test full application config", func() {
 
 			var err error
 			producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
-			Expect(err).To(MatchError("Expected Kinesis to be configured"))
+			Expect(err).To(MatchError("expected Kinesis to be configured"))
 			Expect(producers).To(BeNil())
 		})
 
@@ -253,7 +254,7 @@ var _ = Describe("Test full application config", func() {
 			config.Records = map[string][]telemetry.Dispatcher{"V": {"zmq"}}
 			var err error
 			producers, err = config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
-			Expect(err).To(MatchError("Expected ZMQ to be configured"))
+			Expect(err).To(MatchError("expected ZMQ to be configured"))
 			Expect(producers).To(BeNil())
 			producers, err = zmqConfig.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log)
 			Expect(err).To(BeNil())
