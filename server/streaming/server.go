@@ -8,14 +8,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
+	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
@@ -30,6 +33,10 @@ var (
 
 	serverMetricsRegistry ServerMetrics
 	serverMetricsOnce     sync.Once
+)
+
+const (
+	connectitivityTopic = "connectivity"
 )
 
 // Metrics stores metrics reported from this package
@@ -127,13 +134,70 @@ func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter
 				s.logger.ErrorLog("extract_sender_id_err", err, nil)
 			}
 
-			socketManager := NewSocketManager(ctx, requestIdentity, ws, config, s.logger)
-			s.registry.RegisterSocket(socketManager)
-			defer s.registry.DeregisterSocket(socketManager)
-
 			binarySerializer := telemetry.NewBinarySerializer(requestIdentity, s.DispatchRules, s.logger)
+			socketManager := NewSocketManager(ctx, requestIdentity, ws, config, s.logger)
+			s.registerSocket(socketManager, binarySerializer)
+			defer s.deregisterSocket(socketManager, binarySerializer)
+
 			socketManager.ProcessTelemetry(binarySerializer)
 		}
+	}
+}
+
+func (s *Server) dispatchConnectivityEvent(sm *SocketManager, serializer *telemetry.BinarySerializer, event protos.ConnectivityEvent) error {
+	connectivityDispatcher, ok := s.DispatchRules[connectitivityTopic]
+	if !ok {
+		return nil
+	}
+
+	connectivityMessage := &protos.VehicleConnectivity{
+		Vin:          sm.requestIdentity.DeviceID,
+		ConnectionId: sm.UUID,
+		CreatedAt:    timestamppb.Now(),
+		Status:       event,
+	}
+
+	payload, err := proto.Marshal(connectivityMessage)
+	if err != nil {
+		return nil
+	}
+
+	// creating streamMessage is hack to satify input reqirements for telemetry.NewRecord
+	streamMessage := messages.StreamMessage{
+		TXID:         []byte(sm.UUID),
+		SenderID:     []byte(sm.requestIdentity.SenderID),
+		DeviceID:     []byte(sm.requestIdentity.DeviceID),
+		DeviceType:   []byte("vehicle_device"),
+		MessageTopic: []byte(connectitivityTopic),
+		Payload:      payload,
+		CreatedAt:    uint32(connectivityMessage.CreatedAt.AsTime().Unix()),
+	}
+
+	message, err := streamMessage.ToBytes()
+	if err != nil {
+		return nil
+	}
+	record, _ := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
+	for _, dispatcher := range connectivityDispatcher {
+		dispatcher.Produce(record)
+	}
+	return nil
+}
+
+func (s *Server) registerSocket(sm *SocketManager, serializer *telemetry.BinarySerializer) {
+	s.registry.RegisterSocket(sm)
+	event := protos.ConnectivityEvent_CONNECTED
+	if err := s.dispatchConnectivityEvent(sm, serializer, event); err != nil {
+		s.logger.ErrorLog("connectivity_registeration_error", err, logrus.LogInfo{"deviceID": sm.requestIdentity.DeviceID, "event": event})
+	}
+
+}
+
+func (s *Server) deregisterSocket(sm *SocketManager, serializer *telemetry.BinarySerializer) {
+	s.registry.DeregisterSocket(sm)
+	event := protos.ConnectivityEvent_DISCONNECTED
+	if err := s.dispatchConnectivityEvent(sm, serializer, event); err != nil {
+		s.logger.ErrorLog("connectivity_deregisteration_error", err, logrus.LogInfo{"deviceID": sm.requestIdentity.DeviceID, "event": event})
 	}
 }
 

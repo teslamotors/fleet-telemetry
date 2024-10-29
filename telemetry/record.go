@@ -37,6 +37,9 @@ var (
 		"V": func() proto.Message {
 			return &protos.Payload{}
 		},
+		"connectivity": func() proto.Message {
+			return &protos.VehicleConnectivity{}
+		},
 	}
 	scientificNotationFloatRegex = regexp.MustCompile("^[+-]?(\\d*\\.\\d+|\\d+\\.\\d*)([eE][+-]?\\d+)$")
 )
@@ -174,6 +177,14 @@ func (record *Record) applyProtoRecordTransforms() error {
 		message.Vin = record.Vin
 		transformLocation(message)
 		transformScientificNotation(message)
+		record.PayloadBytes, err = proto.Marshal(message)
+		return err
+	case "connectivity":
+		message := &protos.VehicleConnectivity{}
+		err := proto.Unmarshal(record.Payload(), message)
+		if err != nil {
+			return err
+		}
 		record.PayloadBytes, err = proto.Marshal(message)
 		return err
 	default:

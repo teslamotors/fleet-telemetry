@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -9,60 +10,77 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"google.golang.org/api/iterator"
 )
 
 type TestConsumer struct {
 	pubsubClient *pubsub.Client
-	topic        *pubsub.Topic
-	sub          *pubsub.Subscription
+	subs         map[string]*pubsub.Subscription
 }
 
-func NewTestPubsubConsumer(projectID, topicID, subID string, logger *logrus.Logger) (*TestConsumer, error) {
+func NewTestPubsubConsumer(projectID string, topicIDs []string, logger *logrus.Logger) (*TestConsumer, error) {
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
+	subs := map[string]*pubsub.Subscription{}
 
-	topic, err := createTopicIfNotExists(context.Background(), topicID, client)
-	if err != nil {
-		return nil, err
-	}
+	for _, topicID := range topicIDs {
+		_, err := createTopicIfNotExists(context.Background(), topicID, client)
+		if err != nil {
+			return nil, err
+		}
 
-	sub, err := createSubscriptionIfNotExists(ctx, subID, topicID, client, logger)
-	if err != nil {
-		return nil, err
+		sub, err := createSubscriptionIfNotExists(ctx, topicID, client, logger)
+		if err != nil {
+			return nil, err
+		}
+
+		sub.ReceiveSettings.Synchronous = false
+		sub.ReceiveSettings.MaxOutstandingMessages = -1
+
+		subs[topicID] = sub
 	}
-	sub.ReceiveSettings.Synchronous = false
-	sub.ReceiveSettings.MaxOutstandingMessages = -1
 	return &TestConsumer{
 		pubsubClient: client,
-		topic:        topic,
-		sub:          sub,
+		subs:         subs,
 	}, nil
 
 }
 
-func createSubscriptionIfNotExists(ctx context.Context, subID string, topicID string, pubsubClient *pubsub.Client, logger *logrus.Logger) (*pubsub.Subscription, error) {
+func subID(topicID string) string {
+	return fmt.Sprintf("sub-id-%s", topicID)
+}
+
+func createSubscriptionIfNotExists(ctx context.Context, topicID string, pubsubClient *pubsub.Client, logger *logrus.Logger) (*pubsub.Subscription, error) {
 	topic, err := createTopicIfNotExists(ctx, topicID, pubsubClient)
 	if err != nil {
 		return nil, err
 	}
+	subID := subID(topicID)
 	sub := pubsubClient.Subscription(subID)
 	exists, err := sub.Exists(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
-		logger.Infof("subscription %v already present", sub)
+		logger.ActivityLog("subscription_present", logrus.LogInfo{"sub": sub})
 		return sub, nil
 	}
-	return pubsubClient.CreateSubscription(ctx, subID, pubsub.SubscriptionConfig{
-		Topic:       topic,
-		AckDeadline: 20 * time.Second,
+	c, err := pubsubClient.CreateSubscription(ctx, subID, pubsub.SubscriptionConfig{
+		Topic:                 topic,
+		AckDeadline:           20 * time.Second,
+		EnableMessageOrdering: true,
 	})
+	if err != nil {
+		return nil, err
+	}
+	c.ReceiveSettings = pubsub.ReceiveSettings{
+		MaxExtension: 10 * time.Hour,
+	}
+	return c, nil
 }
 
 func createTopicIfNotExists(ctx context.Context, topic string, pubsubClient *pubsub.Client) (*pubsub.Topic, error) {
@@ -92,7 +110,11 @@ func (c *TestConsumer) ClearSubscriptions() {
 	}
 }
 
-func (c *TestConsumer) FetchPubsubMessage() (*pubsub.Message, error) {
+func (c *TestConsumer) FetchPubsubMessage(topicId string) (*pubsub.Message, error) {
+	sub, ok := c.subs[topicId]
+	if !ok {
+		return nil, fmt.Errorf("unknown topic: %s", topicId)
+	}
 	ctx := context.Background()
 	var mu sync.Mutex
 	var m *pubsub.Message
@@ -100,7 +122,7 @@ func (c *TestConsumer) FetchPubsubMessage() (*pubsub.Message, error) {
 	received := 0
 	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 
-	err := c.sub.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
+	err := sub.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
 		msg.Ack()
 		atomic.StorePointer(unsafepL, unsafe.Pointer(msg))
 		mu.Lock()
