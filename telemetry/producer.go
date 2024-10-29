@@ -20,6 +20,8 @@ const (
 	Logger Dispatcher = "logger"
 	// ZMQ registers a zmq logger
 	ZMQ Dispatcher = "zmq"
+	// MQTT registers an MQTT dispatcher
+	MQTT Dispatcher = "mqtt"
 )
 
 // BuildTopicName creates a topic from a namespace and a recordName
