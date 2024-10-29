@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("AirbrakeMiddleware", func() {
 	var (
-		handler  *AirbrakeHandler
+		handler  *Handler
 		recorder *httptest.ResponseRecorder
 		req      *http.Request
 	)
@@ -27,9 +27,9 @@ var _ = Describe("AirbrakeMiddleware", func() {
 
 	DescribeTable("successfully handles request",
 		func(statusCode int, body string) {
-			httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			httpHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(statusCode)
-				w.Write([]byte(body))
+				_, _ = w.Write([]byte(body))
 			})
 			handler.WithReporting(httpHandler).ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(statusCode))

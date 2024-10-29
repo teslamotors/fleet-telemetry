@@ -9,6 +9,7 @@ import (
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
+// Config for the protobuf logger
 type Config struct {
 	// Verbose controls whether types are explicitly shown in the logs. Only applicable for record type 'V'.
 	Verbose bool `json:"verbose"`
@@ -25,8 +26,8 @@ func NewProtoLogger(config *Config, logger *logrus.Logger) telemetry.Producer {
 	return &ProtoLogger{Config: config, logger: logger}
 }
 
-// SetReliableAckTxType no-op for logger datastore
-func (p *ProtoLogger) ProcessReliableAck(entry *telemetry.Record) {
+// ProcessReliableAck noop method
+func (p *ProtoLogger) ProcessReliableAck(_ *telemetry.Record) {
 }
 
 // Produce sends the data to the logger
@@ -40,7 +41,7 @@ func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 }
 
 // ReportError noop method
-func (p *ProtoLogger) ReportError(message string, err error, logInfo logrus.LogInfo) {
+func (p *ProtoLogger) ReportError(_ string, _ error, _ logrus.LogInfo) {
 }
 
 // recordToLogMap converts the data of a record to a map or slice of maps

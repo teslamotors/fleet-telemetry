@@ -110,10 +110,10 @@ func (c *TestConsumer) ClearSubscriptions() {
 	}
 }
 
-func (c *TestConsumer) FetchPubsubMessage(topicId string) (*pubsub.Message, error) {
-	sub, ok := c.subs[topicId]
+func (c *TestConsumer) FetchPubsubMessage(topicID string) (*pubsub.Message, error) {
+	sub, ok := c.subs[topicID]
 	if !ok {
-		return nil, fmt.Errorf("unknown topic: %s", topicId)
+		return nil, fmt.Errorf("unknown topic: %s", topicID)
 	}
 	ctx := context.Background()
 	var mu sync.Mutex
@@ -122,7 +122,7 @@ func (c *TestConsumer) FetchPubsubMessage(topicId string) (*pubsub.Message, erro
 	received := 0
 	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 
-	err := sub.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
+	err := sub.Receive(cctx, func(_ context.Context, msg *pubsub.Message) {
 		msg.Ack()
 		atomic.StorePointer(unsafepL, unsafe.Pointer(msg))
 		mu.Lock()

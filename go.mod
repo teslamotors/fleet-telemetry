@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go v1.44.278
 	github.com/beefsack/go-rate v0.0.0-20220214233405-116f4ca011a0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.3.0
-	github.com/golang/protobuf v1.5.3
 	github.com/google/flatbuffers v23.3.3+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
@@ -21,7 +20,7 @@ require (
 	github.com/smira/go-statsd v1.3.2
 	go.uber.org/automaxprocs v1.5.2
 	google.golang.org/api v0.114.0
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.35.1
 )
 
 require (
@@ -35,6 +34,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.8.0 // indirect

@@ -9,17 +9,17 @@ type Gauge struct {
 }
 
 // Add (noop)
-func (c *Gauge) Add(n int64, labels adapter.Labels) {
+func (c *Gauge) Add(_ int64, _ adapter.Labels) {
 }
 
 // Sub (noop)
-func (c *Gauge) Sub(n int64, labels adapter.Labels) {
+func (c *Gauge) Sub(_ int64, _ adapter.Labels) {
 }
 
 // Inc (noop)
-func (c *Gauge) Inc(labels adapter.Labels) {
+func (c *Gauge) Inc(_ adapter.Labels) {
 }
 
 // Set (noop)
-func (c *Gauge) Set(n int64, labels adapter.Labels) {
+func (c *Gauge) Set(_ int64, _ adapter.Labels) {
 }

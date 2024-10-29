@@ -18,15 +18,15 @@ type CallbackTester struct {
 	reliableAck int
 }
 
-func (c *CallbackTester) Produce(entry *telemetry.Record) {
+func (c *CallbackTester) Produce(_ *telemetry.Record) {
 	c.counter++
 }
 
-func (c *CallbackTester) ProcessReliableAck(entry *telemetry.Record) {
+func (c *CallbackTester) ProcessReliableAck(_ *telemetry.Record) {
 	c.reliableAck++
 }
 
-func (c *CallbackTester) ReportError(message string, err error, logInfo logrus.LogInfo) {
+func (c *CallbackTester) ReportError(_ string, _ error, _ logrus.LogInfo) {
 	c.errors++
 }
 

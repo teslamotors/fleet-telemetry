@@ -57,20 +57,20 @@ var (
 // ZMQ publisher socket.
 const MonitorSocketAddr = "inproc://zmq_socket_monitor.rep"
 
-// ZMQProducer implements the telemetry.Producer interface by publishing to a
+// Producer implements the telemetry.Producer interface by publishing to a
 // bound zmq socket.
-type ZMQProducer struct {
+type Producer struct {
 	namespace          string
 	ctx                context.Context
 	sock               *zmq4.Socket
 	logger             *logrus.Logger
-	airbrakeHandler    *airbrake.AirbrakeHandler
+	airbrakeHandler    *airbrake.Handler
 	ackChan            chan (*telemetry.Record)
 	reliableAckTxTypes map[string]interface{}
 }
 
-// Publish the record to the socket.
-func (p *ZMQProducer) Produce(rec *telemetry.Record) {
+// Produce the record to the socket.
+func (p *Producer) Produce(rec *telemetry.Record) {
 	if p.ctx.Err() != nil {
 		return
 	}
@@ -79,21 +79,20 @@ func (p *ZMQProducer) Produce(rec *telemetry.Record) {
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
 		p.ReportError("zmq_dispatch_error", err, nil)
 		return
-	} else {
-		p.ProcessReliableAck(rec)
 	}
+	p.ProcessReliableAck(rec)
 	metricsRegistry.byteTotal.Add(int64(nBytes), map[string]string{"record_type": rec.TxType})
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
 }
 
 // ReportError to airbrake and logger
-func (p *ZMQProducer) ReportError(message string, err error, logInfo logrus.LogInfo) {
+func (p *Producer) ReportError(message string, err error, logInfo logrus.LogInfo) {
 	p.airbrakeHandler.ReportLogMessage(logrus.ERROR, message, err, logInfo)
 	p.logger.ErrorLog(message, err, logInfo)
 }
 
 // Close the underlying socket.
-func (p *ZMQProducer) Close() error {
+func (p *Producer) Close() error {
 	if p.sock != nil {
 		if err := p.sock.Close(); err != nil {
 			return err
@@ -104,7 +103,7 @@ func (p *ZMQProducer) Close() error {
 }
 
 // ProcessReliableAck sends to ackChan if reliable ack is configured
-func (p *ZMQProducer) ProcessReliableAck(entry *telemetry.Record) {
+func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
 	_, ok := p.reliableAckTxTypes[entry.TxType]
 	if ok {
 		p.ackChan <- entry
@@ -113,7 +112,7 @@ func (p *ZMQProducer) ProcessReliableAck(entry *telemetry.Record) {
 }
 
 // NewProducer creates a ZMQProducer with the given config.
-func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (producer telemetry.Producer, err error) {
+func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (producer telemetry.Producer, err error) {
 	registerMetricsOnce(metrics)
 	sock, err := zmq4.NewSocket(zmq4.PUB)
 	if err != nil {
@@ -122,7 +121,7 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 
 	if config.Verbose {
 		ready := make(chan struct{})
-		if err = logSocketInBackground(sock, logger, MonitorSocketAddr, ready, ctx); err != nil {
+		if err = logSocketInBackground(ctx, sock, logger, MonitorSocketAddr, ready); err != nil {
 			return
 		}
 		<-ready
@@ -134,7 +133,11 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 		if err != nil {
 			return nil, err
 		}
-		defer fi.Close()
+		defer func() {
+			if err := fi.Close(); err != nil {
+				logger.ErrorLog("zmq_server_key_file_close_error", err, nil)
+			}
+		}()
 		key := KeyJSON{}
 		if err = json.NewDecoder(fi).Decode(&key); err != nil {
 			return nil, err
@@ -145,7 +148,11 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 			if err != nil {
 				return nil, err
 			}
-			defer fi2.Close()
+			defer func() {
+				if err := fi2.Close(); err != nil {
+					logger.ErrorLog("zmq_allowed_public_keys_file_close_error", err, nil)
+				}
+			}()
 
 			var keys []string
 			if err = json.NewDecoder(fi2).Decode(&keys); err != nil {
@@ -168,7 +175,7 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 		return
 	}
 
-	return &ZMQProducer{
+	return &Producer{
 		namespace:          namespace,
 		ctx:                ctx,
 		sock:               sock,
@@ -180,7 +187,7 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 }
 
 // logSocketInBackground logs the socket activity in the background.
-func logSocketInBackground(target *zmq4.Socket, logger *logrus.Logger, addr string, ready chan<- struct{}, ctx context.Context) error {
+func logSocketInBackground(ctx context.Context, target *zmq4.Socket, logger *logrus.Logger, addr string, ready chan<- struct{}) error {
 	if err := target.Monitor(addr, zmq4.EVENT_ALL); err != nil {
 		return err
 	}
@@ -196,7 +203,11 @@ func logSocketInBackground(target *zmq4.Socket, logger *logrus.Logger, addr stri
 
 	go func() {
 		ready <- struct{}{}
-		defer monitor.Close()
+		defer func() {
+			if err := monitor.Close(); err != nil {
+				logger.ErrorLog("zmq_monitor_close_error", err, nil)
+			}
+		}()
 		for {
 			if ctx.Err() != nil {
 				return

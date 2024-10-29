@@ -9,5 +9,5 @@ type Timer struct {
 }
 
 // Observe (noop)
-func (c *Timer) Observe(n int64, labels adapter.Labels) {
+func (c *Timer) Observe(_ int64, _ adapter.Labels) {
 }

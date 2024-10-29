@@ -8,8 +8,6 @@ import (
 )
 
 var (
-	// ErrNotImplemented error to return when something is not implemented
-	ErrNotImplemented = errors.New("not implemented")
 
 	// ErrUnauthorizedCert returned if cert cannot be turned into identity
 	ErrUnauthorizedCert = errors.New("unauthorized certificate")

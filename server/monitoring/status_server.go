@@ -13,14 +13,14 @@ type statusServer struct {
 }
 
 // Status API
-func (s *statusServer) Status() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "ok")
+func (s *statusServer) Status() func(w http.ResponseWriter, _ *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, "ok")
 	}
 }
 
 // StartStatusServer initializes the status server on http
-func StartStatusServer(config *config.Config, logger *logrus.Logger, airbrakeHandler *airbrake.AirbrakeHandler) {
+func StartStatusServer(config *config.Config, logger *logrus.Logger, airbrakeHandler *airbrake.Handler) {
 	statusServer := &statusServer{}
 	mux := http.NewServeMux()
 	mux.Handle("/status", airbrakeHandler.WithReporting(http.HandlerFunc(statusServer.Status())))
