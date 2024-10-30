@@ -27,20 +27,6 @@ var (
 		UseEnumNumbers:  false,
 		EmitUnpopulated: true,
 		Indent:          ""}
-	protobufMap = map[string]func() proto.Message{
-		"alerts": func() proto.Message {
-			return &protos.VehicleAlerts{}
-		},
-		"errors": func() proto.Message {
-			return &protos.VehicleErrors{}
-		},
-		"V": func() proto.Message {
-			return &protos.Payload{}
-		},
-		"connectivity": func() proto.Message {
-			return &protos.VehicleConnectivity{}
-		},
-	}
 	scientificNotationFloatRegex = regexp.MustCompile("^[+-]?(\\d*\\.\\d+|\\d+\\.\\d*)([eE][+-]?\\d+)$")
 )
 
@@ -60,6 +46,7 @@ type Record struct {
 	PayloadBytes           []byte
 	RawBytes               []byte
 	transmitDecodedRecords bool
+	protoMessage           proto.Message
 }
 
 // NewRecord Sanitizes and instantiates a Record from a message
@@ -158,6 +145,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 		message.Vin = record.Vin
 		transformTimestamp(message)
 		record.PayloadBytes, err = proto.Marshal(message)
+		record.protoMessage = message
 		return err
 	case "errors":
 		message := &protos.VehicleErrors{}
@@ -167,6 +155,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 		}
 		message.Vin = record.Vin
 		record.PayloadBytes, err = proto.Marshal(message)
+		record.protoMessage = message
 		return err
 	case "V":
 		message := &protos.Payload{}
@@ -178,6 +167,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 		transformLocation(message)
 		transformScientificNotation(message)
 		record.PayloadBytes, err = proto.Marshal(message)
+		record.protoMessage = message
 		return err
 	case "connectivity":
 		message := &protos.VehicleConnectivity{}
@@ -186,6 +176,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 			return err
 		}
 		record.PayloadBytes, err = proto.Marshal(message)
+		record.protoMessage = message
 		return err
 	default:
 		return nil
@@ -204,24 +195,14 @@ func (record *Record) applyRecordTransforms() error {
 	return err
 }
 
-// GetProtoMessage converts the record to a proto Message
-func (record *Record) GetProtoMessage() (proto.Message, error) {
-	msgFunc, ok := protobufMap[record.TxType]
-	if !ok {
-		return nil, fmt.Errorf("no mapping for txType: %s", record.TxType)
-	}
-	message := msgFunc()
-	err := proto.Unmarshal(record.Payload(), message)
-	return message, err
+// GetProtoMessage gets extracted protobuf message
+func (record *Record) GetProtoMessage() proto.Message {
+	return record.protoMessage
 }
 
 // ToJSON serializes the record to a JSON data in bytes
 func (record *Record) toJSON() ([]byte, error) {
-	payload, err := record.GetProtoMessage()
-	if err != nil {
-		return nil, err
-	}
-	return jsonOptions.Marshal(payload)
+	return jsonOptions.Marshal(record.protoMessage)
 }
 
 // transformLocation does a best-effort attempt to convert the Location field to a proper protos.Location
