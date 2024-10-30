@@ -1,5 +1,5 @@
 # Start by building the application.
-FROM golang:1.20.5-bullseye as build
+FROM golang:1.23.0-bullseye as build
 
 # build libsodium (dep of libzmq)
 WORKDIR /build
