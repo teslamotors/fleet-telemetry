@@ -101,11 +101,12 @@ type Config struct {
 	Airbrake *Airbrake
 }
 
+// Airbrake config
 type Airbrake struct {
 	Host        string `json:"host"`
 	ProjectKey  string `json:"project_key"`
 	Environment string `json:"environment"`
-	ProjectId   int64  `json:"project_id"`
+	ProjectID   int64  `json:"project_id"`
 
 	TLS *TLS `json:"tls" yaml:"tls"`
 }
@@ -153,8 +154,8 @@ type TLS struct {
 	ServerKey  string `json:"server_key"`
 }
 
-// AirbrakeTlsConfig return the TLS config needed for connecting with airbrake server
-func (c *Config) AirbrakeTlsConfig() (*tls.Config, error) {
+// AirbrakeTLSConfig return the TLS config needed for connecting with airbrake server
+func (c *Config) AirbrakeTLSConfig() (*tls.Config, error) {
 	if c.Airbrake.TLS == nil {
 		return nil, nil
 	}
@@ -168,6 +169,8 @@ func (c *Config) AirbrakeTlsConfig() (*tls.Config, error) {
 			return nil, fmt.Errorf("can't properly load cert pair (%s, %s): %s", certPath, keyPath, err.Error())
 		}
 		tlsConfig.Certificates = []tls.Certificate{cert}
+		// TODO remove the lint bypass
+		// nolint:staticcheck
 		tlsConfig.BuildNameToCertificate()
 	}
 
@@ -246,7 +249,7 @@ func (c *Config) prometheusEnabled() bool {
 }
 
 // ConfigureProducers validates and establishes connections to the producers (kafka/pubsub/logger)
-func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (map[string][]telemetry.Producer, error) {
+func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *logrus.Logger) (map[string][]telemetry.Producer, error) {
 	reliableAckSources, err := c.configureReliableAckSources()
 	if err != nil {
 		return nil, err
@@ -278,7 +281,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 		if c.Pubsub == nil {
 			return nil, errors.New("expected Pubsub to be configured")
 		}
-		googleProducer, err := googlepubsub.NewProducer(context.Background(), c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
+		googleProducer, err := googlepubsub.NewProducer(c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
 		if err != nil {
 			return nil, err
 		}
@@ -401,7 +404,7 @@ func (c *Config) CreateAirbrakeNotifier(logger *logrus.Logger) (*githubairbrake.
 	if c.Airbrake == nil {
 		return nil, nil, nil
 	}
-	tlsConfig, err := c.AirbrakeTlsConfig()
+	tlsConfig, err := c.AirbrakeTLSConfig()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -430,7 +433,7 @@ func (c *Config) CreateAirbrakeNotifier(logger *logrus.Logger) (*githubairbrake.
 		DisableRemoteConfig: true,
 		APMHost:             errbitHost,
 		DisableAPM:          true,
-		ProjectId:           c.Airbrake.ProjectId,
+		ProjectId:           c.Airbrake.ProjectID,
 		ProjectKey:          projectKey,
 		Environment:         c.Airbrake.Environment,
 		HTTPClient:          httpClient,

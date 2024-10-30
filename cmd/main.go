@@ -41,7 +41,11 @@ func main() {
 	}
 	if airbrakeNotifier != nil {
 		defer airbrakeNotifier.NotifyOnPanic()
-		defer airbrakeNotifier.Close()
+		defer func() {
+			if err := airbrakeNotifier.Close(); err != nil {
+				logger.ErrorLog("airbrake_close_error", err, nil)
+			}
+		}()
 	}
 	panic(startServer(config, airbrakeNotifier, logger))
 }

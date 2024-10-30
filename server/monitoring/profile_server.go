@@ -40,8 +40,8 @@ func (p *profileServer) liveProfiler(config *config.Config) func(w http.Response
 }
 
 // gcStats display GC stats
-func (p *profileServer) gcStats() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (p *profileServer) gcStats() func(w http.ResponseWriter, _ *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		stats := &debug.GCStats{}
 		debug.ReadGCStats(stats)
 

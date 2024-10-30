@@ -9,9 +9,9 @@ type Counter struct {
 }
 
 // Add (noop)
-func (c *Counter) Add(n int64, labels adapter.Labels) {
+func (c *Counter) Add(_ int64, _ adapter.Labels) {
 }
 
 // Inc (noop)
-func (c *Counter) Inc(labels adapter.Labels) {
+func (c *Counter) Inc(_ adapter.Labels) {
 }

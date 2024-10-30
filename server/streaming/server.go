@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/teslamotors/fleet-telemetry/config"
@@ -26,7 +26,7 @@ import (
 var (
 	upgrader = websocket.Upgrader{
 		// disable origin checking on the websocket.  we're not serving browsers
-		CheckOrigin:     func(r *http.Request) bool { return true },
+		CheckOrigin:     func(_ *http.Request) bool { return true },
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
@@ -39,7 +39,7 @@ const (
 	connectitivityTopic = "connectivity"
 )
 
-// Metrics stores metrics reported from this package
+// ServerMetrics stores metrics reported from this package
 type ServerMetrics struct {
 	reliableAckCount     adapter.Counter
 	reliableAckMissCount adapter.Counter
@@ -54,7 +54,7 @@ type Server struct {
 	// Metrics collects metrics for the application
 	metricsCollector metrics.MetricCollector
 
-	airbrakeHandler *airbrake.AirbrakeHandler
+	airbrakeHandler *airbrake.Handler
 
 	registry *SocketRegistry
 
@@ -64,7 +64,7 @@ type Server struct {
 }
 
 // InitServer initializes the main server
-func InitServer(c *config.Config, airbrakeHandler *airbrake.AirbrakeHandler, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *Server, error) {
+func InitServer(c *config.Config, airbrakeHandler *airbrake.Handler, producerRules map[string][]telemetry.Producer, logger *logrus.Logger, registry *SocketRegistry) (*http.Server, *Server, error) {
 
 	socketServer := &Server{
 		DispatchRules:      producerRules,
@@ -119,8 +119,8 @@ func serveHTTPWithLogs(h http.Handler, logger *logrus.Logger) http.Handler {
 
 // Status API shows server with mtls config is up
 func (s *Server) Status() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "mtls ok")
+	return func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, "mtls ok")
 	}
 }
 
@@ -129,7 +129,7 @@ func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter
 	return func(w http.ResponseWriter, r *http.Request) {
 		if ws := s.promoteToWebsocket(w, r); ws != nil {
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
-			requestIdentity, err := extractIdentityFromConnection(ctx, r)
+			requestIdentity, err := extractIdentityFromConnection(r)
 			if err != nil {
 				s.logger.ErrorLog("extract_sender_id_err", err, nil)
 			}
@@ -214,8 +214,8 @@ func (s *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *web
 	return ws
 }
 
-func extractIdentityFromConnection(ctx context.Context, r *http.Request) (*telemetry.RequestIdentity, error) {
-	cert, err := extractCertFromHeaders(ctx, r)
+func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity, error) {
+	cert, err := extractCertFromHeaders(r)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func extractIdentityFromConnection(ctx context.Context, r *http.Request) (*telem
 	}, nil
 }
 
-func extractCertFromHeaders(ctx context.Context, r *http.Request) (*x509.Certificate, error) {
+func extractCertFromHeaders(r *http.Request) (*x509.Certificate, error) {
 	nbCerts := len(r.TLS.PeerCertificates)
 	if nbCerts == 0 {
 		return nil, fmt.Errorf("missing_certificate_error")

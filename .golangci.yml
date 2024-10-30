@@ -1,8 +1,10 @@
 ---
 run:
   timeout: 4m
-  skip-dirs:
-    - internal
+
+issues:
+  exclude-dirs:
+    - temp
 
 linters:
   enable:
@@ -11,5 +13,39 @@ linters:
     - gosimple
     - govet
     - misspell
+    - revive
     - staticcheck
     - unused
+
+linters-settings:
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+        arguments:
+          - allowedPackages:
+            - "github.com/onsi/ginkgo"
+            - "github.com/onsi/ginkgo/v2"
+            - "github.com/onsi/gomega"
+      - name: empty-block
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: errorf
+      - name: exported
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: package-comments
+        disabled: true
+      - name: range
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: superfluous-else
+      - name: time-naming
+      - name: unexported-return
+      - name: unreachable-code
+      - name: unused-parameter
+      - name: var-declaration
+      - name: var-naming

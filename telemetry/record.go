@@ -27,7 +27,7 @@ var (
 		UseEnumNumbers:  false,
 		EmitUnpopulated: true,
 		Indent:          ""}
-	scientificNotationFloatRegex = regexp.MustCompile("^[+-]?(\\d*\\.\\d+|\\d+\\.\\d*)([eE][+-]?\\d+)$")
+	scientificNotationFloatRegex = regexp.MustCompile(`^[+-]?(\d*\.\d+|\d+\.\d*)([eE][+-]?\d+)$`)
 )
 
 // Record is a structs that represents the telemetry records vehicles send to the backend
@@ -92,6 +92,7 @@ func (record *Record) Payload() []byte {
 	return record.PayloadBytes
 }
 
+// GetJSONPayload marshals to JSON if requested
 func (record *Record) GetJSONPayload() ([]byte, error) {
 	if record.transmitDecodedRecords {
 		return record.Payload(), nil
@@ -104,7 +105,7 @@ func (record *Record) Raw() []byte {
 	return record.RawBytes
 }
 
-// Length gets the records flatbuffer payload byte size
+// LengthRawBytes gets the record's flatbuffer payload byte size
 func (record *Record) LengthRawBytes() int {
 	record.ensureEncoded()
 	return len(record.RawBytes)

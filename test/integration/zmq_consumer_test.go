@@ -46,10 +46,10 @@ func (malformedZMQMessage) Error() string {
 
 var ErrMalformedZMQMessage malformedZMQMessage
 
-func (t *TestZMQConsumer) NextMessage(topicId string) (topic string, data []byte, err error) {
-	sock, ok := t.socks[topicId]
+func (t *TestZMQConsumer) NextMessage(topicID string) (topic string, data []byte, err error) {
+	sock, ok := t.socks[topicID]
 	if !ok {
-		return "", nil, fmt.Errorf("no consumer for %s", topicId)
+		return "", nil, fmt.Errorf("no consumer for %s", topicID)
 	}
 	messages, err := sock.RecvMessageBytes(0)
 	if err != nil {
