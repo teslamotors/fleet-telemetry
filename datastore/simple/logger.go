@@ -33,7 +33,7 @@ func (p *ProtoLogger) ProcessReliableAck(entry *telemetry.Record) {
 func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 	data, err := p.recordToLogMap(entry)
 	if err != nil {
-		p.logger.ErrorLog("record_logging_error", err, logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata()})
+		p.logger.ErrorLog("record_logging_error", err, logrus.LogInfo{"vin": entry.Vin, "txtype": entry.TxType, "metadata": entry.Metadata()})
 		return
 	}
 	p.logger.ActivityLog("record_payload", logrus.LogInfo{"vin": entry.Vin, "metadata": entry.Metadata(), "data": data})
@@ -45,12 +45,7 @@ func (p *ProtoLogger) ReportError(message string, err error, logInfo logrus.LogI
 
 // recordToLogMap converts the data of a record to a map or slice of maps
 func (p *ProtoLogger) recordToLogMap(record *telemetry.Record) (interface{}, error) {
-	payload, err := record.GetProtoMessage()
-	if err != nil {
-		return nil, err
-	}
-
-	switch payload := payload.(type) {
+	switch payload := record.GetProtoMessage().(type) {
 	case *protos.Payload:
 		return transformers.PayloadToMap(payload, p.Config.Verbose, p.logger), nil
 	case *protos.VehicleAlerts:
