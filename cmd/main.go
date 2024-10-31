@@ -63,7 +63,7 @@ func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logg
 		monitoring.StartServerMetrics(config, logger, registry)
 	}
 
-	producerRules, err := config.ConfigureProducers(airbrakeHandler, logger)
+	dispatchers, producerRules, err := config.ConfigureProducers(airbrakeHandler, logger)
 	if err != nil {
 		return err
 	}
@@ -75,5 +75,15 @@ func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logg
 	if server.TLSConfig, err = config.ExtractServiceTLSConfig(logger); err != nil {
 		return err
 	}
-	return server.ListenAndServeTLS(config.TLS.ServerCert, config.TLS.ServerKey)
+	if err := server.ListenAndServeTLS(config.TLS.ServerCert, config.TLS.ServerKey); err != nil {
+		return err
+	}
+	for dispatcher, producer := range dispatchers {
+		// We don't care if this fails. If it does, we'll just continue on.
+		if err := producer.Close(); err != nil {
+			logger.ErrorLog("producer_close_error", err, logrus.LogInfo{"dispatcher": dispatcher})
+		}
+	}
+	logger.ActivityLog("stopped_server", nil)
+	return nil
 }

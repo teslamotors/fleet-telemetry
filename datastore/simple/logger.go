@@ -15,23 +15,28 @@ type Config struct {
 	Verbose bool `json:"verbose"`
 }
 
-// ProtoLogger is a simple protobuf logger
-type ProtoLogger struct {
+// Producer is a simple protobuf logger
+type Producer struct {
 	Config *Config
 	logger *logrus.Logger
 }
 
 // NewProtoLogger initializes the parameters for protobuf payload logging
 func NewProtoLogger(config *Config, logger *logrus.Logger) telemetry.Producer {
-	return &ProtoLogger{Config: config, logger: logger}
+	return &Producer{Config: config, logger: logger}
+}
+
+// Close the producer
+func (p *Producer) Close() error {
+	return nil
 }
 
 // ProcessReliableAck noop method
-func (p *ProtoLogger) ProcessReliableAck(_ *telemetry.Record) {
+func (p *Producer) ProcessReliableAck(_ *telemetry.Record) {
 }
 
 // Produce sends the data to the logger
-func (p *ProtoLogger) Produce(entry *telemetry.Record) {
+func (p *Producer) Produce(entry *telemetry.Record) {
 	data, err := p.recordToLogMap(entry)
 	if err != nil {
 		p.logger.ErrorLog("record_logging_error", err, logrus.LogInfo{"vin": entry.Vin, "txtype": entry.TxType, "metadata": entry.Metadata()})
@@ -41,11 +46,11 @@ func (p *ProtoLogger) Produce(entry *telemetry.Record) {
 }
 
 // ReportError noop method
-func (p *ProtoLogger) ReportError(_ string, _ error, _ logrus.LogInfo) {
+func (p *Producer) ReportError(_ string, _ error, _ logrus.LogInfo) {
 }
 
 // recordToLogMap converts the data of a record to a map or slice of maps
-func (p *ProtoLogger) recordToLogMap(record *telemetry.Record) (interface{}, error) {
+func (p *Producer) recordToLogMap(record *telemetry.Record) (interface{}, error) {
 	switch payload := record.GetProtoMessage().(type) {
 	case *protos.Payload:
 		return transformers.PayloadToMap(payload, p.Config.Verbose, p.logger), nil

@@ -19,7 +19,7 @@ import (
 
 var _ = Describe("ProtoLogger", func() {
 	var (
-		protoLogger *simple.ProtoLogger
+		protoLogger *simple.Producer
 		testLogger  *logrus.Logger
 		hook        *test.Hook
 		config      *simple.Config
@@ -28,7 +28,7 @@ var _ = Describe("ProtoLogger", func() {
 	BeforeEach(func() {
 		testLogger, hook = logrus.NoOpLogger()
 		config = &simple.Config{Verbose: false}
-		protoLogger = simple.NewProtoLogger(config, testLogger).(*simple.ProtoLogger)
+		protoLogger = simple.NewProtoLogger(config, testLogger).(*simple.Producer)
 	})
 
 	Describe("NewProtoLogger", func() {
@@ -116,7 +116,7 @@ var _ = Describe("ProtoLogger", func() {
 		Context("when verbose set to true", func() {
 			BeforeEach(func() {
 				config.Verbose = true
-				protoLogger = simple.NewProtoLogger(config, testLogger).(*simple.ProtoLogger)
+				protoLogger = simple.NewProtoLogger(config, testLogger).(*simple.Producer)
 			})
 
 			It("does not include types in the data", func() {

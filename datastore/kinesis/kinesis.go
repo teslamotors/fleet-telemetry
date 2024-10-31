@@ -103,6 +103,11 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 }
 
+// Close the producer
+func (p *Producer) Close() error {
+	return nil
+}
+
 // ProcessReliableAck sends to ackChan if reliable ack is configured
 func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
 	_, ok := p.reliableAckTxTypes[entry.TxType]
