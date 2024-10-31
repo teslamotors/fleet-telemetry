@@ -115,6 +115,11 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 
 }
 
+// Close the producer
+func (p *Producer) Close() error {
+	return p.pubsubClient.Close()
+}
+
 // ProcessReliableAck sends to ackChan if reliable ack is configured
 func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
 	_, ok := p.reliableAckTxTypes[entry.TxType]

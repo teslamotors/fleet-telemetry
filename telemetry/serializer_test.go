@@ -18,6 +18,10 @@ type CallbackTester struct {
 	reliableAck int
 }
 
+func (c *CallbackTester) Close() error {
+	return nil
+}
+
 func (c *CallbackTester) Produce(_ *telemetry.Record) {
 	c.counter++
 }
