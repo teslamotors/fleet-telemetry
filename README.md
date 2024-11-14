@@ -5,9 +5,11 @@
 # Tesla Fleet Telemetry
 ---------------------------------
 
-Fleet Telemetry is a server reference implementation for Tesla's telemetry protocol. Owners can allow registered applications to receive telemetry securely and directly from their vehicles. This reference implementation can be used by individual owners as is or by fleet operators who can extend it to aggregate data accross their fleet.
+Fleet Telemetry is a server reference implementation for Tesla's telemetry protocol. It is the best way to get data from Tesla vehicles at regular intervals. Owners can allow registered applications to receive telemetry securely and directly from their vehicles. This reference implementation can be used by individual owners as is or by fleet operators who can extend it to aggregate data accross their fleet.
 
-The service handles device connectivity as well as receiving and storing transmitted data. Once configured, devices establish a WebSocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses.
+The service handles device connectivity as well as receiving and storing transmitted data. Once configured, devices establish a WebSocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses. The application also provides an event stream to determine the vehicle connection state, which can be used as a proxy for vehicle online state.
+
+By configuring `fleet_telemetry_config`, individual owners and fleet operators can easily control the timing and conditions of vehicle data transmission (live / on change / at frenquency).
 
 ## Configuring and running the service
 
@@ -145,8 +147,8 @@ spec:
 
 Vehicles must be running firmware version 2023.20.6 or later.  Some older model S/X are not supported.
 
-## Backends/dispatchers
-The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
+## Personalized Backends/Dispatchers
+Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to  STDOUT logger.  Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L10-L19)::
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
   * Topics will need to be created for \*prefix\*`_V`,\*prefix\*`_connectivity`, \*prefix\*`_alerts`, and \*prefix\*`_errors`. The default prefix is `tesla`
 * Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default AWS credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
@@ -156,14 +158,25 @@ The following [dispatchers](./telemetry/producer.go#L10-L19) are supported
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
-  
+
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
 
 ## Reliable Acks
-Fleet telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+Fleet Telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+
+## Detecting Vehicle Connectivity Changes
+On the vehicle, Fleet Telemetry client behave similarly to how the connectivity engine for vehicle commands. Therefore we can use Fleet Telemetry connectivity event to assume when a vehicle is online. Note that it is a proxy, but if configured properly Fleet Telemetry connectivity time should match vehicle connectivity state in 99%+. To enable connectivity events simply add the `connectivity` records in the list of events in [server_config.json](./examples/server_config.json) file:
+
+  ```
+    "records": {
+        "connectivity": [
+            "kafka"
+        ]
+      }
+  ```
 
 ## Metrics
-Configure and use Prometheus or a StatsD-interface supporting data store for metrics. The integration test runs fleet telemetry with [grafana](https://grafana.com/docs/grafana/latest/datasources/google-cloud-monitoring/), which is compatible with prometheus. It also has an example dashboard which tracks important metrics related to the hosted server. Sample screenshot for the [sample dashboard](./test/integration/grafana/provisioning/dashboards/dashboard.json):-
+Configure and use Prometheus or a StatsD-interface supporting data store for metrics. The integration test runs Fleet Telemetry with [grafana](https://grafana.com/docs/grafana/latest/datasources/google-cloud-monitoring/), which is compatible with prometheus. It also has an example dashboard which tracks important metrics related to the hosted server. Sample screenshot for the [sample dashboard](./test/integration/grafana/provisioning/dashboards/dashboard.json):-
 
 ![Basic Dashboard](./doc/grafana-dashboard.png)
 
@@ -181,7 +194,7 @@ Data is encapsulated into protobuf messages of different types. Protos can be re
   make generate-protos
   ```
 ## Airbrake
-Fleet telemetry can publish errors to [airbrake](https://www.airbrake.io/error-monitoring). The integration test runs fleet telemetry with [errbit](https://github.com/errbit/errbit), which is an airbrake compliant self-hosted error catcher. A project key can be set for airbrake using either the config file or via an environment variable `AIRBRAKE_PROJECT_KEY`. 
+Fleet Telemetry can publish errors to [airbrake](https://www.airbrake.io/error-monitoring). The integration test runs Fleet Telemetry with [errbit](https://github.com/errbit/errbit), which is an airbrake compliant self-hosted error catcher. A project key can be set for airbrake using either the config file or via an environment variable `AIRBRAKE_PROJECT_KEY`.
 
 # Testing
 
