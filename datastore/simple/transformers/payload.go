@@ -97,9 +97,6 @@ func transformValue(value interface{}, includeTypes bool) (interface{}, bool) {
 	case *protos.Value_ChargePortLatchValue:
 		outputType = "chargePortLatch"
 		outputValue = v.ChargePortLatchValue.String()
-	case *protos.Value_CruiseStateValue:
-		outputType = "cruiseState"
-		outputValue = v.CruiseStateValue.String()
 	case *protos.Value_DoorValue:
 		outputType = "doorValue"
 		outputValue = map[string]bool{
