@@ -162,7 +162,7 @@ func (s *Server) dispatchConnectivityEvent(sm *SocketManager, serializer *teleme
 		return nil
 	}
 
-	// creating streamMessage is hack to satify input reqirements for telemetry.NewRecord
+	// creating streamMessage is hack to satisfy input reqirements for telemetry.NewRecord
 	streamMessage := messages.StreamMessage{
 		TXID:         []byte(sm.UUID),
 		SenderID:     []byte(sm.requestIdentity.SenderID),
