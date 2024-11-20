@@ -8,12 +8,14 @@ import (
 	"github.com/teslamotors/fleet-telemetry/server/middleware"
 )
 
-type AirbrakeHandler struct {
+// Handler reports errors to airbrake
+type Handler struct {
 	airbrakeNotifier *githubairbrake.Notifier
 }
 
-func NewAirbrakeHandler(airbrakeNotifier *githubairbrake.Notifier) *AirbrakeHandler {
-	return &AirbrakeHandler{
+// NewAirbrakeHandler returns a new instance of AirbrakeHandler
+func NewAirbrakeHandler(airbrakeNotifier *githubairbrake.Notifier) *Handler {
+	return &Handler{
 		airbrakeNotifier: airbrakeNotifier,
 	}
 }
@@ -29,7 +31,7 @@ func httpAirbrakeMessage(r *http.Request, w *middleware.WrappedResponseWriter) *
 }
 
 // ReportError dispatches errors for incoming requests
-func (a *AirbrakeHandler) ReportError(r *http.Request, err error) {
+func (a *Handler) ReportError(r *http.Request, err error) {
 	if a.airbrakeNotifier == nil {
 		return
 	}
@@ -38,7 +40,7 @@ func (a *AirbrakeHandler) ReportError(r *http.Request, err error) {
 }
 
 // WithReporting dispatches 5xx messages with some metadata to airbrake if notifier is configured
-func (a *AirbrakeHandler) WithReporting(next http.Handler) http.Handler {
+func (a *Handler) WithReporting(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		recorder := middleware.NewWrappedResponseWriter(w)
 		next.ServeHTTP(recorder, r)
@@ -48,12 +50,13 @@ func (a *AirbrakeHandler) WithReporting(next http.Handler) http.Handler {
 	})
 }
 
-func (a *AirbrakeHandler) logMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) *githubairbrake.Notice {
+func (a *Handler) logMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) *githubairbrake.Notice {
 	notice := githubairbrake.NewNotice(message, nil, 1)
 	notice.Params["log_type"] = logrus.AllLogType[logType]
 	if err != nil {
 		notice.Params["error"] = err.Error()
 	}
+	//nolint:gosimple
 	if logInfo != nil {
 		for logKey, logValue := range logInfo {
 			notice.Params[logKey] = logValue
@@ -63,7 +66,7 @@ func (a *AirbrakeHandler) logMessage(logType logrus.LogType, message string, err
 }
 
 // ReportLogMessage log message to airbrake
-func (a *AirbrakeHandler) ReportLogMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) {
+func (a *Handler) ReportLogMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) {
 	if a.airbrakeNotifier == nil {
 		return
 	}

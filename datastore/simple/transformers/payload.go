@@ -8,6 +8,7 @@ import (
 	"github.com/teslamotors/fleet-telemetry/protos"
 )
 
+// PayloadToMap transforms a Payload into a human readable map for logging purposes
 func PayloadToMap(payload *protos.Payload, includeTypes bool, logger *logrus.Logger) map[string]interface{} {
 	convertedPayload := make(map[string]interface{}, len(payload.Data)+2)
 	convertedPayload["Vin"] = payload.Vin
@@ -96,9 +97,6 @@ func transformValue(value interface{}, includeTypes bool) (interface{}, bool) {
 	case *protos.Value_ChargePortLatchValue:
 		outputType = "chargePortLatch"
 		outputValue = v.ChargePortLatchValue.String()
-	case *protos.Value_CruiseStateValue:
-		outputType = "cruiseState"
-		outputValue = v.CruiseStateValue.String()
 	case *protos.Value_DoorValue:
 		outputType = "doorValue"
 		outputValue = map[string]bool{

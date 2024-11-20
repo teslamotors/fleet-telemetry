@@ -21,7 +21,7 @@ type Producer struct {
 	prometheusEnabled  bool
 	metricsCollector   metrics.MetricCollector
 	logger             *logrus.Logger
-	airbrakeHandler    *airbrake.AirbrakeHandler
+	airbrakeHandler    *airbrake.Handler
 	deliveryChan       chan kafka.Event
 	ackChan            chan (*telemetry.Record)
 	reliableAckTxTypes map[string]interface{}
@@ -44,7 +44,7 @@ var (
 )
 
 // NewProducer establishes the kafka connection and define the dispatch method
-func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	kafkaProducer, err := kafka.NewProducer(config)
@@ -132,6 +132,12 @@ func (p *Producer) handleProducerEvents() {
 			p.logger.ActivityLog("kafka_event_ignored", logrus.LogInfo{"event": ev.String()})
 		}
 	}
+}
+
+// Close the producer
+func (p *Producer) Close() error {
+	p.kafkaProducer.Close()
+	return nil
 }
 
 // ProcessReliableAck sends to ackChan if reliable ack is configured

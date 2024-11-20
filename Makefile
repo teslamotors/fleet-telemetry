@@ -1,6 +1,6 @@
 # enabling gofmt and golint since by default they're not enabled by golangci-lint
 VERSION           = $(shell go version)
-LINTER			  = golangci-lint run -v $(LINTER_FLAGS) --exclude-use-default=false --enable gofmt,golint --timeout $(LINTER_DEADLINE)
+LINTER			  = golangci-lint run -v $(LINTER_FLAGS) --exclude-use-default=false --timeout $(LINTER_DEADLINE)
 LINTER_DEADLINE	  = 30s
 LINTER_FLAGS ?=
 ALPHA_IMAGE_NAME=fleet-telemetry-server-aplha:v0.0.1

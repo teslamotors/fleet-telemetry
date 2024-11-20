@@ -23,7 +23,7 @@ type TestKinesisConsumer struct {
 	kineses *kinesis.Kinesis
 }
 
-func NewTestKinesisConsumer(host, streamName string) (*TestKinesisConsumer, error) {
+func NewTestKinesisConsumer(host string, streamNames []string) (*TestKinesisConsumer, error) {
 	creds := credentials.NewStaticCredentials(fakeAWSID, fakeAWSSecret, fakeAWSToken)
 	awsConfig := aws.NewConfig().WithEndpoint(host).WithCredentialsChainVerboseErrors(true).WithRegion(fakeAWSRegion).WithCredentials(creds)
 	sess, err := session.NewSessionWithOptions(session.Options{Config: *awsConfig})
@@ -34,37 +34,50 @@ func NewTestKinesisConsumer(host, streamName string) (*TestKinesisConsumer, erro
 	t := &TestKinesisConsumer{
 		kineses: kinesis.New(sess, awsConfig),
 	}
-	if err = t.createStreamIfNotExists(streamName); err != nil {
-		return nil, err
+	for _, streamName := range streamNames {
+		if err = t.createStreamIfNotExists(streamName); err != nil {
+			return nil, err
+		}
 	}
 	return t, nil
 }
 
-func (t *TestKinesisConsumer) createStreamIfNotExists(streamName string) error {
+func (t *TestKinesisConsumer) streamExists(streamName string) (bool, error) {
 	response, err := t.kineses.ListStreams(&kinesis.ListStreamsInput{
 		Limit: aws.Int64(100),
 	})
 	if err != nil {
-		return err
+		return false, err
+	}
+	if len(response.StreamNames) == 0 {
+		return false, nil
 	}
 
-	if len(response.StreamNames) == 0 {
-		_, err := t.kineses.CreateStream(&kinesis.CreateStreamInput{
-			StreamName: aws.String(streamName),
-			ShardCount: aws.Int64(1),
-		})
-		if err != nil {
-			return err
+	for _, streamNameResponse := range response.StreamNames {
+		if strings.EqualFold(*streamNameResponse, streamName) {
+			return true, nil
 		}
+	}
+	return false, nil
+}
+
+func (t *TestKinesisConsumer) createStreamIfNotExists(streamName string) error {
+	ok, err := t.streamExists(streamName)
+	if err != nil {
+		return err
+	}
+	if ok {
 		return nil
 	}
 
-	for _, streamName := range response.StreamNames {
-		if strings.Compare(*streamName, *streamName) == 0 {
-			return nil
-		}
+	_, err = t.kineses.CreateStream(&kinesis.CreateStreamInput{
+		StreamName: aws.String(streamName),
+		ShardCount: aws.Int64(1),
+	})
+	if err != nil {
+		return err
 	}
-	return fmt.Errorf("unable to create stream %s", streamName)
+	return nil
 }
 
 func (t *TestKinesisConsumer) FetchFirstStreamMessage(topic string) (*kinesis.Record, error) {
@@ -76,6 +89,10 @@ func (t *TestKinesisConsumer) FetchFirstStreamMessage(topic string) (*kinesis.Re
 	describeOutput, err := t.kineses.DescribeStream(describeInput)
 	if err != nil {
 		return nil, err
+	}
+	kinesisStreamName := *describeOutput.StreamDescription.StreamName
+	if !strings.EqualFold(kinesisStreamName, topic) {
+		return nil, fmt.Errorf("stream name mismatch. Expected %s, Actual %s", kinesisStreamName, topic)
 	}
 	if len(describeOutput.StreamDescription.Shards) == 0 {
 		return nil, errors.New("empty shards")

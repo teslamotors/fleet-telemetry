@@ -33,10 +33,10 @@ var _ = Describe("Payload", func() {
 			payload := &protos.Payload{
 				Data: []*protos.Datum{
 					nil,
-					&protos.Datum{
+					{
 						Value: nil,
 					},
-					&protos.Datum{
+					{
 						Key: protos.Field_BatteryHeaterOn,
 						Value: &protos.Value{
 							Value: &protos.Value_BooleanValue{BooleanValue: true},

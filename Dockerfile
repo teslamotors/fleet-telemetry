@@ -1,5 +1,5 @@
 # Start by building the application.
-FROM golang:1.20.5-bullseye as build
+FROM golang:1.23.0-bullseye as build
 
 # build libsodium (dep of libzmq)
 WORKDIR /build
@@ -28,7 +28,7 @@ ENV CGO_LDFLAGS="-lstdc++"
 RUN make
 
 # hadolint ignore=DL3006
-FROM gcr.io/distroless/cc-debian11
+FROM gcr.io/distroless/cc-debian11:nonroot
 WORKDIR /
 COPY --from=build /go/bin/fleet-telemetry /
 

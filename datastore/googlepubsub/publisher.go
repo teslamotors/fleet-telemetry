@@ -25,7 +25,7 @@ type Producer struct {
 	metricsCollector   metrics.MetricCollector
 	prometheusEnabled  bool
 	logger             *logrus.Logger
-	airbrakeHandler    *airbrake.AirbrakeHandler
+	airbrakeHandler    *airbrake.Handler
 	ackChan            chan (*telemetry.Record)
 	reliableAckTxTypes map[string]interface{}
 }
@@ -57,7 +57,7 @@ func configurePubsub(projectID string) (*pubsub.Client, error) {
 }
 
 // NewProducer establishes the pubsub connection and define the dispatch method
-func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, namespace string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(prometheusEnabled bool, projectID string, namespace string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 	pubsubClient, err := configurePubsub(projectID)
 	if err != nil {
@@ -75,7 +75,7 @@ func NewProducer(ctx context.Context, prometheusEnabled bool, projectID string, 
 		ackChan:            ackChan,
 		reliableAckTxTypes: reliableAckTxTypes,
 	}
-	p.logger.ActivityLog("pubsub_registerd", logrus.LogInfo{"project": projectID, "namespace": namespace})
+	p.logger.ActivityLog("pubsub_registered", logrus.LogInfo{"project": projectID, "namespace": namespace})
 	return p, nil
 }
 
@@ -108,12 +108,16 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		p.ReportError("pubsub_err", err, logInfo)
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
-	} else {
-		p.ProcessReliableAck(entry)
 	}
+	p.ProcessReliableAck(entry)
 	metricsRegistry.publishBytesTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
 
+}
+
+// Close the producer
+func (p *Producer) Close() error {
+	return p.pubsubClient.Close()
 }
 
 // ProcessReliableAck sends to ackChan if reliable ack is configured

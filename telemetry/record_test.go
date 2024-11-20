@@ -2,6 +2,7 @@ package telemetry_test
 
 import (
 	"crypto/rand"
+	"fmt"
 	"sort"
 	"time"
 
@@ -152,6 +153,42 @@ var _ = Describe("Socket handler test", func() {
 		Expect(second.Key).To(Equal(protos.Field_VehicleName))
 	})
 
+	DescribeTable("number formatting fixes",
+		func(in string, expected string) {
+			brakePedalPos := stringDatum(protos.Field_BrakePedalPos, in)
+
+			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: generatePayload("cybertruck", "42", nil, brakePedalPos)}
+			recordMsg, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(record).NotTo(BeNil())
+
+			data := &protos.Payload{}
+			err = proto.Unmarshal(record.Payload(), data)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(data.Data).To(HaveLen(2))
+
+			// Give some predictability to the test
+			sort.Slice(data.Data, func(i, j int) bool {
+				return data.Data[i].Key < data.Data[j].Key
+			})
+
+			first := data.Data[0]
+			Expect(first.Key).To(Equal(protos.Field_VehicleName))
+
+			second := data.Data[1]
+			Expect(second.Key).To(Equal(protos.Field_BrakePedalPos))
+			Expect(second.Value.GetStringValue()).To(Equal(expected))
+		},
+		Entry("scientific notation is reported as regular float", "1.1920928955078125e-05", "0.00001"),
+		Entry("scientific notation close to zero turns to zero", "1.23e-9", "0.00000"),
+		Entry("long floats are not modified", "0.00000012", "0.00000012"),
+		Entry("regular floats are not modified", "0.03", "0.03"),
+		Entry("integers are not modified", "3", "3"),
+	)
+
 	DescribeTable("handleAlerts",
 		func(payloadTimestamp *timestamppb.Timestamp, expectedTimestamp *timestamppb.Timestamp, isActive bool) {
 			alert := &protos.VehicleAlert{
@@ -222,32 +259,50 @@ var _ = Describe("Socket handler test", func() {
 
 	Describe("GetProtoMessage", func() {
 		DescribeTable("valid alert types",
-			func(txType string, input proto.Message, verifyOutput func(proto.Message) bool) {
+			func(txType string, vin string, input proto.Message, verifyOutput func(proto.Message) bool) {
 				payloadBytes, err := proto.Marshal(input)
 				Expect(err).NotTo(HaveOccurred())
-				record := &telemetry.Record{
-					TxType:       txType,
-					PayloadBytes: payloadBytes,
-				}
-				output, err := record.GetProtoMessage()
+
+				message := messages.StreamMessage{TXID: []byte("1234"), DeviceID: []byte(vin), SenderID: []byte(fmt.Sprintf("vehicle_device.%s", vin)), MessageTopic: []byte(txType), Payload: payloadBytes}
+				recordMsg, err := message.ToBytes()
 				Expect(err).NotTo(HaveOccurred())
+
+				serializer = telemetry.NewBinarySerializer(
+					&telemetry.RequestIdentity{
+						DeviceID: vin,
+						SenderID: fmt.Sprintf("vehicle_device.%s", vin),
+					},
+					map[string][]telemetry.Producer{"D4": nil},
+					logger,
+				)
+
+				record, err := telemetry.NewRecord(serializer, recordMsg, "1", true)
+				Expect(err).NotTo(HaveOccurred())
+				output := record.GetProtoMessage()
 				Expect(verifyOutput(output)).To(BeTrue())
 			},
-			Entry("for txType alerts", "alerts", &protos.VehicleAlerts{Vin: "testAlertVin"}, func(msg proto.Message) bool {
+			Entry("for txType alerts", "alerts", "testAlertVin", &protos.VehicleAlerts{Vin: "testAlertVin"}, func(msg proto.Message) bool {
 				myMsg, ok := msg.(*protos.VehicleAlerts)
 				if !ok {
 					return false
 				}
 				return myMsg.GetVin() == "testAlertVin"
 			}),
-			Entry("for txType errors", "errors", &protos.VehicleErrors{Vin: "testErrorVin"}, func(msg proto.Message) bool {
+			Entry("for txType errors", "errors", "testErrorVin", &protos.VehicleErrors{Vin: "testErrorVin"}, func(msg proto.Message) bool {
 				myMsg, ok := msg.(*protos.VehicleErrors)
 				if !ok {
 					return false
 				}
 				return myMsg.GetVin() == "testErrorVin"
 			}),
-			Entry("for txType V", "V", &protos.Payload{Vin: "testPayloadVIN"}, func(msg proto.Message) bool {
+			Entry("for txType connectivity", "connectivity", "testConnectivityVin", &protos.VehicleConnectivity{Vin: "testConnectivityVin"}, func(msg proto.Message) bool {
+				myMsg, ok := msg.(*protos.VehicleConnectivity)
+				if !ok {
+					return false
+				}
+				return myMsg.GetVin() == "testConnectivityVin"
+			}),
+			Entry("for txType V", "V", "testPayloadVIN", &protos.Payload{Vin: "testPayloadVIN"}, func(msg proto.Message) bool {
 				myMsg, ok := msg.(*protos.Payload)
 				if !ok {
 					return false
@@ -255,14 +310,6 @@ var _ = Describe("Socket handler test", func() {
 				return myMsg.GetVin() == "testPayloadVIN"
 			}),
 		)
-
-		It("errors on unknown txtype", func() {
-			record := &telemetry.Record{
-				TxType: "badTxType",
-			}
-			_, err := record.GetProtoMessage()
-			Expect(err).To(MatchError("no mapping for txType: badTxType"))
-		})
 
 		It("json payload returns valid data when transmitDecodedRecords is false", func() {
 			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: generatePayload("cybertruck", "42", nil)}
@@ -296,16 +343,6 @@ var _ = Describe("Socket handler test", func() {
 			data, err := record.GetJSONPayload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(record.Payload()).To(Equal(data))
-		})
-
-		It("returns error on invalid txType", func() {
-			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("INVALID"), Payload: generatePayload("cybertruck", "42", nil)}
-			recordMsg, err := message.ToBytes()
-			Expect(err).NotTo(HaveOccurred())
-
-			record, err := telemetry.NewRecord(serializer, recordMsg, "1", true)
-			Expect(err).To(MatchError("no mapping for txType: INVALID"))
-			Expect(record).NotTo(BeNil())
 		})
 	})
 })
@@ -341,83 +378,6 @@ func locationDatum(field protos.Field, location *protos.LocationValue) *protos.D
 		Value: &protos.Value{
 			Value: &protos.Value_LocationValue{
 				LocationValue: location,
-			},
-		},
-	}
-}
-
-func intDatum(field protos.Field, value int32) *protos.Datum {
-	return &protos.Datum{
-		Key: field,
-		Value: &protos.Value{
-			Value: &protos.Value_IntValue{
-				IntValue: value,
-			},
-		},
-	}
-}
-
-func doubleDatum(field protos.Field, value float64) *protos.Datum {
-	return &protos.Datum{
-		Key: field,
-		Value: &protos.Value{
-			Value: &protos.Value_DoubleValue{
-				DoubleValue: value,
-			},
-		},
-	}
-}
-
-func boolDatum(field protos.Field, value bool) *protos.Datum {
-	return &protos.Datum{
-		Key: field,
-		Value: &protos.Value{
-			Value: &protos.Value_BooleanValue{
-				BooleanValue: value,
-			},
-		},
-	}
-}
-
-func floatDatum(field protos.Field, value float32) *protos.Datum {
-	return &protos.Datum{
-		Key: field,
-		Value: &protos.Value{
-			Value: &protos.Value_FloatValue{
-				FloatValue: value,
-			},
-		},
-	}
-}
-
-func longDatum(field protos.Field, value int64) *protos.Datum {
-	return &protos.Datum{
-		Key: field,
-		Value: &protos.Value{
-			Value: &protos.Value_LongValue{
-				LongValue: value,
-			},
-		},
-	}
-}
-
-func chargingStateDatum(field protos.Field, value protos.ChargingState) *protos.Datum {
-	return &protos.Datum{
-		Key: field,
-		Value: &protos.Value{
-			Value: &protos.Value_ChargingValue{
-				ChargingValue: value,
-			},
-		},
-	}
-}
-
-func shiftStateDatum(field protos.Field, value protos.ShiftState) *protos.Datum {
-	return &protos.Datum{
-		Key: field,
-		Value: &protos.Value{
-			Value: &protos.Value_ShiftStateValue{
-				ShiftStateValue: value,
 			},
 		},
 	}

@@ -105,11 +105,12 @@ type Config struct {
 	MQTT *mqtt.Config `json:"mqtt,omitempty"`
 }
 
+// Airbrake config
 type Airbrake struct {
 	Host        string `json:"host"`
 	ProjectKey  string `json:"project_key"`
 	Environment string `json:"environment"`
-	ProjectId   int64  `json:"project_id"`
+	ProjectID   int64  `json:"project_id"`
 
 	TLS *TLS `json:"tls" yaml:"tls"`
 }
@@ -157,8 +158,8 @@ type TLS struct {
 	ServerKey  string `json:"server_key"`
 }
 
-// AirbrakeTlsConfig return the TLS config needed for connecting with airbrake server
-func (c *Config) AirbrakeTlsConfig() (*tls.Config, error) {
+// AirbrakeTLSConfig return the TLS config needed for connecting with airbrake server
+func (c *Config) AirbrakeTLSConfig() (*tls.Config, error) {
 	if c.Airbrake.TLS == nil {
 		return nil, nil
 	}
@@ -172,6 +173,8 @@ func (c *Config) AirbrakeTlsConfig() (*tls.Config, error) {
 			return nil, fmt.Errorf("can't properly load cert pair (%s, %s): %s", certPath, keyPath, err.Error())
 		}
 		tlsConfig.Certificates = []tls.Certificate{cert}
+		// TODO remove the lint bypass
+		// nolint:staticcheck
 		tlsConfig.BuildNameToCertificate()
 	}
 
@@ -250,10 +253,10 @@ func (c *Config) prometheusEnabled() bool {
 }
 
 // ConfigureProducers validates and establishes connections to the producers (kafka/pubsub/logger)
-func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, logger *logrus.Logger) (map[string][]telemetry.Producer, error) {
+func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *logrus.Logger) (map[telemetry.Dispatcher]telemetry.Producer, map[string][]telemetry.Producer, error) {
 	reliableAckSources, err := c.configureReliableAckSources()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	producers := make(map[telemetry.Dispatcher]telemetry.Producer)
@@ -268,30 +271,30 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 
 	if _, ok := requiredDispatchers[telemetry.Kafka]; ok {
 		if c.Kafka == nil {
-			return nil, errors.New("Expected Kafka to be configured")
+			return nil, nil, errors.New("expected Kafka to be configured")
 		}
 		convertKafkaConfig(c.Kafka)
 		kafkaProducer, err := kafka.NewProducer(c.Kafka, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Kafka], logger)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		producers[telemetry.Kafka] = kafkaProducer
 	}
 
 	if _, ok := requiredDispatchers[telemetry.Pubsub]; ok {
 		if c.Pubsub == nil {
-			return nil, errors.New("Expected Pubsub to be configured")
+			return nil, nil, errors.New("expected Pubsub to be configured")
 		}
-		googleProducer, err := googlepubsub.NewProducer(context.Background(), c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
+		googleProducer, err := googlepubsub.NewProducer(c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		producers[telemetry.Pubsub] = googleProducer
 	}
 
 	if recordNames, ok := requiredDispatchers[telemetry.Kinesis]; ok {
 		if c.Kinesis == nil {
-			return nil, errors.New("Expected Kinesis to be configured")
+			return nil, nil, errors.New("expected Kinesis to be configured")
 		}
 		maxRetries := 1
 		if c.Kinesis.MaxRetries != nil {
@@ -300,18 +303,18 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 		streamMapping := c.CreateKinesisStreamMapping(recordNames)
 		kinesis, err := kinesis.NewProducer(maxRetries, streamMapping, c.Kinesis.OverrideHost, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Kinesis], logger)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		producers[telemetry.Kinesis] = kinesis
 	}
 
 	if _, ok := requiredDispatchers[telemetry.ZMQ]; ok {
 		if c.ZMQ == nil {
-			return nil, errors.New("Expected ZMQ to be configured")
+			return nil, nil, errors.New("expected ZMQ to be configured")
 		}
 		zmqProducer, err := zmq.NewProducer(context.Background(), c.ZMQ, c.MetricCollector, c.Namespace, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.ZMQ], logger)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		producers[telemetry.ZMQ] = zmqProducer
 	}
@@ -336,16 +339,19 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.AirbrakeHandler, l
 		dispatchProducerRules[recordName] = dispatchFuncs
 
 		if len(dispatchProducerRules[recordName]) == 0 {
-			return nil, fmt.Errorf("unknown_dispatch_rule record: %v, dispatchRule:%v", recordName, dispatchRules)
+			return nil, nil, fmt.Errorf("unknown_dispatch_rule record: %v, dispatchRule:%v", recordName, dispatchRules)
 		}
 	}
 
-	return dispatchProducerRules, nil
+	return producers, dispatchProducerRules, nil
 }
 
 func (c *Config) configureReliableAckSources() (map[telemetry.Dispatcher]map[string]interface{}, error) {
 	reliableAckSources := make(map[telemetry.Dispatcher]map[string]interface{}, 0)
 	for txType, dispatchRule := range c.ReliableAckSources {
+		if txType == "connectivity" {
+			return nil, fmt.Errorf("reliable ack not needed for txType: %s", txType)
+		}
 		if dispatchRule == telemetry.Logger {
 			return nil, fmt.Errorf("logger cannot be configured as reliable ack for record: %s", txType)
 		}
@@ -413,7 +419,7 @@ func (c *Config) CreateAirbrakeNotifier(logger *logrus.Logger) (*githubairbrake.
 	if c.Airbrake == nil {
 		return nil, nil, nil
 	}
-	tlsConfig, err := c.AirbrakeTlsConfig()
+	tlsConfig, err := c.AirbrakeTLSConfig()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -442,7 +448,7 @@ func (c *Config) CreateAirbrakeNotifier(logger *logrus.Logger) (*githubairbrake.
 		DisableRemoteConfig: true,
 		APMHost:             errbitHost,
 		DisableAPM:          true,
-		ProjectId:           c.Airbrake.ProjectId,
+		ProjectId:           c.Airbrake.ProjectID,
 		ProjectKey:          projectKey,
 		Environment:         c.Airbrake.Environment,
 		HTTPClient:          httpClient,

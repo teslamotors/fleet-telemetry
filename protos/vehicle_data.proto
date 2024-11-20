@@ -107,7 +107,7 @@ enum Field {
   SemitruckPassengerSeatFoldPosition = 97;  // Semi-truck only
   LateralAcceleration = 98;
   LongitudinalAcceleration = 99;
-  CruiseState = 100;
+  Deprecated_2 = 100;
   CruiseSetSpeed = 101;
   LifetimeEnergyUsed = 102;
   LifetimeEnergyUsedDrive = 103;
@@ -348,18 +348,6 @@ enum ChargePortLatchValue {
     ChargePortLatchBlocking = 4;
 }
 
-enum CruiseStateValue {
-    CruiseStateUnknown = 0;
-    CruiseStateOff = 1;
-    CruiseStateStandby = 2;
-    CruiseStateOn = 3;
-    CruiseStateStandstill = 4;
-    CruiseStateOverride = 5;
-    CruiseStateFault = 6;
-    CruiseStatePreFault = 7;
-    CruiseStatePreCancel = 8;
-}
-
 message Doors {
   bool DriverFront = 1;
   bool PassengerFront = 2;
@@ -451,7 +439,6 @@ message Value {
     CarTypeValue car_type_value = 17;
     ChargePortValue charge_port_value = 18;
     ChargePortLatchValue charge_port_latch_value = 19;
-    CruiseStateValue cruise_state_value = 20;
     Doors door_value = 21;
     DriveInverterState drive_inverter_state_value = 22;
     HvilStatus hvil_status_value = 23;

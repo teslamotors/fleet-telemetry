@@ -50,7 +50,7 @@ var _ = Describe("logger tests", func() {
 	Context("Tls handshake error", func() {
 		DescribeTable("suppresses",
 			func(envValue string) {
-				os.Setenv("SUPPRESS_TLS_HANDSHAKE_ERROR_LOGGING", envValue)
+				_ = os.Setenv("SUPPRESS_TLS_HANDSHAKE_ERROR_LOGGING", envValue)
 				logger, hook := NoOpLogger()
 				logger.Log(ERROR, "http: TLS handshake error from 0.0.0.0:1: EOF", nil)
 				Expect(hook.Entries).To(BeEmpty())

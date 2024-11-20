@@ -1,6 +1,6 @@
 module github.com/teslamotors/fleet-telemetry
 
-go 1.20
+go 1.23
 
 require (
 	cloud.google.com/go/pubsub v1.30.0
@@ -21,7 +21,7 @@ require (
 	github.com/smira/go-statsd v1.3.2
 	go.uber.org/automaxprocs v1.5.2
 	google.golang.org/api v0.114.0
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.35.1
 )
 
 require (

@@ -79,7 +79,7 @@ func NewColorLogrusLogger(context string) (*Logger, error) {
 	return logger, nil
 }
 
-// Set minimum log level for messages
+// SetLogLevel sets the minimum log level for messages
 func SetLogLevel(name string) {
 	level, err := logrus.ParseLevel(name)
 	if err != nil {

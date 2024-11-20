@@ -2,6 +2,8 @@ package telemetry
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,17 +27,7 @@ var (
 		UseEnumNumbers:  false,
 		EmitUnpopulated: true,
 		Indent:          ""}
-	protobufMap = map[string]func() proto.Message{
-		"alerts": func() proto.Message {
-			return &protos.VehicleAlerts{}
-		},
-		"errors": func() proto.Message {
-			return &protos.VehicleErrors{}
-		},
-		"V": func() proto.Message {
-			return &protos.Payload{}
-		},
-	}
+	scientificNotationFloatRegex = regexp.MustCompile(`^[+-]?(\d*\.\d+|\d+\.\d*)([eE][+-]?\d+)$`)
 )
 
 // Record is a structs that represents the telemetry records vehicles send to the backend
@@ -54,6 +46,7 @@ type Record struct {
 	PayloadBytes           []byte
 	RawBytes               []byte
 	transmitDecodedRecords bool
+	protoMessage           proto.Message
 }
 
 // NewRecord Sanitizes and instantiates a Record from a message
@@ -99,6 +92,7 @@ func (record *Record) Payload() []byte {
 	return record.PayloadBytes
 }
 
+// GetJSONPayload marshals to JSON if requested
 func (record *Record) GetJSONPayload() ([]byte, error) {
 	if record.transmitDecodedRecords {
 		return record.Payload(), nil
@@ -111,7 +105,7 @@ func (record *Record) Raw() []byte {
 	return record.RawBytes
 }
 
-// Length gets the records flatbuffer payload byte size
+// LengthRawBytes gets the record's flatbuffer payload byte size
 func (record *Record) LengthRawBytes() int {
 	record.ensureEncoded()
 	return len(record.RawBytes)
@@ -152,6 +146,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 		message.Vin = record.Vin
 		transformTimestamp(message)
 		record.PayloadBytes, err = proto.Marshal(message)
+		record.protoMessage = message
 		return err
 	case "errors":
 		message := &protos.VehicleErrors{}
@@ -161,6 +156,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 		}
 		message.Vin = record.Vin
 		record.PayloadBytes, err = proto.Marshal(message)
+		record.protoMessage = message
 		return err
 	case "V":
 		message := &protos.Payload{}
@@ -170,7 +166,18 @@ func (record *Record) applyProtoRecordTransforms() error {
 		}
 		message.Vin = record.Vin
 		transformLocation(message)
+		transformScientificNotation(message)
 		record.PayloadBytes, err = proto.Marshal(message)
+		record.protoMessage = message
+		return err
+	case "connectivity":
+		message := &protos.VehicleConnectivity{}
+		err := proto.Unmarshal(record.Payload(), message)
+		if err != nil {
+			return err
+		}
+		record.PayloadBytes, err = proto.Marshal(message)
+		record.protoMessage = message
 		return err
 	default:
 		return nil
@@ -189,24 +196,14 @@ func (record *Record) applyRecordTransforms() error {
 	return err
 }
 
-// GetProtoMessage converts the record to a proto Message
-func (record *Record) GetProtoMessage() (proto.Message, error) {
-	msgFunc, ok := protobufMap[record.TxType]
-	if !ok {
-		return nil, fmt.Errorf("no mapping for txType: %s", record.TxType)
-	}
-	message := msgFunc()
-	err := proto.Unmarshal(record.Payload(), message)
-	return message, err
+// GetProtoMessage gets extracted protobuf message
+func (record *Record) GetProtoMessage() proto.Message {
+	return record.protoMessage
 }
 
 // ToJSON serializes the record to a JSON data in bytes
 func (record *Record) toJSON() ([]byte, error) {
-	payload, err := record.GetProtoMessage()
-	if err != nil {
-		return nil, err
-	}
-	return jsonOptions.Marshal(payload)
+	return jsonOptions.Marshal(record.protoMessage)
 }
 
 // transformLocation does a best-effort attempt to convert the Location field to a proper protos.Location
@@ -222,6 +219,20 @@ func transformLocation(message *protos.Payload) {
 			}
 			// There can be only one Field_Location Datum in the proto; abort once we've seen it.
 			return
+		}
+	}
+}
+
+// transformScientificNotation fixes floating point values which are represented in scientific notation
+// example: 1e-3 => 0.001
+func transformScientificNotation(message *protos.Payload) {
+	for _, datum := range message.Data {
+		if strVal := datum.GetValue().GetStringValue(); strVal != "" {
+			if scientificNotationFloatRegex.MatchString(strVal) {
+				if floatVal, err := strconv.ParseFloat(strVal, 32); err == nil {
+					datum.Value = &protos.Value{Value: &protos.Value_StringValue{StringValue: fmt.Sprintf("%.5f", floatVal)}}
+				}
+			}
 		}
 	}
 }

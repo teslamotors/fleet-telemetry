@@ -41,7 +41,6 @@ type SocketManager struct {
 
 	config                 *config.Config
 	logger                 *logrus.Logger
-	registry               *SocketRegistry
 	requestIdentity        *telemetry.RequestIdentity
 	requestInfo            map[string]interface{}
 	metricsCollector       metrics.MetricCollector
