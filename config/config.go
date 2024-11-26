@@ -321,11 +321,11 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 
 	if _, ok := requiredDispatchers[telemetry.MQTT]; ok {
 		if c.MQTT == nil {
-			return nil, errors.New("Expected MQTT to be configured")
+			return nil, nil, errors.New("Expected MQTT to be configured")
 		}
 		mqttProducer, err := mqtt.NewProducer(context.Background(), c.MQTT, c.MetricCollector, c.Namespace, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.MQTT], logger)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		producers[telemetry.MQTT] = mqttProducer
 	}
