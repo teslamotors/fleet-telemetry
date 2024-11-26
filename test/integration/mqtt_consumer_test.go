@@ -5,7 +5,7 @@ import (
 	"time"
 
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/sirupsen/logrus"
+	logrus "github.com/teslamotors/fleet-telemetry/logger"
 )
 
 type TestMQTTConsumer struct {
