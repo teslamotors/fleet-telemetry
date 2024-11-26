@@ -18,7 +18,7 @@ type MQTTProducer struct {
 	client             pahomqtt.Client
 	config             *Config
 	logger             *logrus.Logger
-	airbrakeHandler    *airbrake.AirbrakeHandler
+	airbrakeHandler    *airbrake.Handler
 	namespace          string
 	ctx                context.Context
 	ackChan            chan (*telemetry.Record)
@@ -64,7 +64,7 @@ var (
 // Allow us to mock the mqtt.NewClient function for testing
 var PahoNewClient = pahomqtt.NewClient
 
-func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.AirbrakeHandler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metrics)
 
 	// Set default values
@@ -119,13 +119,10 @@ func (p *MQTTProducer) Produce(rec *telemetry.Record) {
 		return
 	}
 
-	payload, err := rec.GetProtoMessage()
-	if err != nil {
-		p.ReportError("mqtt_payload_unmarshal_error", err, p.createLogInfo(rec))
-		return
-	}
+	payload := rec.GetProtoMessage()
 
 	var tokens []pahomqtt.Token
+	var err error
 
 	switch payload := payload.(type) {
 	case *protos.Payload:
