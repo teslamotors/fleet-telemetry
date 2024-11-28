@@ -5,11 +5,11 @@
 # Tesla Fleet Telemetry
 ---------------------------------
 
-Fleet Telemetry is a server reference implementation for Tesla's telemetry protocol. It is the best way to get data from Tesla vehicles at regular intervals. Owners can allow registered applications to receive telemetry securely and directly from their vehicles. This reference implementation can be used by individual owners as is or by fleet operators who can extend it to aggregate data accross their fleet.
+Fleet Telemetry is a server reference implementation for Tesla's telemetry protocol. It is the best way to get data from Tesla vehicles. Owners can allow registered applications to receive telemetry securely and directly from their vehicles. This reference implementation can be used by individual owners as is or by fleet operators who can extend it to aggregate data accross their fleet.
 
 The service handles device connectivity as well as receiving and storing transmitted data. Once configured, devices establish a WebSocket connection to push configurable telemetry records. Fleet Telemetry provides clients with ack, error, or rate limit responses. The application also provides an event stream to determine the vehicle connection state, which can be used as a proxy for vehicle online state.
 
-By configuring `fleet_telemetry_config`, individual owners and fleet operators can easily control the timing and conditions of vehicle data transmission (live / on change / at frenquency).
+By configuring `fleet_telemetry_config`, individual owners and fleet operators can control the selected fields and minimum intervals for data transmission. All signals are transmitted on change, but not more frequently than the configured interval.
 
 ## Configuring and running the service
 
