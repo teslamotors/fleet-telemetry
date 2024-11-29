@@ -99,6 +99,20 @@ func (p *MQTTProducer) processVehicleErrors(rec *telemetry.Record, payload *prot
 	return tokens, nil
 }
 
+func (p *MQTTProducer) processVehicleConnectivity(rec *telemetry.Record, payload *protos.VehicleConnectivity) ([]pahomqtt.Token, error) {
+	topicName := fmt.Sprintf("%s/%s/connectivity", p.config.TopicBase, rec.Vin)
+	value := map[string]interface{}{
+		"ConnectionId": payload.GetConnectionId(),
+		"Status":       payload.GetStatus().String(),
+		"CreatedAt":    payload.GetCreatedAt().AsTime().Format(time.RFC3339),
+	}
+	jsonValue, err := json.Marshal(value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal JSON for MQTT topic %s: %v", topicName, err)
+	}
+	return []pahomqtt.Token{p.client.Publish(topicName, p.config.QoS, p.config.Retained, jsonValue)}, nil
+}
+
 func vehicleAlertToMqttMap(alert *protos.VehicleAlert) map[string]interface{} {
 	alertMap := make(map[string]interface{}, 3)
 	if alert.StartedAt != nil {

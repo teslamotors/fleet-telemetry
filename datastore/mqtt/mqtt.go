@@ -131,6 +131,8 @@ func (p *MQTTProducer) Produce(rec *telemetry.Record) {
 		tokens, err = p.processVehicleAlerts(rec, payload)
 	case *protos.VehicleErrors:
 		tokens, err = p.processVehicleErrors(rec, payload)
+	case *protos.VehicleConnectivity:
+		tokens, err = p.processVehicleConnectivity(rec, payload)
 	default:
 		p.ReportError("mqtt_unknown_payload_type", nil, p.createLogInfo(rec))
 		return
