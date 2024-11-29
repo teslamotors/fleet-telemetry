@@ -167,6 +167,26 @@ var _ = Describe("Test messages", Ordered, func() {
 			VerifyMessageBody(record.Data, vehicleName)
 		})
 
+		It("reads vehicle data from MQTT broker", func() {
+			err := connection.WriteMessage(websocket.BinaryMessage, payload)
+			Expect(err).NotTo(HaveOccurred())
+
+			var msg []byte
+			Eventually(func() error {
+				msg, err = mqttConsumer.FetchMQTTMessage()
+				return err
+			}, time.Second*5, time.Millisecond*100).Should(BeNil())
+			Expect(msg).NotTo(BeNil())
+
+			// Parse the JSON message
+			var jsonMsg interface{}
+			err = json.Unmarshal(msg, &jsonMsg)
+			Expect(err).NotTo(HaveOccurred())
+
+			// The json message should directly contain the vehicle name
+			Expect(jsonMsg).To(Equal(vehicleName), "Vehicle name %s not found in MQTT message", vehicleName)
+		})
+
 		It("reads data from zmq subscriber", func() {
 			err := connection.WriteMessage(websocket.BinaryMessage, payload)
 			Expect(err).NotTo(HaveOccurred())
@@ -254,29 +274,6 @@ var _ = Describe("Test messages", Ordered, func() {
 		})
 	})
 
-	It("reads vehicle data from MQTT broker", func() {
-		err := connection.WriteMessage(websocket.BinaryMessage, payload)
-		Expect(err).NotTo(HaveOccurred())
-
-		var msg []byte
-		Eventually(func() error {
-			msg, err = mqttConsumer.FetchMQTTMessage()
-			return err
-		}, time.Second*5, time.Millisecond*100).Should(BeNil())
-		Expect(msg).NotTo(BeNil())
-
-		// Parse the JSON message
-		var jsonMsg map[string]interface{}
-		err = json.Unmarshal(msg, &jsonMsg)
-		Expect(err).NotTo(HaveOccurred())
-
-		// Verify the "value" field exists and contains the vehicle name
-		value, ok := jsonMsg["value"]
-		Expect(ok).To(BeTrue(), "JSON message should contain a 'value' field")
-
-		// The value should directly contain the vehicle name
-		Expect(value).To(Equal(vehicleName), "Vehicle name %s not found in MQTT message", vehicleName)
-	})
 })
 
 func verifyAckMessage(connection *websocket.Conn, expectedTxType string) {

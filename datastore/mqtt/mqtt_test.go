@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 
@@ -132,9 +133,10 @@ var _ = Describe("MQTTProducer", func() {
 		mockLogger        *logrus.Logger
 		mockCollector     metrics.MetricCollector
 		mockConfig        *mqtt.Config
-		mockAirbrake      *airbrake.AirbrakeHandler
+		mockAirbrake      *airbrake.Handler
 		originalNewClient func(*pahomqtt.ClientOptions) pahomqtt.Client
 		loggerHook        *test.Hook
+		serializer        *telemetry.BinarySerializer
 	)
 
 	BeforeEach(func() {
@@ -154,6 +156,16 @@ var _ = Describe("MQTTProducer", func() {
 			QoS:       1,
 			Retained:  false,
 		}
+
+		serializer = telemetry.NewBinarySerializer(
+			&telemetry.RequestIdentity{
+				DeviceID: "TEST123",
+				SenderID: "vehicle_device.TEST123",
+			},
+			map[string][]telemetry.Producer{},
+			mockLogger,
+		)
+
 	})
 
 	AfterEach(func() {
@@ -184,6 +196,23 @@ var _ = Describe("MQTTProducer", func() {
 						},
 					},
 					{
+						Key: protos.Field_TimeToFullCharge,
+						Value: &protos.Value{
+							Value: &protos.Value_Invalid{Invalid: true},
+						},
+					},
+					{
+						Key: protos.Field_Location,
+						Value: &protos.Value{
+							Value: &protos.Value_LocationValue{
+								LocationValue: &protos.LocationValue{
+									Latitude:  37.7749,
+									Longitude: -122.4194,
+								},
+							},
+						},
+					},
+					{
 						Key: protos.Field_BatteryLevel,
 						Value: &protos.Value{
 							Value: &protos.Value_FloatValue{FloatValue: 75.5},
@@ -196,25 +225,41 @@ var _ = Describe("MQTTProducer", func() {
 			payloadBytes, err := proto.Marshal(payload)
 			Expect(err).NotTo(HaveOccurred())
 
-			record := &telemetry.Record{
-				TxType:       "V",
-				Vin:          "TEST123",
-				PayloadBytes: payloadBytes,
+			// Create stream message
+			message := messages.StreamMessage{
+				TXID:         []byte("1234"),
+				SenderID:     []byte("vehicle_device.TEST123"),
+				MessageTopic: []byte("V"),
+				Payload:      payloadBytes,
 			}
+			msgBytes, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create record properly using NewRecord
+			record, err := telemetry.NewRecord(serializer, msgBytes, "1", true)
+			Expect(err).NotTo(HaveOccurred())
 
 			producer.Produce(record)
 
-			Expect(publishedTopics).To(HaveLen(2))
+			Expect(publishedTopics).To(HaveLen(4))
 
 			vehicleNameTopic := "test/topic/TEST123/v/VehicleName"
+			invalidTopic := "test/topic/TEST123/v/TimeToFullCharge"
+			locationTopic := "test/topic/TEST123/v/Location"
 			batteryLevelTopic := "test/topic/TEST123/v/BatteryLevel"
 
-			vehicleNameValue := "{\"value\":\"My Tesla\"}"
-			batterLevelValue := "{\"value\":75.5}"
+			vehicleNameValue := "\"My Tesla\""
+			invalidValue := "null"
+			locationValue := "{\"latitude\":37.7749,\"longitude\":-122.4194}"
+			batterLevelValue := "75.5"
 
 			Expect(publishedTopics).To(HaveKey(vehicleNameTopic))
+			Expect(publishedTopics).To(HaveKey(invalidTopic))
+			Expect(publishedTopics).To(HaveKey(locationTopic))
 			Expect(publishedTopics).To(HaveKey(batteryLevelTopic))
 			Expect(publishedTopics[vehicleNameTopic]).To(Equal([]byte(vehicleNameValue)))
+			Expect(publishedTopics[invalidTopic]).To(Equal([]byte(invalidValue)))
+			Expect(publishedTopics[locationTopic]).To(Equal([]byte(locationValue)))
 			Expect(publishedTopics[batteryLevelTopic]).To(Equal([]byte(batterLevelValue)))
 		})
 
@@ -254,11 +299,19 @@ var _ = Describe("MQTTProducer", func() {
 			alertsBytes, err := proto.Marshal(alerts)
 			Expect(err).NotTo(HaveOccurred())
 
-			record := &telemetry.Record{
-				TxType:       "alerts",
-				Vin:          "TEST123",
-				PayloadBytes: alertsBytes,
+			// Create stream message
+			message := messages.StreamMessage{
+				TXID:         []byte("1234"),
+				SenderID:     []byte("vehicle_device.TEST123"),
+				MessageTopic: []byte("alerts"),
+				Payload:      alertsBytes,
 			}
+			msgBytes, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create record properly using NewRecord
+			record, err := telemetry.NewRecord(serializer, msgBytes, "1", true)
+			Expect(err).NotTo(HaveOccurred())
 
 			producer.Produce(record)
 
@@ -328,11 +381,18 @@ var _ = Describe("MQTTProducer", func() {
 			errorsBytes, err := proto.Marshal(vehicleErrors)
 			Expect(err).NotTo(HaveOccurred())
 
-			record := &telemetry.Record{
-				TxType:       "errors",
-				Vin:          "TEST123",
-				PayloadBytes: errorsBytes,
+			message := messages.StreamMessage{
+				TXID:         []byte("1234"),
+				SenderID:     []byte("vehicle_device.TEST123"),
+				MessageTopic: []byte("errors"),
+				Payload:      errorsBytes,
 			}
+			msgBytes, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create record properly using NewRecord
+			record, err := telemetry.NewRecord(serializer, msgBytes, "1", true)
+			Expect(err).NotTo(HaveOccurred())
 
 			producer.Produce(record)
 
@@ -411,11 +471,19 @@ var _ = Describe("MQTTProducer", func() {
 			payloadBytes, err := proto.Marshal(payload)
 			Expect(err).NotTo(HaveOccurred())
 
-			record := &telemetry.Record{
-				TxType:       "V",
-				Vin:          "TEST123",
-				PayloadBytes: payloadBytes,
+			message := messages.StreamMessage{
+				TXID:         []byte("1234"),
+				SenderID:     []byte("vehicle_device.TEST123"),
+				MessageTopic: []byte("V"),
+				Payload:      payloadBytes,
 			}
+			msgBytes, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create record properly using NewRecord
+			record, err := telemetry.NewRecord(serializer, msgBytes, "1", true)
+			Expect(err).NotTo(HaveOccurred())
+
 			producer.Produce(record)
 
 			// Check that an error was logged

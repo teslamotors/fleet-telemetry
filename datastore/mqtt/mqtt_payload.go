@@ -6,20 +6,17 @@ import (
 	"time"
 
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/teslamotors/fleet-telemetry/datastore/simple/transformers"
 	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func (p *MQTTProducer) processVehicleFields(rec *telemetry.Record, payload *protos.Payload) ([]pahomqtt.Token, error) {
 	var tokens []pahomqtt.Token
-	convertedPayload := transformers.PayloadToMap(payload, false, p.logger)
+	convertedPayload := p.payloadToMap(payload)
 	for key, value := range convertedPayload {
-		if key == "Vin" || key == "CreatedAt" {
-			continue
-		}
 		mqttTopicName := fmt.Sprintf("%s/%s/v/%s", p.config.TopicBase, rec.Vin, key)
-		jsonValue, err := json.Marshal(map[string]interface{}{"value": value})
+		jsonValue, err := json.Marshal(value)
 		if err != nil {
 			return tokens, fmt.Errorf("failed to marshal JSON for MQTT topic %s: %v", mqttTopicName, err)
 		}
@@ -135,4 +132,142 @@ func vehicleErrorToMqttMap(vehicleError *protos.VehicleError) map[string]interfa
 		errorMap["CreatedAt"] = vehicleError.CreatedAt.AsTime().Format(time.RFC3339)
 	}
 	return errorMap
+}
+
+// PayloadToMap transforms a Payload into a map for mqtt purposes
+func (p *MQTTProducer) payloadToMap(payload *protos.Payload) map[string]interface{} {
+	convertedPayload := make(map[string]interface{}, len(payload.Data))
+	for _, datum := range payload.Data {
+		convertedPayload[datum.Key.String()] = getDatumValue(datum.Value)
+	}
+	return convertedPayload
+}
+
+func getDatumValue(value *protos.Value) interface{} {
+	// ordered by expected frequency (see payload.go transformValue)
+	switch v := value.Value.(type) {
+	case *protos.Value_StringValue:
+		return v.StringValue
+	case *protos.Value_LocationValue:
+		return map[string]float64{
+			"latitude":  v.LocationValue.Latitude,
+			"longitude": v.LocationValue.Longitude,
+		}
+	case *protos.Value_FloatValue:
+		return v.FloatValue
+	case *protos.Value_IntValue:
+		return v.IntValue
+	case *protos.Value_DoubleValue:
+		return v.DoubleValue
+	case *protos.Value_LongValue:
+		return v.LongValue
+	case *protos.Value_BooleanValue:
+		return v.BooleanValue
+	case *protos.Value_Invalid:
+		return nil
+	case *protos.Value_ShiftStateValue:
+		return v.ShiftStateValue.String()
+	case *protos.Value_LaneAssistLevelValue:
+		return v.LaneAssistLevelValue.String()
+	case *protos.Value_ScheduledChargingModeValue:
+		return v.ScheduledChargingModeValue.String()
+	case *protos.Value_SentryModeStateValue:
+		return v.SentryModeStateValue.String()
+	case *protos.Value_SpeedAssistLevelValue:
+		return v.SpeedAssistLevelValue.String()
+	case *protos.Value_BmsStateValue:
+		return v.BmsStateValue.String()
+	case *protos.Value_BuckleStatusValue:
+		return v.BuckleStatusValue.String()
+	case *protos.Value_CarTypeValue:
+		return v.CarTypeValue.String()
+	case *protos.Value_ChargePortValue:
+		return v.ChargePortValue.String()
+	case *protos.Value_ChargePortLatchValue:
+		return v.ChargePortLatchValue.String()
+	case *protos.Value_DoorValue:
+		return map[string]bool{
+			"DriverFront":    v.DoorValue.DriverFront,
+			"PassengerFront": v.DoorValue.PassengerFront,
+			"DriverRear":     v.DoorValue.DriverRear,
+			"PassengerRear":  v.DoorValue.PassengerRear,
+			"TrunkFront":     v.DoorValue.TrunkFront,
+			"TrunkRear":      v.DoorValue.TrunkRear,
+		}
+	case *protos.Value_DriveInverterStateValue:
+		return v.DriveInverterStateValue.String()
+	case *protos.Value_HvilStatusValue:
+		return v.HvilStatusValue.String()
+	case *protos.Value_WindowStateValue:
+		return v.WindowStateValue.String()
+	case *protos.Value_SeatFoldPositionValue:
+		return v.SeatFoldPositionValue.String()
+	case *protos.Value_TractorAirStatusValue:
+		return v.TractorAirStatusValue.String()
+	case *protos.Value_FollowDistanceValue:
+		return v.FollowDistanceValue.String()
+	case *protos.Value_ForwardCollisionSensitivityValue:
+		return v.ForwardCollisionSensitivityValue.String()
+	case *protos.Value_GuestModeMobileAccessValue:
+		return v.GuestModeMobileAccessValue.String()
+	case *protos.Value_TrailerAirStatusValue:
+		return v.TrailerAirStatusValue.String()
+	case *protos.Value_TimeValue:
+		return fmt.Sprintf("%02d:%02d:%02d", v.TimeValue.Hour, v.TimeValue.Minute, v.TimeValue.Second)
+	case *protos.Value_DetailedChargeStateValue:
+		return v.DetailedChargeStateValue.String()
+	default:
+		// Any other value will be processed using the generic getProtoValue function
+		return getProtoValue(value, true)
+	}
+}
+
+// getProtoValue returns the value as an interface{} for consumption in a mqtt payload
+func getProtoValue(protoMsg protoreflect.ProtoMessage, returnAsToplevel bool) interface{} {
+	if protoMsg == nil || !protoMsg.ProtoReflect().IsValid() {
+		return nil
+	}
+
+	m := protoMsg.ProtoReflect()
+	result := make(map[string]interface{})
+
+	m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		switch fd.Kind() {
+		case protoreflect.BoolKind:
+			result[string(fd.Name())] = v.Bool()
+		case protoreflect.StringKind:
+			result[string(fd.Name())] = v.String()
+		case protoreflect.Int32Kind, protoreflect.Int64Kind,
+			protoreflect.Sint32Kind, protoreflect.Sint64Kind,
+			protoreflect.Sfixed32Kind, protoreflect.Sfixed64Kind:
+			result[string(fd.Name())] = v.Int()
+		case protoreflect.Uint32Kind, protoreflect.Uint64Kind,
+			protoreflect.Fixed32Kind, protoreflect.Fixed64Kind:
+			result[string(fd.Name())] = v.Uint()
+		case protoreflect.FloatKind, protoreflect.DoubleKind:
+			result[string(fd.Name())] = v.Float()
+		case protoreflect.BytesKind:
+			result[string(fd.Name())] = v.Bytes()
+		case protoreflect.EnumKind:
+			if desc := fd.Enum().Values().ByNumber(v.Enum()); desc != nil {
+				result[string(fd.Name())] = string(desc.Name())
+			} else {
+				result[string(fd.Name())] = int32(v.Enum())
+			}
+		case protoreflect.MessageKind, protoreflect.GroupKind:
+			if msg := v.Message(); msg.IsValid() {
+				result[string(fd.Name())] = getProtoValue(msg.Interface(), false)
+			}
+		}
+		return true
+	})
+
+	// If there's only a single toplevel field, return its value directly
+	if returnAsToplevel && len(result) == 1 {
+		for _, v := range result {
+			return v
+		}
+	}
+
+	return result
 }
