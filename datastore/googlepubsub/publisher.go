@@ -89,13 +89,13 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 
 	if err != nil {
 		p.ReportError("pubsub_topic_creation_error", err, logInfo)
-		metricsRegistry.notConnectedTotal.Inc(map[string]string{})
+		metricsRegistry.notConnectedTotal.Inc(map[string]string{"record_type": entry.TxType})
 		return
 	}
 
 	if exists, err := pubsubTopic.Exists(ctx); !exists || err != nil {
 		p.ReportError("pubsub_topic_check_error", err, logInfo)
-		metricsRegistry.notConnectedTotal.Inc(map[string]string{})
+		metricsRegistry.notConnectedTotal.Inc(map[string]string{"record_type": entry.TxType})
 		return
 	}
 

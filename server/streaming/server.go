@@ -159,7 +159,7 @@ func (s *Server) dispatchConnectivityEvent(sm *SocketManager, serializer *teleme
 
 	payload, err := proto.Marshal(connectivityMessage)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// creating streamMessage is hack to satisfy input reqirements for telemetry.NewRecord
@@ -175,9 +175,12 @@ func (s *Server) dispatchConnectivityEvent(sm *SocketManager, serializer *teleme
 
 	message, err := streamMessage.ToBytes()
 	if err != nil {
-		return nil
+		return err
 	}
-	record, _ := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
+	record, err := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
+	if err != nil {
+		return err
+	}
 	for _, dispatcher := range connectivityDispatcher {
 		dispatcher.Produce(record)
 	}
