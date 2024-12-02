@@ -188,7 +188,60 @@ enum Field {
   Experimental_15 = 178;
 
   // fields below here are always returned typed
+  // field 179 is first available in firmware version 2024.38
+
   DetailedChargeState = 179;
+
+  // fields 180-228 is first available in firmware version 2024.44.25
+
+  CabinOverheatProtectionMode = 180;
+  CabinOverheatProtectionTemperatureLimit = 181;
+  CenterDisplay = 182;
+  ChargePortDoorOpen = 183;
+  ChargingCableType = 185;
+  ClimateKeeperMode = 186;
+  DefrostForPreconditioning = 187;
+  DefrostMode = 188;
+  EfficiencyPackage = 189;
+  EstimatedHoursToChargeTermination = 190;
+  EuropeVehicle = 191;
+  ExpectedEnergyPercentAtTripArrival = 192;
+  FastChargerType = 193;
+  HomelinkDeviceCount = 194;
+  HomelinkNearby = 195;
+  HvacACEnabled = 196;
+  HvacAutoMode = 197;
+  HvacFanSpeed = 198;
+  HvacFanStatus = 199;
+  HvacLeftTemperatureRequest = 200;
+  HvacPower = 201;
+  HvacRightTemperatureRequest = 202;
+  HvacSteeringWheelHeatAuto = 203;
+  HvacSteeringWheelHeatLevel = 204;
+  OffroadLightbarPresent = 205;
+  PowershareHoursLeft = 206;
+  PowershareInstantaneousPowerKW = 207;
+  PowershareStatus = 208;
+  PowershareStopReason = 209;
+  PowershareType = 210;
+  RearDisplayHvacEnabled = 211;
+  RearSeatHeaters = 212;
+  RemoteStartEnabled = 213;
+  RightHandDrive = 214;
+  RouteTrafficMinutesDelay = 215;
+  SoftwareUpdateDownloadPercentComplete = 216;
+  SoftwareUpdateExpectedDurationMinutes = 217;
+  SoftwareUpdateInstallationPercentComplete = 218;
+  SoftwareUpdateScheduledStartTime = 219;
+  SoftwareUpdateVersion = 220;
+  TonneauOpenPercent = 221;
+  TonneauPosition = 222;
+  TonneauTentMode = 223;
+  TpmsHardWarnings = 224;
+  TpmsSoftWarnings = 225;
+  ValetModeEnabled = 226;
+  WheelType = 227;
+  WiperHeatEnabled = 228;
 }
 
 // ChargingState is deprecated and not used
@@ -409,6 +462,142 @@ enum TrailerAirStatus {
     TrailerAirStatusExhausted = 7;
 }
 
+enum HvacAutoModeState {
+  HvacAutoModeStateUnknown = 0;
+  HvacAutoModeStateOn = 1;
+  HvacAutoModeStateOverride = 2;
+}
+
+enum CabinOverheatProtectionModeState {
+  CabinOverheatProtectionModeStateUnknown = 0;
+  CabinOverheatProtectionModeStateOff = 1;
+  CabinOverheatProtectionModeStateOn = 2;
+  CabinOverheatProtectionModeStateFanOnly = 3;
+}
+
+enum ClimateOverheatProtectionTempLimit {
+  ClimateOverheatProtectionTempLimitUnknown = 0;
+  ClimateOverheatProtectionTempLimitHigh = 1;
+  ClimateOverheatProtectionTempLimitMedium = 2;
+  ClimateOverheatProtectionTempLimitLow = 3;
+}
+
+enum DefrostModeState {
+  DefrostModeStateUnknown = 0;
+  DefrostModeStateOff = 1;
+  DefrostModeStateNormal = 2;
+  DefrostModeStateMax = 3;
+  DefrostModeStateAutoDefog = 4;
+}
+
+enum ClimateKeeperModeState {
+  ClimateKeeperModeStateUnknown = 0;
+  ClimateKeeperModeStateOff = 1;
+  ClimateKeeperModeStateOn = 2;
+  ClimateKeeperModeStateDog = 3;
+  ClimateKeeperModeStateParty = 4;
+}
+
+enum HvacPowerState {
+  HvacPowerStateUnknown = 0;
+  HvacPowerStateOff = 1;
+  HvacPowerStateOn = 2;
+  HvacPowerStatePrecondition = 3;
+  HvacPowerStateOverheatProtect = 4;
+}
+
+enum FastCharger {
+  FastChargerUnknown = 0;
+  FastChargerSupercharger = 1;
+  FastChargerCHAdeMO = 2;
+  FastChargerGB = 3;
+  FastChargerACSingleWireCAN = 4;
+  FastChargerCombo = 5;
+  FastChargerMCSingleWireCAN = 6;
+  FastChargerOther = 7;
+  FastChargerSNA = 8;
+}
+
+enum CableType {
+  CableTypeUnknown = 0;
+  CableTypeIEC = 1;
+  CableTypeSAE = 2;
+  CableTypeGB_AC = 3;
+  CableTypeGB_DC = 4;
+  CableTypeSNA = 5;
+}
+
+enum TonneauTentModeState {
+  TonneauTentModeStateUnknown = 0;
+  TonneauTentModeStateInactive = 1;
+  TonneauTentModeStateMoving = 2;
+  TonneauTentModeStateFailed = 3;
+  TonneauTentModeStateActive = 4;
+}
+
+enum TonneauPositionState {
+  TonneauPositionStateUnknown = 0;
+  TonneauPositionStateInvalid = 1;
+  TonneauPositionStateClosed = 2;
+  TonneauPositionStatePartiallyOpen = 3;
+  TonneauPositionStateFullyOpen = 4;
+}
+
+enum PowershareState {
+  PowershareStateUnknown = 0;
+  PowershareStateInactive = 1;
+  PowershareStateHandshaking = 2;
+  PowershareStateInit = 3;
+  PowershareStateEnabled = 4;
+  PowershareStateEnabledReconnectingSoon = 5;
+  PowershareStateStopped = 6;
+}
+enum PowershareStopReasonStatus {
+  PowershareStopReasonStatusUnknown = 0;
+  PowershareStopReasonStatusNone = 1;
+  PowershareStopReasonStatusSOCTooLow = 2;
+  PowershareStopReasonStatusRetry = 3;
+  PowershareStopReasonStatusFault = 4;
+  PowershareStopReasonStatusUser = 5;
+  PowershareStopReasonStatusReconnecting = 6;
+  PowershareStopReasonStatusAuthentication = 7;
+}
+
+enum PowershareTypeStatus {
+  PowershareTypeStatusUnknown = 0;
+  PowershareTypeStatusNone = 1;
+  PowershareTypeStatusLoad = 2;
+  PowershareTypeStatusHome = 3;
+}
+
+enum DisplayState {
+  DisplayStateUnknown = 0;
+  DisplayStateOff = 1;
+  DisplayStateDim = 2;
+  DisplayStateAccessory = 3;
+  DisplayStateOn = 4;
+  DisplayStateDriving = 5;
+  DisplayStateCharging = 6;
+  DisplayStateLock = 7;
+  DisplayStateSentry = 8;
+  DisplayStateDog = 9;
+  DisplayStateEntertainment = 10;
+}
+
+message TireLocation {
+  bool front_left = 1;
+  bool front_right = 2;
+  bool rear_left = 3;
+  bool rear_right = 4;
+
+  bool semi_middle_axle_left_2 = 5;
+  bool semi_middle_axle_right_2 = 6;
+  bool semi_rear_axle_left = 7;
+  bool semi_rear_axle_right = 8;
+  bool semi_rear_axle_left_2 = 9;
+  bool semi_rear_axle_right_2 = 10;
+}
+
 message Time {
   int32 hour = 1;
   int32 minute = 2;
@@ -451,6 +640,21 @@ message Value {
     TrailerAirStatus trailer_air_status_value = 30;
     Time time_value = 31;
     DetailedChargeStateValue detailed_charge_state_value = 32;
+    HvacAutoModeState hvac_auto_mode_value = 33;
+    CabinOverheatProtectionModeState cabin_overheat_protection_mode_value = 34;
+    ClimateOverheatProtectionTempLimit cabin_overheat_protection_temperature_limit_value = 35;
+    DefrostModeState defrost_mode_value = 36;
+    ClimateKeeperModeState climate_keeper_mode_value = 37;
+    HvacPowerState hvac_power_value = 38;
+    TireLocation tire_location_value = 39;
+    FastCharger fast_charger_value = 40;
+    CableType cable_type_value = 41;
+    TonneauTentModeState tonneau_tent_mode_value = 42;
+    TonneauPositionState tonneau_position_value = 43;
+    PowershareTypeStatus powershare_type_value = 44;
+    PowershareState powershare_state_value = 45;
+    PowershareStopReasonStatus powershare_stop_reason_value = 46;
+    DisplayState display_state_value = 47;
   }
 }
 

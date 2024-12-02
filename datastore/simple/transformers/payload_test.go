@@ -23,7 +23,7 @@ var _ = Describe("Payload", func() {
 				Vin:       "TEST123",
 				CreatedAt: now,
 			}
-			result := transformers.PayloadToMap(payload, false, logger)
+			result := transformers.PayloadToMap(payload, false, "", logger)
 			Expect(result["Vin"]).To(Equal("TEST123"))
 			Expect(result["CreatedAt"]).To(Equal(now.AsTime().Format(time.RFC3339)))
 		})
@@ -46,7 +46,7 @@ var _ = Describe("Payload", func() {
 				Vin:       "TEST123",
 				CreatedAt: now,
 			}
-			result := transformers.PayloadToMap(payload, false, logger)
+			result := transformers.PayloadToMap(payload, false, "", logger)
 			Expect(result["Vin"]).To(Equal("TEST123"))
 			Expect(result["CreatedAt"]).To(Equal(now.AsTime().Format(time.RFC3339)))
 			Expect(result["BatteryHeaterOn"]).To(Equal(true))
@@ -59,7 +59,7 @@ var _ = Describe("Payload", func() {
 					Vin:       "TEST123",
 					CreatedAt: timestamppb.Now(),
 				}
-				result := transformers.PayloadToMap(payload, includeTypes, logger)
+				result := transformers.PayloadToMap(payload, includeTypes, "", logger)
 				Expect(result[expectedKey]).To(Equal(expectedValue))
 			},
 			Entry("String value with types excluded",

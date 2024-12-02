@@ -8,8 +8,13 @@ import (
 	"github.com/teslamotors/fleet-telemetry/protos"
 )
 
+const (
+	// SemiModelLetter is the 4th character in VIN representing Tesla semi
+	SemiModelLetter = "T"
+)
+
 // PayloadToMap transforms a Payload into a human readable map for logging purposes
-func PayloadToMap(payload *protos.Payload, includeTypes bool, logger *logrus.Logger) map[string]interface{} {
+func PayloadToMap(payload *protos.Payload, includeTypes bool, vin string, logger *logrus.Logger) map[string]interface{} {
 	convertedPayload := make(map[string]interface{}, len(payload.Data)+2)
 	convertedPayload["Vin"] = payload.Vin
 	convertedPayload["CreatedAt"] = payload.CreatedAt.AsTime().Format(time.RFC3339)
@@ -20,7 +25,7 @@ func PayloadToMap(payload *protos.Payload, includeTypes bool, logger *logrus.Log
 			continue
 		}
 		name := protos.Field_name[int32(datum.Key.Number())]
-		value, ok := transformValue(datum.Value.Value, includeTypes)
+		value, ok := transformValue(datum.Value.Value, includeTypes, vin)
 		if !ok {
 			logger.ActivityLog("unknown_payload_value_data_type", logrus.LogInfo{"name": name, "vin": payload.Vin})
 			continue
@@ -31,7 +36,7 @@ func PayloadToMap(payload *protos.Payload, includeTypes bool, logger *logrus.Log
 	return convertedPayload
 }
 
-func transformValue(value interface{}, includeTypes bool) (interface{}, bool) {
+func transformValue(value interface{}, includeTypes bool, vin string) (interface{}, bool) {
 	var outputValue interface{}
 	var outputType string
 
@@ -140,6 +145,71 @@ func transformValue(value interface{}, includeTypes bool) (interface{}, bool) {
 	case *protos.Value_DetailedChargeStateValue:
 		outputType = "detailedChargeState"
 		outputValue = v.DetailedChargeStateValue.String()
+	case *protos.Value_HvacAutoModeValue:
+		outputType = "hvacAutoMode"
+		outputValue = v.HvacAutoModeValue.String()
+	case *protos.Value_CabinOverheatProtectionModeValue:
+		outputType = "cabinOverheatProtectionMode"
+		outputValue = v.CabinOverheatProtectionModeValue.String()
+	case *protos.Value_CabinOverheatProtectionTemperatureLimitValue:
+		outputType = "cabinOverheatProtectionTemperatureLimit"
+		outputValue = v.CabinOverheatProtectionTemperatureLimitValue.String()
+	case *protos.Value_DefrostModeValue:
+		outputType = "defrostMode"
+		outputValue = v.DefrostModeValue.String()
+	case *protos.Value_ClimateKeeperModeValue:
+		outputType = "climateKeeperMode"
+		outputValue = v.ClimateKeeperModeValue.String()
+	case *protos.Value_HvacPowerValue:
+		outputType = "hvacPower"
+		outputValue = v.HvacPowerValue.String()
+	case *protos.Value_TireLocationValue:
+		outputType = "tireLocation"
+		if getModelFromVIN(vin) == SemiModelLetter {
+			outputValue = map[string]bool{
+				"FrontLeft":            v.TireLocationValue.FrontLeft,
+				"FrontRight":           v.TireLocationValue.FrontRight,
+				"SemiMiddleAxleLeft":   v.TireLocationValue.RearLeft,
+				"SemiMiddleAxleRight":  v.TireLocationValue.RearRight,
+				"SemiMiddleAxleLeft2":  v.TireLocationValue.SemiMiddleAxleLeft_2,
+				"SemiMiddleAxleRight2": v.TireLocationValue.SemiMiddleAxleRight_2,
+				"SemiRearAxleLeft":     v.TireLocationValue.SemiRearAxleLeft,
+				"SemiRearAxleRight":    v.TireLocationValue.SemiRearAxleRight,
+				"SemiRearAxleLeft2":    v.TireLocationValue.SemiRearAxleLeft_2,
+				"SemiRearAxleRight2":   v.TireLocationValue.SemiRearAxleRight_2,
+			}
+		} else {
+			outputValue = map[string]bool{
+				"FrontLeft":  v.TireLocationValue.FrontLeft,
+				"FrontRight": v.TireLocationValue.FrontRight,
+				"RearLeft":   v.TireLocationValue.RearLeft,
+				"RearRight":  v.TireLocationValue.RearRight,
+			}
+		}
+	case *protos.Value_FastChargerValue:
+		outputType = "fastChargerType"
+		outputValue = v.FastChargerValue.String()
+	case *protos.Value_CableTypeValue:
+		outputType = "chargingCableType"
+		outputValue = v.CableTypeValue.String()
+	case *protos.Value_TonneauTentModeValue:
+		outputType = "tonneauTentMode"
+		outputValue = v.TonneauTentModeValue.String()
+	case *protos.Value_TonneauPositionValue:
+		outputType = "tonneauPosition"
+		outputValue = v.TonneauPositionValue.String()
+	case *protos.Value_PowershareStateValue:
+		outputType = "powershareStatus"
+		outputValue = v.PowershareStateValue.String()
+	case *protos.Value_PowershareStopReasonValue:
+		outputType = "powershareStopReason"
+		outputValue = v.PowershareStopReasonValue.String()
+	case *protos.Value_PowershareTypeValue:
+		outputType = "powershareType"
+		outputValue = v.PowershareTypeValue.String()
+	case *protos.Value_DisplayStateValue:
+		outputType = "displayState"
+		outputValue = v.DisplayStateValue.String()
 	default:
 		return nil, false
 	}
@@ -149,4 +219,8 @@ func transformValue(value interface{}, includeTypes bool) (interface{}, bool) {
 	}
 
 	return outputValue, true
+}
+
+func getModelFromVIN(vin string) string {
+	return string(vin[3])
 }
