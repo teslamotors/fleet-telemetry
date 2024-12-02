@@ -74,7 +74,9 @@ func CreateWebSocket(tlsConfig *tls.Config) *websocket.Conn {
 		HandshakeTimeout: 45 * time.Second,
 		TLSClientConfig:  tlsConfig,
 	}
-	c, _, err := tlsDialer.Dial(u.String(), http.Header{})
+	headers := http.Header{}
+	headers.Add("X-Network-Interface", "wifi")
+	c, _, err := tlsDialer.Dial(u.String(), headers)
 	Expect(err).NotTo(HaveOccurred())
 	return c
 }

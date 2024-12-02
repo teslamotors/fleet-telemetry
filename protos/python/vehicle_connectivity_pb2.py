@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1avehicle_connectivity.proto\x12\x1etelemetry.vehicle_connectivity\x1a\x1fgoogle/protobuf/timestamp.proto\"\xac\x01\n\x13VehicleConnectivity\x12\x0b\n\x03vin\x18\x01 \x01(\t\x12\x15\n\rconnection_id\x18\x02 \x01(\t\x12\x41\n\x06status\x18\x03 \x01(\x0e\x32\x31.telemetry.vehicle_connectivity.ConnectivityEvent\x12.\n\ncreated_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp*A\n\x11\x43onnectivityEvent\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tCONNECTED\x10\x01\x12\x10\n\x0c\x44ISCONNECTED\x10\x02\x42/Z-github.com/teslamotors/fleet-telemetry/protosb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1avehicle_connectivity.proto\x12\x1etelemetry.vehicle_connectivity\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc7\x01\n\x13VehicleConnectivity\x12\x0b\n\x03vin\x18\x01 \x01(\t\x12\x15\n\rconnection_id\x18\x02 \x01(\t\x12\x41\n\x06status\x18\x03 \x01(\x0e\x32\x31.telemetry.vehicle_connectivity.ConnectivityEvent\x12.\n\ncreated_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x19\n\x11network_interface\x18\x05 \x01(\t*A\n\x11\x43onnectivityEvent\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tCONNECTED\x10\x01\x12\x10\n\x0c\x44ISCONNECTED\x10\x02\x42/Z-github.com/teslamotors/fleet-telemetry/protosb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,8 +33,8 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'vehicle_connectivity_pb2', 
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z-github.com/teslamotors/fleet-telemetry/protos'
-  _globals['_CONNECTIVITYEVENT']._serialized_start=270
-  _globals['_CONNECTIVITYEVENT']._serialized_end=335
+  _globals['_CONNECTIVITYEVENT']._serialized_start=297
+  _globals['_CONNECTIVITYEVENT']._serialized_end=362
   _globals['_VEHICLECONNECTIVITY']._serialized_start=96
-  _globals['_VEHICLECONNECTIVITY']._serialized_end=268
+  _globals['_VEHICLECONNECTIVITY']._serialized_end=295
 # @@protoc_insertion_point(module_scope)

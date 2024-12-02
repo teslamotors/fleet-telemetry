@@ -132,6 +132,15 @@ func buildRequestContext(ctx context.Context) (logInfo map[string]interface{}, s
 	return
 }
 
+// GetNetworkInterface returns value from request headers
+func (sm *SocketManager) GetNetworkInterface() string {
+	networkInterfaceData, ok := sm.requestInfo["network_interface"]
+	if !ok {
+		return ""
+	}
+	return networkInterfaceData.(string)
+}
+
 // ListenToWriteChannel to the write channel
 func (sm *SocketManager) ListenToWriteChannel() SocketMessage {
 	msg := <-sm.writeChan

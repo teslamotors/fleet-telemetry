@@ -20,18 +20,20 @@ var _ = Describe("VehicleConnectivity", func() {
 
 		BeforeEach(func() {
 			connectivity = &protos.VehicleConnectivity{
-				Vin:          "Vin1",
-				ConnectionId: "connection1",
-				CreatedAt:    timestamppb.New(time.Now()),
-				Status:       protos.ConnectivityEvent_CONNECTED,
+				Vin:              "Vin1",
+				ConnectionId:     "connection1",
+				NetworkInterface: "wifi",
+				CreatedAt:        timestamppb.New(time.Now()),
+				Status:           protos.ConnectivityEvent_CONNECTED,
 			}
 		})
 
 		It("includes all expected data", func() {
 			result := transformers.VehicleConnectivityToMap(connectivity)
-			Expect(result).To(HaveLen(4))
+			Expect(result).To(HaveLen(5))
 			Expect(result["Vin"]).To(Equal("Vin1"))
 			Expect(result["ConnectionID"]).To(Equal("connection1"))
+			Expect(result["NetworkInterface"]).To(Equal("wifi"))
 			Expect(result["CreatedAt"]).To(BeNumerically("~", time.Now().Unix(), 1))
 			Expect(result["Status"]).To(Equal("CONNECTED"))
 		})
