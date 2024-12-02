@@ -4,11 +4,11 @@ This package implements an MQTT (Message Queuing Telemetry Transport) producer f
 
 ## Overview
 
-The MQTT datastore allows the Fleet Telemetry system to publish vehicle data, alerts, and errors to an MQTT broker. It uses the Paho MQTT client library for Go and implements the `telemetry.Producer` interface.
+The MQTT datastore allows the Fleet Telemetry system to publish vehicle data, alerts, errors and connectivity to an MQTT broker. It uses the Paho MQTT client library for Go and implements the `telemetry.Producer` interface.
 
 ## Key Design Decisions
 
-1. **Separate topics for different data types**: We use distinct topic structures for metrics, alerts, and errors to allow easy filtering and processing by subscribers.
+1. **Separate topics for different data types**: We use distinct topic structures for metrics, alerts, errors and connectivity to allow easy filtering and processing by subscribers.
 
 2. **Individual field publishing**: Each metric field is published as a separate MQTT message, allowing for granular updates and subscriptions.
 
@@ -64,12 +64,16 @@ The MQTT producer will use default values for any omitted fields as specified ab
 - Alerts (current state): `<topic_base>/<VIN>/alerts/<alert_name>/current`
 - Alerts (history): `<topic_base>/<VIN>/alerts/<alert_name>/history`
 - Errors: `<topic_base>/<VIN>/errors/<error_name>`
+- Connectivity: `<topic_base>/<VIN>/connectivity`
 
 ## Payload Formats
 
-- Metrics: `{"value": <field_value>}`
+All payloads are JSON encoded. Please note that the metric field values are also JSON encoded.
+
+- Metrics: `<field_value>`
 - Alerts: `{"Name": <string>, "StartedAt": <timestamp>, "EndedAt": <timestamp>, "Audiences": [<string>]}`
 - Errors: `{"Name": <string>, "Body": <string>, "Tags": {<string>: <string>}, "CreatedAt": <timestamp>}`
+- Connectivity: `{"ConnectionId": <string>, "Status": <string>, "CreatedAt": <timestamp>}`
 
 Note: The field contents and type are determined by the car. Fields may have their types updated with different software and vehicle versions to optimize for precision or space. For example, a float value like the vehicle's speed might be received as 12.3 (numeric) in one version and as "12.3" (string) in another version.
 
