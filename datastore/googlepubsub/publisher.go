@@ -156,7 +156,7 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 	metricsRegistry.notConnectedTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "pubsub_not_connected_total",
 		Help:   "The number of times pubsub has not been connected when attempting to produce.",
-		Labels: []string{},
+		Labels: []string{"record_type"},
 	})
 
 	metricsRegistry.publishCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
