@@ -12,6 +12,7 @@ message VehicleConnectivity {
   string connection_id = 2;
   ConnectivityEvent status = 3;
   google.protobuf.Timestamp created_at = 4;
+  string network_interface = 5;
 }
 
 // ConnectivityEvent represents connection state of the vehicle

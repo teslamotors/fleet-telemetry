@@ -151,10 +151,11 @@ func (s *Server) dispatchConnectivityEvent(sm *SocketManager, serializer *teleme
 	}
 
 	connectivityMessage := &protos.VehicleConnectivity{
-		Vin:          sm.requestIdentity.DeviceID,
-		ConnectionId: sm.UUID,
-		CreatedAt:    timestamppb.Now(),
-		Status:       event,
+		Vin:              sm.requestIdentity.DeviceID,
+		ConnectionId:     sm.UUID,
+		NetworkInterface: sm.GetNetworkInterface(),
+		CreatedAt:        timestamppb.Now(),
+		Status:           event,
 	}
 
 	payload, err := proto.Marshal(connectivityMessage)

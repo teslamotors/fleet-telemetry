@@ -307,6 +307,7 @@ func VerifyConnectivityMessageBody(body []byte) {
 	err := proto.Unmarshal(body, payload)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(payload.GetVin()).To(Equal(deviceID))
+	Expect(payload.GetNetworkInterface()).To(Equal("wifi"))
 	Expect(payload.GetConnectionId()).NotTo(BeEmpty())
 	Expect(payload.GetCreatedAt().AsTime().Unix()).NotTo(BeEquivalentTo(0))
 	Expect(payload.GetStatus()).To(Or(Equal(protos.ConnectivityEvent_CONNECTED), Equal(protos.ConnectivityEvent_DISCONNECTED)))

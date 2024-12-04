@@ -2,6 +2,7 @@ package streaming_test
 
 import (
 	"context"
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,17 +19,18 @@ import (
 
 var _ = Describe("Socket test", func() {
 	var (
-		conf       *config.Config
-		logger     *logrus.Logger
-		hook       *test.Hook
-		serializer *telemetry.BinarySerializer
-		sm         *streaming.SocketManager
+		conf            *config.Config
+		logger          *logrus.Logger
+		hook            *test.Hook
+		serializer      *telemetry.BinarySerializer
+		sm              *streaming.SocketManager
+		requestIdentity *telemetry.RequestIdentity
 	)
 
 	BeforeEach(func() {
 		conf = CreateTestConfig()
 		logger, hook = logrus.NoOpLogger()
-		requestIdentity := &telemetry.RequestIdentity{
+		requestIdentity = &telemetry.RequestIdentity{
 			DeviceID: "42",
 			SenderID: "vehicle_device.42",
 		}
@@ -126,6 +128,19 @@ var _ = Describe("Socket test", func() {
 			Expect(hook.Entries).To(HaveLen(0))
 
 			Expect(string(streamMessage.MessageTopic)).To(Equal("canlogs"))
+		})
+
+		It("empty network interface", func() {
+			Expect(sm.GetNetworkInterface()).To(BeEmpty())
+		})
+
+		It("with request in context", func() {
+			req, err := http.NewRequest("GET", "/test", nil)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Add("X-Network-Interface", "cellular")
+			ctx := context.WithValue(context.Background(), streaming.SocketContext, map[string]interface{}{"request": req})
+			sm := streaming.NewSocketManager(ctx, requestIdentity, nil, conf, logger)
+			Expect(sm.GetNetworkInterface()).To(Equal("cellular"))
 		})
 	})
 })
