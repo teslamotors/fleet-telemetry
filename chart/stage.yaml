@@ -1,0 +1,3 @@
+certificate:
+  dnsNames:
+    - tesla-fleet-v1.weavegrid.dev
