@@ -1,0 +1,98 @@
+certificate:
+  issuer: letsencrypt-dns-prod
+  dnsNames:
+    - tesla-fleet-v1.weavegrid.com
+
+image:
+  repository: 464910097692.dkr.ecr.us-west-2.amazonaws.com/tesla_fleet
+  tag: 317f33a
+
+env:
+  AWS_REGION: us-west-2
+  SUPPRESS_TLS_HANDSHAKE_ERROR_LOGGING: "1"
+
+replicas: 1
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+
+service:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-attributes: deletion_protection.enabled=true
+    service.beta.kubernetes.io/aws-load-balancer-name: tesla-fleet
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: instance
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "300" # Remove this eventually
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+  type: LoadBalancer
+
+serviceInternal:
+  ports:
+    - name: metrics
+      port: 9273
+      targetPort: 9273
+    - name: profile
+      port: 4269
+      targetPort: 4269
+  type: ClusterIP
+  monitor:
+    create: true
+    labels:
+      release: kube-prom
+
+config:
+  data: |
+    {
+      "host": "0.0.0.0",
+      "port": 8443,
+      "status_port": 8080,
+      "log_level": "info",
+      "json_log_enable": true,
+      "namespace": "tesla_telemetry",
+      "monitoring": {
+        "prometheus_metrics_port": 9273,
+        "profiler_port": 4269,
+        "profiling_path": "/tmp/trace.out"
+      },
+      "kinesis": {
+        "max_retries": 3,
+        "streams": {
+          "V": "tesla-fleet-prod"
+        }
+      },
+      "rate_limit": {
+        "enabled": true,
+        "message_interval_time": 30,
+        "message_limit": 1000
+      },
+      "records": {
+        "alerts": [
+          "logger"
+        ],
+        "errors": [
+          "logger"
+        ],
+        "V": [
+          "kinesis",
+          "logger"
+        ]
+      },
+      "tls": {
+        "server_cert": "/etc/certs/server/tls.crt",
+        "server_key": "/etc/certs/server/tls.key"
+      }
+    }
+  port: 8443
+  status:
+    port: 8080
+  metrics:
+    port: 9273
+  profile:
+    port: 4269
+
+kubernetesClusterDomain: cluster.local

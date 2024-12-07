@@ -1,0 +1,5 @@
+service_role_arn: arn:aws:iam::464910097692:role/tesla-fleet-role-prod
+
+certificate:
+  dnsNames:
+    - tesla-fleet-v1.weavegrid.com

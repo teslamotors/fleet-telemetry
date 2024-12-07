@@ -97,7 +97,7 @@ func (record *Record) GetJSONPayload() ([]byte, error) {
 	if record.transmitDecodedRecords {
 		return record.Payload(), nil
 	}
-	return record.toJSON()
+	return record.ToJSON()
 }
 
 // Raw returns the raw telemetry record
@@ -192,7 +192,7 @@ func (record *Record) applyRecordTransforms() error {
 	if !record.transmitDecodedRecords {
 		return nil
 	}
-	record.PayloadBytes, err = record.toJSON()
+	record.PayloadBytes, err = record.ToJSON()
 	return err
 }
 
@@ -202,7 +202,7 @@ func (record *Record) GetProtoMessage() proto.Message {
 }
 
 // ToJSON serializes the record to a JSON data in bytes
-func (record *Record) toJSON() ([]byte, error) {
+func (record *Record) ToJSON() ([]byte, error) {
 	return jsonOptions.Marshal(record.protoMessage)
 }
 

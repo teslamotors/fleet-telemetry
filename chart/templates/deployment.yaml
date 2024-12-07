@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fleet-telemetry.fullname" . }}
+  labels:
+    role: api
+    service: fleet-telemetry
+  {{- include "fleet-telemetry.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      role: api
+      service: fleet-telemetry
+    {{- include "fleet-telemetry.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        role: api
+        service: fleet-telemetry
+      {{- include "fleet-telemetry.selectorLabels" . | nindent 8 }}
+      annotations:
+        config-hash: {{ .Values.config.data | toJson | sha256sum }}
+    spec:
+      containers:
+      - command:
+        - /fleet-telemetry
+        - -config=/etc/fleet-telemetry/config.json
+        env:
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        {{- range $key, $value := .Values.env }}
+        - name: {{ quote $key }}
+          value: {{ quote $value }}
+        {{- end }}
+        image: {{ printf "%s:%s" .Values.image.repository (.Values.image.tag | default .Chart.AppVersion) | quote }}
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /metrics
+            port: {{ .Values.config.metrics.port }}
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 10
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /status
+            port: {{ .Values.config.status.port }}
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 10
+        name: fleet-telemetry
+        ports:
+        - containerPort: {{ .Values.config.profile.port }}
+          name: profile
+          protocol: TCP
+        - containerPort: {{ .Values.config.port }}
+          name: https
+          protocol: TCP
+        - containerPort: {{ .Values.config.metrics.port }}
+          name: metrics
+          protocol: TCP
+        resources: {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /etc/fleet-telemetry/
+          name: config
+        - mountPath: /etc/certs/server
+          name: server-certs
+      nodeSelector: {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations: {{- toYaml .Values.tolerations | nindent 8 }}
+      volumes:
+      - name: config
+        projected:
+          sources:
+          - configMap:
+              name: {{ include "fleet-telemetry.fullname" . }}
+      - name: server-certs
+        projected:
+          sources:
+          - secret:
+              name: {{ printf "%s-tls" (include "fleet-telemetry.fullname" .) | quote }}
+      serviceAccountName: {{ include "fleet-telemetry.fullname" . }}-sa

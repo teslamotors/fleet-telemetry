@@ -1,7 +1,6 @@
 package kinesis
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -61,10 +60,6 @@ func NewProducer(maxRetries int, streams map[string]string, overrideHost string,
 	}
 
 	service := kinesis.New(sess, config)
-	if _, err := service.ListStreams(&kinesis.ListStreamsInput{Limit: aws.Int64(1)}); err != nil {
-		return nil, fmt.Errorf("failed to list streams (test connection): %v", err)
-	}
-
 	return &Producer{
 		kinesis:            service,
 		logger:             logger,
@@ -85,8 +80,15 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		p.ReportError("kinesis_produce_stream_not_configured", nil, logrus.LogInfo{"record_type": entry.TxType})
 		return
 	}
+
+	data, err := entry.ToJSON()
+	if err != nil {
+		p.logger.ErrorLog("record_logging_error", err, logrus.LogInfo{"vin": entry.Vin, "txtype": entry.TxType, "metadata": entry.Metadata()})
+		return
+	}
+
 	kinesisRecord := &kinesis.PutRecordInput{
-		Data:         entry.Payload(),
+		Data:         data,
 		StreamName:   aws.String(stream),
 		PartitionKey: aws.String(entry.Vin),
 	}
