@@ -6,6 +6,8 @@ LINTER_FLAGS ?=
 ALPHA_IMAGE_NAME=fleet-telemetry-server-aplha:v0.0.1
 ALPHA_IMAGE_COMPRESSED_FILENAME := $(subst :,-, $(ALPHA_IMAGE_NAME))
 
+WG_IMAGE_REPO := 464910097692.dkr.ecr.us-west-2.amazonaws.com/tesla_fleet
+
 GO_FLAGS        ?=
 GO_FLAGS        += --ldflags 'extldflags="-static"'
 
@@ -79,3 +81,9 @@ image-gen:
 	docker save $(ALPHA_IMAGE_NAME) | gzip > $(ALPHA_IMAGE_COMPRESSED_FILENAME).tar.gz
 
 .PHONY: test build vet linters install integration image-gen generate-protos generate-golang generate-python generate-ruby clean
+
+wg-build-image:
+	docker build --platform linux/amd64 -t $(WG_IMAGE_REPO):$(shell git rev-parse --short HEAD) .
+
+wg-push-image: wg-build-image
+	docker push $(WG_IMAGE_REPO):$(shell git rev-parse --short HEAD)

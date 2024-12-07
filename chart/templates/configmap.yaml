@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fleet-telemetry.fullname" . }}
+  labels:
+    service: fleet-telemetry
+  {{- include "fleet-telemetry.labels" . | nindent 4 }}
+data:
+  config.json: {{ .Values.config.data | toJson }}
