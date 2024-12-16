@@ -192,12 +192,14 @@ enum Field {
 
   DetailedChargeState = 179;
 
-  // fields 180-228 is first available in firmware version 2024.44.25
+  // fields 180-183, 185-228 are first available in firmware version 2024.44.25
+  // field 184 is first available in firmware version 2024.44.32
 
   CabinOverheatProtectionMode = 180;
   CabinOverheatProtectionTemperatureLimit = 181;
   CenterDisplay = 182;
   ChargePortDoorOpen = 183;
+  ChargerVoltage = 184;
   ChargingCableType = 185;
   ClimateKeeperMode = 186;
   DefrostForPreconditioning = 187;
@@ -242,6 +244,19 @@ enum Field {
   ValetModeEnabled = 226;
   WheelType = 227;
   WiperHeatEnabled = 228;
+
+  // fields 229-238 are first available in firmware version 2024.44.32
+
+  LocatedAtHome = 229;
+  LocatedAtWork = 230;
+  LocatedAtFavorite = 231;
+  SettingDistanceUnit = 232;
+  SettingTemperatureUnit = 233;
+  Setting24HourTime = 234;
+  SettingTirePressureUnit = 235;
+  SettingChargeUnit = 236;
+  ClimateSeatCoolingFrontLeft = 237;
+  ClimateSeatCoolingFrontRight = 238;
 }
 
 // ChargingState is deprecated and not used
@@ -584,6 +599,30 @@ enum DisplayState {
   DisplayStateEntertainment = 10;
 }
 
+enum DistanceUnit {
+  DistanceUnitUnknown = 0;
+  DistanceUnitMiles = 1;
+  DistanceUnitKilometers = 2;
+}
+
+enum TemperatureUnit {
+  TemperatureUnitUnknown = 0;
+  TemperatureUnitFahrenheit = 1;
+  TemperatureUnitCelsius = 2;
+}
+
+enum PressureUnit {
+  PressureUnitUnknown = 0;
+  PressureUnitPsi = 1;
+  PressureUnitBar = 2;
+}
+
+enum ChargeUnitPreference {
+  ChargeUnitUnknown = 0;
+  ChargeUnitDistance = 1;
+  ChargeUnitPercent = 2;
+}
+
 message TireLocation {
   bool front_left = 1;
   bool front_right = 2;
@@ -655,6 +694,10 @@ message Value {
     PowershareState powershare_state_value = 45;
     PowershareStopReasonStatus powershare_stop_reason_value = 46;
     DisplayState display_state_value = 47;
+    DistanceUnit distance_unit_value = 48;
+    TemperatureUnit temperature_unit_value = 49;
+    PressureUnit pressure_unit_value = 50;
+    ChargeUnitPreference charge_unit_preference_value = 51;
   }
 }
 

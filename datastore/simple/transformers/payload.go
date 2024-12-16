@@ -210,6 +210,18 @@ func transformValue(value interface{}, includeTypes bool, vin string) (interface
 	case *protos.Value_DisplayStateValue:
 		outputType = "displayState"
 		outputValue = v.DisplayStateValue.String()
+	case *protos.Value_PressureUnitValue:
+		outputType = "pressureUnit"
+		outputValue = v.PressureUnitValue.String()
+	case *protos.Value_TemperatureUnitValue:
+		outputType = "temperatureUnit"
+		outputValue = v.TemperatureUnitValue.String()
+	case *protos.Value_ChargeUnitPreferenceValue:
+		outputType = "chargeUnit"
+		outputValue = v.ChargeUnitPreferenceValue.String()
+	case *protos.Value_DistanceUnitValue:
+		outputType = "distanceUnit"
+		outputValue = v.DistanceUnitValue.String()
 	default:
 		return nil, false
 	}
