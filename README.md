@@ -157,12 +157,14 @@ Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry s
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
+* MQTT: Configure using the config.json file. See implementation in [config/config.go](./config/config.go)
+  * See detailed MQTT information in the [MQTT README](./datastore/mqtt/README.md)
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
 
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
 
 ## Reliable Acks
-Fleet Telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+Fleet Telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
 
 ## Detecting Vehicle Connectivity Changes
 On the vehicle, Fleet Telemetry client behave similarly to how the connectivity engine for vehicle commands. Therefore we can use Fleet Telemetry connectivity event to assume when a vehicle is online. Note that it is a proxy, but if configured properly Fleet Telemetry connectivity time should match vehicle connectivity state in 99%+. To enable connectivity events simply add the `connectivity` records in the list of events in [server_config.json](./examples/server_config.json) file:

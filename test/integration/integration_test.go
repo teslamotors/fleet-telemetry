@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,6 +33,8 @@ const (
 	kafkaBroker = "kafka:9092"
 	pubsubHost  = "pubsub:8085"
 	zmqAddr     = "tcp://app:5284"
+	mqttBroker  = "mqtt:1883"
+	mqttTopic   = "telemetry/device-1/v/VehicleName"
 	kinesisHost = "http://kinesis:4567"
 
 	kinesisStreamName             = "test_V"
@@ -56,6 +59,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		kinesisConsumer *TestKinesisConsumer
 		kafkaConsumer   *kafka.Consumer
 		zmqConsumer     *TestZMQConsumer
+		mqttConsumer    *TestMQTTConsumer
 		tlsConfig       *tls.Config
 		timestamp       *timestamppb.Timestamp
 		logger          *logrus.Logger
@@ -86,6 +90,9 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		zmqConsumer, err = NewTestZMQConsumer(zmqAddr, []string{vehicleTopic, vehicleConnectivityTopic})
+		Expect(err).NotTo(HaveOccurred())
+
+		mqttConsumer, err = NewTestMQTTConsumer(mqttBroker, mqttTopic, logger)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -158,6 +165,26 @@ var _ = Describe("Test messages", Ordered, func() {
 				return err
 			}, time.Second*5, time.Millisecond*100).Should(BeNil())
 			VerifyMessageBody(record.Data, vehicleName)
+		})
+
+		It("reads vehicle data from MQTT broker", func() {
+			err := connection.WriteMessage(websocket.BinaryMessage, payload)
+			Expect(err).NotTo(HaveOccurred())
+
+			var msg []byte
+			Eventually(func() error {
+				msg, err = mqttConsumer.FetchMQTTMessage()
+				return err
+			}, time.Second*5, time.Millisecond*100).Should(BeNil())
+			Expect(msg).NotTo(BeNil())
+
+			// Parse the JSON message
+			var jsonMsg interface{}
+			err = json.Unmarshal(msg, &jsonMsg)
+			Expect(err).NotTo(HaveOccurred())
+
+			// The json message should directly contain the vehicle name
+			Expect(jsonMsg).To(Equal(vehicleName), "Vehicle name %s not found in MQTT message", vehicleName)
 		})
 
 		It("reads data from zmq subscriber", func() {
@@ -246,6 +273,7 @@ var _ = Describe("Test messages", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+
 })
 
 func verifyAckMessage(connection *websocket.Conn, expectedTxType string) {
