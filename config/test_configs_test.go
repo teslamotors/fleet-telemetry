@@ -62,6 +62,31 @@ const TestSmallConfig = `
 }
 `
 
+const TestDisableTLSConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"kafka": {
+		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
+		"ssl.ca.location": "kafka.ca",
+		"ssl.certificate.location": "kafka.crt",
+		"ssl.key.location": "kafka.key",
+		"queue.buffering.max.messages": 1000000
+	},
+	"records": {
+		"V": ["kafka"]
+	},
+	"disable_tls": true
+	"tls": {
+		"ca_file": "tesla.ca",
+		"server_cert": "your_own_cert.crt",
+		"server_key": "your_own_key.key"
+	}
+}
+`
+
 const TestBadReliableAckConfig = `
 {
 	"host": "127.0.0.1",

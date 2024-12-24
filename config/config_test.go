@@ -32,6 +32,7 @@ var _ = Describe("Test full application config", func() {
 			StatusPort: 8080,
 			Namespace:  "tesla_telemetry",
 			TLS:        &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
+			DisableTLS: false,
 			RateLimit:  &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
 			Kafka: &confluent.ConfigMap{
 				"bootstrap.servers":        "some.broker:9093",
@@ -62,7 +63,7 @@ var _ = Describe("Test full application config", func() {
 	})
 
 	Context("ExtractServiceTLSConfig", func() {
-		It("fails when TLS is nil ", func() {
+		It("fails when TLS is nil", func() {
 			config = &Config{}
 			_, err := config.ExtractServiceTLSConfig(log)
 			Expect(err).To(MatchError("tls config is empty - telemetry server is mTLS only, make sure to provide certificates in the config"))
@@ -121,10 +122,24 @@ var _ = Describe("Test full application config", func() {
 			Expect(config.TransmitDecodedRecords).To(BeFalse())
 		})
 
+		It("disable_tls false by default", func() {
+			config, err := loadTestApplicationConfig(TestSmallConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.DisableTLS).To(BeFalse())
+		})
+
 		It("transmitrecords enabled", func() {
 			config, err := loadTestApplicationConfig(TestTransmitDecodedRecords)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(config.TransmitDecodedRecords).To(BeTrue())
+		})
+	})
+
+	Context("configure tls", func() {
+		It("read disable tls config", func() {
+			config, err := loadTestApplicationConfig(TestDisableTLSConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.DisableTLS).To(BeEquivalentTo(true))
 		})
 	})
 

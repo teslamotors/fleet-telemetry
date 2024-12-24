@@ -47,6 +47,11 @@ type Config struct {
 	// TLS contains certificates & CA info for the webserver
 	TLS *TLS `json:"tls,omitempty"`
 
+	// DisableTLS indicates whether to disable mutual TLS (mTLS) for incoming connections.
+	// This should only be set to true if there is a reverse proxy that is already handling
+	// mTLS on behalf of this service. TLS will be ignored.
+	DisableTLS bool `json:"disable_tls,omitempty"`
+
 	// UseDefaultEngCA overrides default CA to eng
 	UseDefaultEngCA bool `json:"use_default_eng_ca"`
 
