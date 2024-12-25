@@ -3,7 +3,9 @@ package streaming
 import (
 	"context"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"github.com/pkg/errors"
 	"net/http"
 	"sync"
 	"time"
@@ -129,7 +131,7 @@ func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter
 	return func(w http.ResponseWriter, r *http.Request) {
 		if ws := s.promoteToWebsocket(w, r); ws != nil {
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
-			requestIdentity, err := extractIdentityFromConnection(r)
+			requestIdentity, err := extractIdentityFromConnection(r, config)
 			if err != nil {
 				s.logger.ErrorLog("extract_sender_id_err", err, nil)
 			}
@@ -218,8 +220,14 @@ func (s *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *web
 	return ws
 }
 
-func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity, error) {
-	cert, err := extractCertFromHeaders(r)
+func extractIdentityFromConnection(r *http.Request, config *config.Config) (*telemetry.RequestIdentity, error) {
+	var cert *x509.Certificate
+	var err error
+	if config.DisableTLS {
+		cert, err = extractCertFromHeaders(r)
+	} else {
+		cert, err = extractCertFromTLS(r)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -235,6 +243,31 @@ func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity,
 }
 
 func extractCertFromHeaders(r *http.Request) (*x509.Certificate, error) {
+	raw := r.Header.Get("Client-Cert-Chain") //Client-Cert HTTP Header Field  https://datatracker.ietf.org/doc/rfc9440/
+	if raw == "" {
+		return nil, errors.New("missing_certificate_error")
+	}
+	var allCerts []*x509.Certificate
+	rest := []byte(raw)
+	for {
+		block, remaining := pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		certs, err := x509.ParseCertificates(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse certificates: %w", err)
+		}
+		allCerts = append(allCerts, certs...)
+		rest = remaining
+	}
+	if len(allCerts) == 0 {
+		return nil, errors.New("missing_certificate_error")
+	}
+	return allCerts[0], nil
+}
+
+func extractCertFromTLS(r *http.Request) (*x509.Certificate, error) {
 	nbCerts := len(r.TLS.PeerCertificates)
 	if nbCerts == 0 {
 		return nil, fmt.Errorf("missing_certificate_error")
