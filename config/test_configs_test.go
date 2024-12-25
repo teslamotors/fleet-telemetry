@@ -78,7 +78,7 @@ const TestDisableTLSConfig = `
 	"records": {
 		"V": ["kafka"]
 	},
-	"disable_tls": true
+	"disable_tls": true,
 	"tls": {
 		"ca_file": "tesla.ca",
 		"server_cert": "your_own_cert.crt",
