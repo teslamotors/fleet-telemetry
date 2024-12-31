@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
-	"github.com/teslamotors/fleet-telemetry/metrics/adapter/noop"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -19,9 +18,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/gorilla/websocket"
-
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter/noop"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
