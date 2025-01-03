@@ -131,6 +131,9 @@ type Pubsub struct {
 	// GCP Project ID
 	ProjectID string `json:"gcp_project_id,omitempty"`
 
+	// TopicCheckRefreshIntervalSeconds -1: do not check if topic exists, 0: always check, non zero value signifies refresh interval for check
+	TopicCheckRefreshIntervalSeconds int `json:"topic_check_refresh_interval_seconds,omitempty"`
+
 	Publisher *pubsub.Client
 }
 
@@ -281,7 +284,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 		if c.Pubsub == nil {
 			return nil, nil, errors.New("expected Pubsub to be configured")
 		}
-		googleProducer, err := googlepubsub.NewProducer(c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
+		googleProducer, err := googlepubsub.NewProducer(c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.Pubsub.TopicCheckRefreshIntervalSeconds, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
 		if err != nil {
 			return nil, nil, err
 		}

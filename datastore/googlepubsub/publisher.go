@@ -19,15 +19,17 @@ import (
 
 // Producer client to handle google pubsub interactions
 type Producer struct {
-	pubsubClient       *pubsub.Client
-	projectID          string
-	namespace          string
-	metricsCollector   metrics.MetricCollector
-	prometheusEnabled  bool
-	logger             *logrus.Logger
-	airbrakeHandler    *airbrake.Handler
-	ackChan            chan (*telemetry.Record)
-	reliableAckTxTypes map[string]interface{}
+	pubsubClient                     *pubsub.Client
+	projectID                        string
+	namespace                        string
+	metricsCollector                 metrics.MetricCollector
+	prometheusEnabled                bool
+	logger                           *logrus.Logger
+	airbrakeHandler                  *airbrake.Handler
+	ackChan                          chan (*telemetry.Record)
+	reliableAckTxTypes               map[string]interface{}
+	topicCheckRefreshIntervalSeconds int
+	topicCheckMap                    map[string]time.Time
 }
 
 // Metrics stores metrics reported from this package
@@ -57,7 +59,7 @@ func configurePubsub(projectID string) (*pubsub.Client, error) {
 }
 
 // NewProducer establishes the pubsub connection and define the dispatch method
-func NewProducer(prometheusEnabled bool, projectID string, namespace string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(prometheusEnabled bool, projectID string, namespace string, topicCheckRefreshIntervalSeconds int, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 	pubsubClient, err := configurePubsub(projectID)
 	if err != nil {
@@ -65,37 +67,66 @@ func NewProducer(prometheusEnabled bool, projectID string, namespace string, met
 	}
 
 	p := &Producer{
-		projectID:          projectID,
-		namespace:          namespace,
-		pubsubClient:       pubsubClient,
-		prometheusEnabled:  prometheusEnabled,
-		metricsCollector:   metricsCollector,
-		logger:             logger,
-		airbrakeHandler:    airbrakeHandler,
-		ackChan:            ackChan,
-		reliableAckTxTypes: reliableAckTxTypes,
+		projectID:                        projectID,
+		namespace:                        namespace,
+		pubsubClient:                     pubsubClient,
+		prometheusEnabled:                prometheusEnabled,
+		metricsCollector:                 metricsCollector,
+		logger:                           logger,
+		airbrakeHandler:                  airbrakeHandler,
+		ackChan:                          ackChan,
+		reliableAckTxTypes:               reliableAckTxTypes,
+		topicCheckRefreshIntervalSeconds: topicCheckRefreshIntervalSeconds,
+		topicCheckMap:                    make(map[string]time.Time, 0),
 	}
 	p.logger.ActivityLog("pubsub_registered", logrus.LogInfo{"project": projectID, "namespace": namespace})
 	return p, nil
 }
 
-// Produce sends the record payload to pubsub
-func (p *Producer) Produce(entry *telemetry.Record) {
-	ctx := context.Background()
+func (p *Producer) topicForRecord(ctx context.Context, entry *telemetry.Record) *pubsub.Topic {
+	topicName := telemetry.BuildTopicName(p.namespace, entry.TxType)
+	topic := p.pubsubClient.Topic(topicName)
+	if p.topicCheckRefreshIntervalSeconds < 0 {
+		return topic
+	}
 
+	lastCheck, ok := p.topicCheckMap[topicName]
+	now := time.Now()
+
+	if ok && p.topicCheckRefreshIntervalSeconds < 0 {
+		return topic
+	}
+
+	if !ok || now.Sub(lastCheck) > time.Duration(p.topicCheckRefreshIntervalSeconds)*time.Second {
+		return p.upsertTopic(ctx, entry)
+	}
+
+	return topic
+}
+
+// upsertTopic creates topic if doesn't exist
+func (p *Producer) upsertTopic(ctx context.Context, entry *telemetry.Record) *pubsub.Topic {
 	topicName := telemetry.BuildTopicName(p.namespace, entry.TxType)
 	logInfo := logrus.LogInfo{"topic_name": topicName, "txid": entry.Txid}
 	pubsubTopic, err := p.createTopicIfNotExists(ctx, topicName)
-
 	if err != nil {
 		p.ReportError("pubsub_topic_creation_error", err, logInfo)
 		metricsRegistry.notConnectedTotal.Inc(map[string]string{"record_type": entry.TxType})
-		return
+		return nil
 	}
+	p.topicCheckMap[topicName] = time.Now()
+	return pubsubTopic
+}
 
-	if exists, err := pubsubTopic.Exists(ctx); !exists || err != nil {
-		p.ReportError("pubsub_topic_check_error", err, logInfo)
-		metricsRegistry.notConnectedTotal.Inc(map[string]string{"record_type": entry.TxType})
+// Produce sends the record payload to pubsub
+func (p *Producer) Produce(entry *telemetry.Record) {
+	ctx := context.Background()
+	topicName := telemetry.BuildTopicName(p.namespace, entry.TxType)
+	logInfo := logrus.LogInfo{"topic_name": topicName, "txid": entry.Txid}
+
+	pubsubTopic := p.topicForRecord(ctx, entry)
+	if pubsubTopic == nil {
+		p.logger.ActivityLog("topic_not_present", logInfo)
 		return
 	}
 
@@ -104,7 +135,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		Data:       entry.Payload(),
 		Attributes: entry.Metadata(),
 	})
-	if _, err = result.Get(ctx); err != nil {
+	if _, err := result.Get(ctx); err != nil {
 		p.ReportError("pubsub_err", err, logInfo)
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
@@ -138,7 +169,6 @@ func (p *Producer) createTopicIfNotExists(ctx context.Context, topic string) (*p
 	if exists {
 		return pubsubTopic, nil
 	}
-
 	return p.pubsubClient.CreateTopic(ctx, topic)
 }
 
