@@ -79,32 +79,38 @@ func NewProducer(prometheusEnabled bool, projectID string, namespace string, met
 	return p, nil
 }
 
+// ProvisionTopics invoked at startup to verify all relevant topics are present
+func (p *Producer) ProvisionTopics(txTypes []string) error {
+	ctx := context.Background()
+	for _, txType := range txTypes {
+		topicName := telemetry.BuildTopicName(p.namespace, txType)
+		logInfo := logrus.LogInfo{"topic_name": topicName, "txType": txType}
+		_, err := p.createTopicIfNotExists(ctx, topicName)
+		if err != nil {
+			p.ReportError("pubsub_topic_creation_error", err, logInfo)
+			metricsRegistry.notConnectedTotal.Inc(map[string]string{"record_type": txType})
+			return err
+		}
+		p.logger.ActivityLog("pubsub_topic_created", logInfo)
+	}
+	return nil
+}
+
 // Produce sends the record payload to pubsub
 func (p *Producer) Produce(entry *telemetry.Record) {
 	ctx := context.Background()
 
 	topicName := telemetry.BuildTopicName(p.namespace, entry.TxType)
+	pubsubTopic := p.pubsubClient.Topic(topicName)
 	logInfo := logrus.LogInfo{"topic_name": topicName, "txid": entry.Txid}
-	pubsubTopic, err := p.createTopicIfNotExists(ctx, topicName)
-
-	if err != nil {
-		p.ReportError("pubsub_topic_creation_error", err, logInfo)
-		metricsRegistry.notConnectedTotal.Inc(map[string]string{"record_type": entry.TxType})
-		return
-	}
-
-	if exists, err := pubsubTopic.Exists(ctx); !exists || err != nil {
-		p.ReportError("pubsub_topic_check_error", err, logInfo)
-		metricsRegistry.notConnectedTotal.Inc(map[string]string{"record_type": entry.TxType})
-		return
-	}
 
 	entry.ProduceTime = time.Now()
 	result := pubsubTopic.Publish(ctx, &pubsub.Message{
 		Data:       entry.Payload(),
 		Attributes: entry.Metadata(),
 	})
-	if _, err = result.Get(ctx); err != nil {
+
+	if _, err := result.Get(ctx); err != nil {
 		p.ReportError("pubsub_err", err, logInfo)
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return

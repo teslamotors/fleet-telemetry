@@ -156,6 +156,7 @@ Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry s
   * Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
 * Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
+  * On startup, the server will attempt to create missing topics and panic on failure.
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
 
