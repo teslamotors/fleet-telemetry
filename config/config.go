@@ -249,7 +249,8 @@ func (c *Config) prometheusEnabled() bool {
 }
 
 // ConfigureProducers validates and establishes connections to the producers (kafka/pubsub/logger)
-func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *logrus.Logger) (map[telemetry.Dispatcher]telemetry.Producer, map[string][]telemetry.Producer, error) {
+func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *logrus.Logger, test bool) (map[telemetry.Dispatcher]telemetry.Producer, map[string][]telemetry.Producer, error) {
+	var pubsubTxTypes []string
 	reliableAckSources, err := c.configureReliableAckSources()
 	if err != nil {
 		return nil, nil, err
@@ -319,12 +320,21 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 	for recordName, dispatchRules := range c.Records {
 		var dispatchFuncs []telemetry.Producer
 		for _, dispatchRule := range dispatchRules {
+			if dispatchRule == telemetry.Pubsub {
+				pubsubTxTypes = append(pubsubTxTypes, recordName)
+			}
 			dispatchFuncs = append(dispatchFuncs, producers[dispatchRule])
 		}
 		dispatchProducerRules[recordName] = dispatchFuncs
 
 		if len(dispatchProducerRules[recordName]) == 0 {
 			return nil, nil, fmt.Errorf("unknown_dispatch_rule record: %v, dispatchRule:%v", recordName, dispatchRules)
+		}
+	}
+
+	if !test && len(pubsubTxTypes) > 0 {
+		if err := producers[telemetry.Pubsub].(*googlepubsub.Producer).ProvisionTopics(pubsubTxTypes); err != nil {
+			return nil, nil, err
 		}
 	}
 
