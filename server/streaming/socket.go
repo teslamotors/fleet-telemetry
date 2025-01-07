@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -325,11 +326,26 @@ func (sm *SocketManager) writeMessage(msgType int, msg []byte) error {
 }
 
 // ReportMetricBytesPerRecords records metrics for metric size
-func (sm SocketManager) ReportMetricBytesPerRecords(recordType string, byteSize int) {
+func (sm *SocketManager) ReportMetricBytesPerRecords(recordType string, byteSize int) {
 	sm.RecordsStats[recordType] += byteSize
 
 	metricsRegistry.recordSizeBytesTotal.Add(int64(byteSize), map[string]string{"record_type": recordType})
 	metricsRegistry.recordCount.Inc(map[string]string{"record_type": recordType})
+}
+
+// IsConnectionActive rough way to check if connection is still active
+func (sm *SocketManager) IsConnectionActive() bool {
+	rawConn := sm.Ws.UnderlyingConn()
+	err := rawConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	if err != nil {
+		return false
+	}
+	one := make([]byte, 1)
+	_, err = rawConn.Read(one)
+	if err == nil || err == io.EOF {
+		return true
+	}
+	return false
 }
 
 func registerMetricsOnce(metricsCollector metrics.MetricCollector) {

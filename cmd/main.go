@@ -52,7 +52,7 @@ func main() {
 
 func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logger *logrus.Logger) (err error) {
 	logger.ActivityLog("starting_server", nil)
-	registry := streaming.NewSocketRegistry()
+	registry := streaming.NewSocketRegistry(logger)
 
 	airbrakeHandler := airbrake.NewAirbrakeHandler(airbrakeNotifier)
 
