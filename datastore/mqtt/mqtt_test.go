@@ -105,7 +105,7 @@ func resetPublishedTopics() {
 	publishedTopics = make(map[string][]byte)
 }
 
-func mockPahoNewClient(o *pahomqtt.ClientOptions) pahomqtt.Client {
+func mockPahoNewClient(_ *pahomqtt.ClientOptions) pahomqtt.Client {
 	return &MockMQTTClient{
 
 		ConnectFunc: func() pahomqtt.Token {
@@ -117,10 +117,10 @@ func mockPahoNewClient(o *pahomqtt.ClientOptions) pahomqtt.Client {
 		IsConnectedFunc: func() bool {
 			return true
 		},
-		PublishFunc: func(topic string, qos byte, retained bool, payload interface{}) pahomqtt.Token {
+		PublishFunc: func(topic string, _ byte, _ bool, payload interface{}) pahomqtt.Token {
 			publishedTopics[topic] = payload.([]byte)
 			return &MockToken{
-				WaitTimeoutFunc: func(d time.Duration) bool { return true },
+				WaitTimeoutFunc: func(_ time.Duration) bool { return true },
 				WaitFunc:        func() bool { return true },
 				ErrorFunc:       func() error { return nil },
 			}
@@ -329,10 +329,10 @@ var _ = Describe("MQTTProducer", func() {
 
 			var alert1Current, alert2Current map[string]interface{}
 			var alert1History, alert2History []map[string]interface{}
-			json.Unmarshal(publishedTopics[alert1CurrentTopic], &alert1Current)
-			json.Unmarshal(publishedTopics[alert1HistoryTopic], &alert1History)
-			json.Unmarshal(publishedTopics[alert2CurrentTopic], &alert2Current)
-			json.Unmarshal(publishedTopics[alert2HistoryTopic], &alert2History)
+			Expect(json.Unmarshal(publishedTopics[alert1CurrentTopic], &alert1Current)).NotTo(HaveOccurred())
+			Expect(json.Unmarshal(publishedTopics[alert1HistoryTopic], &alert1History)).NotTo(HaveOccurred())
+			Expect(json.Unmarshal(publishedTopics[alert2CurrentTopic], &alert2Current)).NotTo(HaveOccurred())
+			Expect(json.Unmarshal(publishedTopics[alert2HistoryTopic], &alert2History)).NotTo(HaveOccurred())
 
 			Expect(alert1Current).To(HaveKey("StartedAt"))
 			Expect(alert1Current).NotTo(HaveKey("EndedAt"))
@@ -405,8 +405,8 @@ var _ = Describe("MQTTProducer", func() {
 			Expect(publishedTopics).To(HaveKey(error2Topic))
 
 			var error1, error2 map[string]interface{}
-			json.Unmarshal(publishedTopics[error1Topic], &error1)
-			json.Unmarshal(publishedTopics[error2Topic], &error2)
+			Expect(json.Unmarshal(publishedTopics[error1Topic], &error1)).NotTo(HaveOccurred())
+			Expect(json.Unmarshal(publishedTopics[error2Topic], &error2)).NotTo(HaveOccurred())
 
 			Expect(error1).To(HaveKey("Body"))
 			Expect(error1["Body"]).To(Equal("This is a test error"))
@@ -422,7 +422,7 @@ var _ = Describe("MQTTProducer", func() {
 
 		It("should handle timeouts when publishing MQTT messages", func() {
 			// Mock a slow publish function that always times out
-			mqtt.PahoNewClient = func(o *pahomqtt.ClientOptions) pahomqtt.Client {
+			mqtt.PahoNewClient = func(_ *pahomqtt.ClientOptions) pahomqtt.Client {
 				return &MockMQTTClient{
 					ConnectFunc: func() pahomqtt.Token {
 						return &MockToken{
@@ -433,9 +433,9 @@ var _ = Describe("MQTTProducer", func() {
 					IsConnectedFunc: func() bool {
 						return true
 					},
-					PublishFunc: func(topic string, qos byte, retained bool, payload interface{}) pahomqtt.Token {
+					PublishFunc: func(_ string, _ byte, _ bool, _ interface{}) pahomqtt.Token {
 						return &MockToken{
-							WaitTimeoutFunc: func(d time.Duration) bool { return false },
+							WaitTimeoutFunc: func(_ time.Duration) bool { return false },
 							WaitFunc:        func() bool { return false },
 							ErrorFunc:       func() error { return pahomqtt.TimedOut },
 						}
