@@ -28,6 +28,15 @@
     "zmq": {
         "addr": "tcp://*:5284"
     },
+    "mqtt": {
+        "broker": "mqtt:1883",
+        "client_id": "client-1",
+        "topic_base": "telemetry",
+        "qos": 1,
+        "retained": false,
+        "connect_timeout_ms": 30000,
+        "publish_timeout_ms": 1000
+    },
     "monitoring": {
         "prometheus_metrics_port": 9090,
         "profiler_port": 4269,
@@ -44,6 +53,7 @@
             "kinesis",
             "pubsub",
             "logger",
+            "mqtt",
             "zmq"
         ],
         "connectivity": [

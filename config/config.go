@@ -21,6 +21,7 @@ import (
 	"github.com/teslamotors/fleet-telemetry/datastore/googlepubsub"
 	"github.com/teslamotors/fleet-telemetry/datastore/kafka"
 	"github.com/teslamotors/fleet-telemetry/datastore/kinesis"
+	"github.com/teslamotors/fleet-telemetry/datastore/mqtt"
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
 	"github.com/teslamotors/fleet-telemetry/datastore/zmq"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
@@ -99,6 +100,9 @@ type Config struct {
 
 	// Airbrake config
 	Airbrake *Airbrake
+
+	// MQTT config
+	MQTT *mqtt.Config `json:"mqtt,omitempty"`
 }
 
 // Airbrake config
@@ -314,6 +318,17 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 			return nil, nil, err
 		}
 		producers[telemetry.ZMQ] = zmqProducer
+	}
+
+	if _, ok := requiredDispatchers[telemetry.MQTT]; ok {
+		if c.MQTT == nil {
+			return nil, nil, errors.New("Expected MQTT to be configured")
+		}
+		mqttProducer, err := mqtt.NewProducer(context.Background(), c.MQTT, c.MetricCollector, c.Namespace, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.MQTT], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.MQTT] = mqttProducer
 	}
 
 	dispatchProducerRules := make(map[string][]telemetry.Producer)
