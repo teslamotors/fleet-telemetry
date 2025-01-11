@@ -14,7 +14,8 @@ import (
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
-type MQTTProducer struct {
+// Producer is a telemetry.Producer that sends records to an MQTT broker.
+type Producer struct {
 	client             pahomqtt.Client
 	config             *Config
 	logger             *logrus.Logger
@@ -25,6 +26,7 @@ type MQTTProducer struct {
 	reliableAckTxTypes map[string]interface{}
 }
 
+// Config holds the configuration for the MQTT producer.
 type Config struct {
 	Broker               string `json:"broker"`
 	ClientID             string `json:"client_id"`
@@ -40,6 +42,7 @@ type Config struct {
 	KeepAlive            int    `json:"keep_alive_seconds"`
 }
 
+// Metrics holds the metrics for the MQTT producer.
 type Metrics struct {
 	errorCount       adapter.Counter
 	publishCount     adapter.Counter
@@ -47,6 +50,7 @@ type Metrics struct {
 	reliableAckCount adapter.Counter
 }
 
+// Default values for the MQTT producer configuration options.
 const (
 	DefaultPublishTimeout       = 2500
 	DefaultConnectTimeout       = 30000
@@ -61,9 +65,10 @@ var (
 	metricsOnce     sync.Once
 )
 
-// Allow us to mock the mqtt.NewClient function for testing
+// PahoNewClient allows mocking the mqtt.NewClient function for testing
 var PahoNewClient = pahomqtt.NewClient
 
+// NewProducer creates a new MQTT producer.
 func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricCollector, namespace string, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metrics)
 
@@ -102,7 +107,7 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 	client := PahoNewClient(opts)
 	client.Connect()
 
-	return &MQTTProducer{
+	return &Producer{
 		client:             client,
 		config:             config,
 		logger:             logger,
@@ -114,7 +119,8 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 	}, nil
 }
 
-func (p *MQTTProducer) Produce(rec *telemetry.Record) {
+// Produce sends a record to the MQTT broker.
+func (p *Producer) Produce(rec *telemetry.Record) {
 	if p.ctx.Err() != nil {
 		return
 	}
@@ -182,12 +188,12 @@ func waitTokenTimeout(t pahomqtt.Token, d time.Duration) error {
 	return t.Error()
 }
 
-func (p *MQTTProducer) updateMetrics(txType string, byteCount int) {
+func (p *Producer) updateMetrics(txType string, byteCount int) {
 	metricsRegistry.byteTotal.Add(int64(byteCount), map[string]string{"record_type": txType})
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": txType})
 }
 
-func (p *MQTTProducer) createLogInfo(rec *telemetry.Record) logrus.LogInfo {
+func (p *Producer) createLogInfo(rec *telemetry.Record) logrus.LogInfo {
 	logInfo := logrus.LogInfo{
 		"topic_name": telemetry.BuildTopicName(p.namespace, rec.TxType),
 		"txid":       rec.Txid,
@@ -196,7 +202,8 @@ func (p *MQTTProducer) createLogInfo(rec *telemetry.Record) logrus.LogInfo {
 	return logInfo
 }
 
-func (p *MQTTProducer) ProcessReliableAck(entry *telemetry.Record) {
+// ProcessReliableAck marks a message as successfully published.
+func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
 	_, ok := p.reliableAckTxTypes[entry.TxType]
 	if ok {
 		p.ackChan <- entry
@@ -204,12 +211,14 @@ func (p *MQTTProducer) ProcessReliableAck(entry *telemetry.Record) {
 	}
 }
 
-func (p *MQTTProducer) ReportError(message string, err error, logInfo logrus.LogInfo) {
+// ReportError logs an error and sends it to Airbrake.
+func (p *Producer) ReportError(message string, err error, logInfo logrus.LogInfo) {
 	p.airbrakeHandler.ReportLogMessage(logrus.ERROR, message, err, logInfo)
 	p.logger.ErrorLog(message, err, logInfo)
 }
 
-func (p *MQTTProducer) Close() error {
+// Close disconnects from the MQTT client.
+func (p *Producer) Close() error {
 	p.client.Disconnect(uint(p.config.DisconnectTimeout))
 	return nil
 }

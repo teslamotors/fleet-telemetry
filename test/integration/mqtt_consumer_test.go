@@ -40,7 +40,7 @@ func NewTestMQTTConsumer(broker, topic string, logger *logrus.Logger) (*TestMQTT
 	return consumer, nil
 }
 
-func (t *TestMQTTConsumer) messageHandler(client pahomqtt.Client, msg pahomqtt.Message) {
+func (t *TestMQTTConsumer) messageHandler(_ pahomqtt.Client, msg pahomqtt.Message) {
 	t.msgChan <- msg.Payload()
 }
 

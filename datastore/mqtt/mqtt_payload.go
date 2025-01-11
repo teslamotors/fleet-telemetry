@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func (p *MQTTProducer) processVehicleFields(rec *telemetry.Record, payload *protos.Payload) ([]pahomqtt.Token, error) {
+func (p *Producer) processVehicleFields(rec *telemetry.Record, payload *protos.Payload) ([]pahomqtt.Token, error) {
 	var tokens []pahomqtt.Token
 	convertedPayload := p.payloadToMap(payload)
 	for key, value := range convertedPayload {
@@ -27,7 +27,7 @@ func (p *MQTTProducer) processVehicleFields(rec *telemetry.Record, payload *prot
 	return tokens, nil
 }
 
-func (p *MQTTProducer) processVehicleAlerts(rec *telemetry.Record, payload *protos.VehicleAlerts) ([]pahomqtt.Token, error) {
+func (p *Producer) processVehicleAlerts(rec *telemetry.Record, payload *protos.VehicleAlerts) ([]pahomqtt.Token, error) {
 	tokens := make([]pahomqtt.Token, 0, len(payload.Alerts)*2)
 	alertsHistory := make(map[string][]*protos.VehicleAlert, len(payload.Alerts))
 	alertsCurrentState := make(map[string]*protos.VehicleAlert, len(payload.Alerts))
@@ -80,7 +80,7 @@ func (p *MQTTProducer) processVehicleAlerts(rec *telemetry.Record, payload *prot
 	return tokens, nil
 }
 
-func (p *MQTTProducer) processVehicleErrors(rec *telemetry.Record, payload *protos.VehicleErrors) ([]pahomqtt.Token, error) {
+func (p *Producer) processVehicleErrors(rec *telemetry.Record, payload *protos.VehicleErrors) ([]pahomqtt.Token, error) {
 	var tokens []pahomqtt.Token
 
 	for _, vehicleError := range payload.Errors {
@@ -99,7 +99,7 @@ func (p *MQTTProducer) processVehicleErrors(rec *telemetry.Record, payload *prot
 	return tokens, nil
 }
 
-func (p *MQTTProducer) processVehicleConnectivity(rec *telemetry.Record, payload *protos.VehicleConnectivity) ([]pahomqtt.Token, error) {
+func (p *Producer) processVehicleConnectivity(rec *telemetry.Record, payload *protos.VehicleConnectivity) ([]pahomqtt.Token, error) {
 	topicName := fmt.Sprintf("%s/%s/connectivity", p.config.TopicBase, rec.Vin)
 	value := map[string]interface{}{
 		"ConnectionId": payload.GetConnectionId(),
@@ -149,7 +149,7 @@ func vehicleErrorToMqttMap(vehicleError *protos.VehicleError) map[string]interfa
 }
 
 // PayloadToMap transforms a Payload into a map for mqtt purposes
-func (p *MQTTProducer) payloadToMap(payload *protos.Payload) map[string]interface{} {
+func (p *Producer) payloadToMap(payload *protos.Payload) map[string]interface{} {
 	convertedPayload := make(map[string]interface{}, len(payload.Data))
 	for _, datum := range payload.Data {
 		convertedPayload[datum.Key.String()] = getDatumValue(datum.Value)
