@@ -62,7 +62,7 @@ const TestSmallConfig = `
 }
 `
 
-const TestDisableTLSConfig = `
+const TestRFC9440TLSConfig = `
 {
 	"host": "127.0.0.1",
 	"port": 443,
@@ -78,12 +78,27 @@ const TestDisableTLSConfig = `
 	"records": {
 		"V": ["kafka"]
 	},
-	"disable_tls": true,
-	"tls": {
-		"ca_file": "tesla.ca",
-		"server_cert": "your_own_cert.crt",
-		"server_key": "your_own_key.key"
-	}
+	"tls_pass_through": "rfc9440"
+}
+`
+
+const TestInvalidTLSPassThroughConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"kafka": {
+		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
+		"ssl.ca.location": "kafka.ca",
+		"ssl.certificate.location": "kafka.crt",
+		"ssl.key.location": "kafka.key",
+		"queue.buffering.max.messages": 1000000
+	},
+	"records": {
+		"V": ["kafka"]
+	},
+	"tls_pass_through": "abcde"
 }
 `
 

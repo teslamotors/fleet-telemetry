@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed" //Used for default CAs
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -47,12 +48,10 @@ type Config struct {
 	// TLS contains certificates & CA info for the webserver
 	TLS *TLS `json:"tls,omitempty"`
 
-	// DisableTLS indicates whether to disable mutual TLS (mTLS) for incoming connections.
-	// This should only be set to true if there is a reverse proxy that is already handling
-	// mTLS on behalf of this service and can convey the client certificate following
-	// the guidelines specified in RFC 9440 (https://datatracker.ietf.org/doc/rfc9440/).
-	// TLS configuration will be ignored when this option is set to true.
-	DisableTLS bool `json:"disable_tls,omitempty"`
+	// TLSPassThrough when set will disable mutual TLS (mTLS) for incoming connections
+	// and ignore TLS config. This should only be set to true if there is a reverse proxy that
+	// is already handling mTLS on behalf of this service.
+	TLSPassThrough *TLSPassThrough `json:"tls_pass_through,omitempty"`
 
 	// UseDefaultEngCA overrides default CA to eng
 	UseDefaultEngCA bool `json:"use_default_eng_ca"`
@@ -159,6 +158,34 @@ type TLS struct {
 	CAFile     string `json:"ca_file"`
 	ServerCert string `json:"server_cert"`
 	ServerKey  string `json:"server_key"`
+}
+
+type TLSPassThrough string
+
+const (
+	RFC9440                    TLSPassThrough = "rfc9440"
+	AWSApplicationLoadBalancer TLSPassThrough = "aws_alb"
+)
+
+func (t *TLSPassThrough) IsValid() bool {
+	switch *t {
+	case RFC9440, AWSApplicationLoadBalancer:
+		return true
+	default:
+		return false
+	}
+}
+
+func (t *TLSPassThrough) UnmarshalJSON(data []byte) error {
+	var temp string
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+	*t = TLSPassThrough(temp)
+	if !t.IsValid() {
+		return errors.New("invalid value for TLSPassThrough")
+	}
+	return nil
 }
 
 // AirbrakeTLSConfig return the TLS config needed for connecting with airbrake server

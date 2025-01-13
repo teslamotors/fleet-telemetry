@@ -33,7 +33,7 @@ var _ = Describe("Extract certificate from header test", func() {
 		producerRules := make(map[string][]telemetry.Producer)
 		registry := streaming.NewSocketRegistry()
 		conf := &config.Config{
-			DisableTLS:      true,
+			TLSPassThrough:  ptr(config.RFC9440),
 			TLS:             nil,
 			MetricCollector: noop.NewCollector(),
 		}
@@ -168,3 +168,7 @@ var _ = Describe("Socket handler test", func() {
 		Expect(hook.AllEntries()).To(BeEmpty())
 	})
 })
+
+func ptr[T any](x T) *T {
+	return &x
+}

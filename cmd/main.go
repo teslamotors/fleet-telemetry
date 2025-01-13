@@ -72,7 +72,7 @@ func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logg
 		return err
 	}
 
-	if config.DisableTLS {
+	if config.TLSPassThrough != nil {
 		err = server.ListenAndServe()
 	} else {
 		if server.TLSConfig, err = config.ExtractServiceTLSConfig(logger); err != nil {
