@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -12,6 +13,10 @@ import (
 	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
+)
+
+var (
+	defaultTimeout = 5 * time.Second
 )
 
 // Producer is a telemetry.Producer that sends records to an MQTT broker.
@@ -105,7 +110,6 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 		SetKeepAlive(time.Duration(config.KeepAlive) * time.Second)
 
 	client := PahoNewClient(opts)
-	client.Connect()
 
 	return &Producer{
 		client:             client,
@@ -117,6 +121,18 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 		ackChan:            ackChan,
 		reliableAckTxTypes: reliableAckTxTypes,
 	}, nil
+}
+
+// Connect performs health check and returns error if connection is not established
+func (p *Producer) Connect() error {
+	token := p.client.Connect()
+	if !token.WaitTimeout(defaultTimeout) {
+		return fmt.Errorf("connection attempt timed out after %v", defaultTimeout)
+	}
+	if err := token.Error(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Produce sends a record to the MQTT broker.
