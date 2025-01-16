@@ -31,7 +31,7 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
       - `port`: The port the fleet-telemetry server -- Default 443.
       - `ca`: The full certificate chain used to generate the server's TLS certificate.
     - Run `./check_server_cert.sh validate_server.json`
-9. Ensure the application's virtual key has been added to the vehicle(s). See documentation here: https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-commands#key-pairing.
+9. Pair the application's virtual key to the vehicle(s). See documentation here: https://developer.tesla.com/docs/fleet-api/virtual-keys/developer-guide.
 10. Configure and run the [vehicle-command proxy](https://github.com/teslamotors/vehicle-command#installation-and-configuration) with the application private key.
 11. Configure vehicle(s) with the [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create) endpoint.
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
