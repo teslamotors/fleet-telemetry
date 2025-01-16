@@ -27,12 +27,13 @@ var _ = Describe("Test full application config", func() {
 	BeforeEach(func() {
 		log, _ = logrus.NoOpLogger()
 		config = &Config{
-			Host:       "127.0.0.1",
-			Port:       443,
-			StatusPort: 8080,
-			Namespace:  "tesla_telemetry",
-			TLS:        &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
-			RateLimit:  &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
+			Host:           "127.0.0.1",
+			Port:           443,
+			StatusPort:     8080,
+			Namespace:      "tesla_telemetry",
+			TLS:            &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
+			TLSPassThrough: ptr(RFC9440),
+			RateLimit:      &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
 			Kafka: &confluent.ConfigMap{
 				"bootstrap.servers":        "some.broker:9093",
 				"ssl.ca.location":          "kafka.ca",
@@ -62,7 +63,7 @@ var _ = Describe("Test full application config", func() {
 	})
 
 	Context("ExtractServiceTLSConfig", func() {
-		It("fails when TLS is nil ", func() {
+		It("fails when TLS is nil", func() {
 			config = &Config{}
 			_, err := config.ExtractServiceTLSConfig(log)
 			Expect(err).To(MatchError("tls config is empty - telemetry server is mTLS only, make sure to provide certificates in the config"))
@@ -121,10 +122,29 @@ var _ = Describe("Test full application config", func() {
 			Expect(config.TransmitDecodedRecords).To(BeFalse())
 		})
 
+		It("tls_pass_through is nil by default", func() {
+			config, err := loadTestApplicationConfig(TestSmallConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.TLSPassThrough).To(BeNil())
+		})
+
 		It("transmitrecords enabled", func() {
 			config, err := loadTestApplicationConfig(TestTransmitDecodedRecords)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(config.TransmitDecodedRecords).To(BeTrue())
+		})
+	})
+
+	Context("configure tls", func() {
+		It("read tls_pass_through config", func() {
+			config, err := loadTestApplicationConfig(TestRFC9440TLSConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*config.TLSPassThrough).To(BeEquivalentTo(RFC9440))
+		})
+
+		It("error on invalid tls_pass_through config", func() {
+			_, err := loadTestApplicationConfig(TestInvalidTLSPassThroughConfig)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -296,3 +316,7 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 })
+
+func ptr[T any](x T) *T {
+	return &x
+}
