@@ -56,6 +56,7 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
   "json_log_enable": bool,
   "namespace": string - kafka topic prefix,
   "reliable_ack": bool - for use with reliable datastores, recommend setting to true with kafka,
+  "transmit_decoded_records": bool - if true, transmit JSON to dispatchers instead of proto.
   "monitoring": {
     "prometheus_metrics_port": int,
     "profiler_port": int,
