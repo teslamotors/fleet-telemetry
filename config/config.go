@@ -90,6 +90,7 @@ type Config struct {
 	Records map[string][]telemetry.Dispatcher `json:"records,omitempty"`
 
 	// TransmitDecodedRecords if true decodes proto message before dispatching it to supported datastores
+	// when vehicle configuration has prefer_typed set to true, enum fields will have a prefix
 	TransmitDecodedRecords bool `json:"transmit_decoded_records,omitempty"`
 
 	// MetricCollector collects metrics for the application
