@@ -18,7 +18,6 @@ import (
 type Producer struct {
 	kafkaProducer      *kafka.Producer
 	namespace          string
-	prometheusEnabled  bool
 	metricsCollector   metrics.MetricCollector
 	logger             *logrus.Logger
 	airbrakeHandler    *airbrake.Handler
@@ -44,7 +43,7 @@ var (
 )
 
 // NewProducer establishes the kafka connection and define the dispatch method
-func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(config *kafka.ConfigMap, namespace string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	kafkaProducer, err := kafka.NewProducer(config)
@@ -56,7 +55,6 @@ func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bo
 		kafkaProducer:      kafkaProducer,
 		namespace:          namespace,
 		metricsCollector:   metricsCollector,
-		prometheusEnabled:  prometheusEnabled,
 		logger:             logger,
 		airbrakeHandler:    airbrakeHandler,
 		deliveryChan:       make(chan kafka.Event),

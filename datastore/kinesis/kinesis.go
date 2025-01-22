@@ -20,7 +20,6 @@ import (
 type Producer struct {
 	kinesis            *kinesis.Kinesis
 	logger             *logrus.Logger
-	prometheusEnabled  bool
 	metricsCollector   metrics.MetricCollector
 	streams            map[string]string
 	airbrakeHandler    *airbrake.Handler
@@ -42,7 +41,7 @@ var (
 )
 
 // NewProducer configures and tests the kinesis connection
-func NewProducer(maxRetries int, streams map[string]string, overrideHost string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(maxRetries int, streams map[string]string, overrideHost string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
 	config := &aws.Config{
@@ -68,7 +67,6 @@ func NewProducer(maxRetries int, streams map[string]string, overrideHost string,
 	return &Producer{
 		kinesis:            service,
 		logger:             logger,
-		prometheusEnabled:  prometheusEnabled,
 		metricsCollector:   metricsCollector,
 		streams:            streams,
 		airbrakeHandler:    airbrakeHandler,

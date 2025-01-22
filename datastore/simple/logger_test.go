@@ -9,6 +9,7 @@ import (
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter/prometheus"
 	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 
@@ -28,7 +29,8 @@ var _ = Describe("ProtoLogger", func() {
 	BeforeEach(func() {
 		testLogger, hook = logrus.NoOpLogger()
 		config = &simple.Config{Verbose: false}
-		protoLogger = simple.NewProtoLogger(config, testLogger).(*simple.Producer)
+		protoLogger = simple.NewProtoLogger(config, prometheus.NewCollector(), nil, map[string]interface{}{}, testLogger).(*simple.Producer)
+
 	})
 
 	Describe("NewProtoLogger", func() {
@@ -116,7 +118,7 @@ var _ = Describe("ProtoLogger", func() {
 		Context("when verbose set to true", func() {
 			BeforeEach(func() {
 				config.Verbose = true
-				protoLogger = simple.NewProtoLogger(config, testLogger).(*simple.Producer)
+				protoLogger = simple.NewProtoLogger(config, prometheus.NewCollector(), nil, map[string]interface{}{}, testLogger).(*simple.Producer)
 			})
 
 			It("does not include types in the data", func() {

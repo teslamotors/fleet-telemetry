@@ -23,7 +23,6 @@ type Producer struct {
 	projectID          string
 	namespace          string
 	metricsCollector   metrics.MetricCollector
-	prometheusEnabled  bool
 	logger             *logrus.Logger
 	airbrakeHandler    *airbrake.Handler
 	ackChan            chan (*telemetry.Record)
@@ -57,7 +56,7 @@ func configurePubsub(projectID string) (*pubsub.Client, error) {
 }
 
 // NewProducer establishes the pubsub connection and define the dispatch method
-func NewProducer(prometheusEnabled bool, projectID string, namespace string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
+func NewProducer(projectID string, namespace string, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 	pubsubClient, err := configurePubsub(projectID)
 	if err != nil {
@@ -68,7 +67,6 @@ func NewProducer(prometheusEnabled bool, projectID string, namespace string, met
 		projectID:          projectID,
 		namespace:          namespace,
 		pubsubClient:       pubsubClient,
-		prometheusEnabled:  prometheusEnabled,
 		metricsCollector:   metricsCollector,
 		logger:             logger,
 		airbrakeHandler:    airbrakeHandler,

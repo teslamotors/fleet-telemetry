@@ -2,12 +2,25 @@ package simple
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/teslamotors/fleet-telemetry/datastore/simple/transformers"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
+	"github.com/teslamotors/fleet-telemetry/metrics"
+	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
 	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
+
+var (
+	metricsRegistry Metrics
+	metricsOnce     sync.Once
+)
+
+// Metrics holds the metrics for the Logger producer.
+type Metrics struct {
+	reliableAckCount adapter.Counter
+}
 
 // Config for the protobuf logger
 type Config struct {
@@ -17,13 +30,16 @@ type Config struct {
 
 // Producer is a simple protobuf logger
 type Producer struct {
-	Config *Config
-	logger *logrus.Logger
+	Config             *Config
+	logger             *logrus.Logger
+	reliableAckTxTypes map[string]interface{}
+	ackChan            chan (*telemetry.Record)
 }
 
 // NewProtoLogger initializes the parameters for protobuf payload logging
-func NewProtoLogger(config *Config, logger *logrus.Logger) telemetry.Producer {
-	return &Producer{Config: config, logger: logger}
+func NewProtoLogger(config *Config, metrics metrics.MetricCollector, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) telemetry.Producer {
+	registerMetricsOnce(metrics)
+	return &Producer{Config: config, ackChan: ackChan, logger: logger, reliableAckTxTypes: reliableAckTxTypes}
 }
 
 // Close the producer
@@ -32,7 +48,12 @@ func (p *Producer) Close() error {
 }
 
 // ProcessReliableAck noop method
-func (p *Producer) ProcessReliableAck(_ *telemetry.Record) {
+func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
+	_, ok := p.reliableAckTxTypes[entry.TxType]
+	if ok {
+		p.ackChan <- entry
+		metricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": entry.TxType})
+	}
 }
 
 // Produce sends the data to the logger
@@ -71,4 +92,16 @@ func (p *Producer) recordToLogMap(record *telemetry.Record, vin string) (interfa
 	default:
 		return nil, fmt.Errorf("unknown txType: %s", record.TxType)
 	}
+}
+
+func registerMetricsOnce(metricsCollector metrics.MetricCollector) {
+	metricsOnce.Do(func() { registerMetrics(metricsCollector) })
+}
+
+func registerMetrics(metricsCollector metrics.MetricCollector) {
+	metricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "logger_reliable_ack_total",
+		Help:   "The number of records published to Logger topics for which we sent a reliable ACK.",
+		Labels: []string{"record_type"},
+	})
 }
