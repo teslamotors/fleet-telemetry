@@ -81,18 +81,6 @@ func NewProducer(prometheusEnabled bool, projectID string, namespace string, met
 
 // ProvisionTopics invoked at startup to verify all relevant topics are present
 func (p *Producer) ProvisionTopics(txTypes []string) error {
-	ctx := context.Background()
-	for _, txType := range txTypes {
-		topicName := telemetry.BuildTopicName(p.namespace, txType)
-		logInfo := logrus.LogInfo{"topic_name": topicName, "txType": txType}
-		_, err := p.createTopicIfNotExists(ctx, topicName)
-		if err != nil {
-			p.ReportError("pubsub_topic_creation_error", err, logInfo)
-			metricsRegistry.notConnectedTotal.Inc(map[string]string{"record_type": txType})
-			return err
-		}
-		p.logger.ActivityLog("pubsub_topic_created", logInfo)
-	}
 	return nil
 }
 
