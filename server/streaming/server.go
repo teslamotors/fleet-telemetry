@@ -3,8 +3,12 @@ package streaming
 import (
 	"context"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
+	"github.com/pkg/errors"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -129,7 +133,7 @@ func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter
 	return func(w http.ResponseWriter, r *http.Request) {
 		if ws := s.promoteToWebsocket(w, r); ws != nil {
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
-			requestIdentity, err := extractIdentityFromConnection(r)
+			requestIdentity, err := extractIdentity(r, config)
 			if err != nil {
 				s.logger.ErrorLog("extract_sender_id_err", err, nil)
 			}
@@ -218,8 +222,21 @@ func (s *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *web
 	return ws
 }
 
-func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity, error) {
-	cert, err := extractCertFromHeaders(r)
+type extractCertFunc func(r *http.Request) (*x509.Certificate, error)
+
+var headerExtractConfigMap = map[config.TLSPassThrough]extractCertFunc{
+	config.RFC9440:                    extractCertRFC2440,
+	config.AWSApplicationLoadBalancer: extractCertAWSALB,
+}
+
+func extractIdentity(r *http.Request, config *config.Config) (*telemetry.RequestIdentity, error) {
+	var cert *x509.Certificate
+	var err error
+	if config.TLSPassThrough != nil {
+		cert, err = headerExtractConfigMap[*config.TLSPassThrough](r)
+	} else {
+		cert, err = extractCertFromTLS(r)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +251,49 @@ func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity,
 	}, nil
 }
 
-func extractCertFromHeaders(r *http.Request) (*x509.Certificate, error) {
+// extractCertRFC2440 implements https://datatracker.ietf.org/doc/rfc9440/
+func extractCertRFC2440(r *http.Request) (*x509.Certificate, error) {
+	raw := r.Header.Get("Client-Cert-Chain")
+	if raw == "" {
+		return nil, errors.New("missing_certificate_error")
+	}
+	rest, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificates: %w", err)
+	}
+	block, _ := pem.Decode(rest)
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse certificates: %w", err)
+	}
+	certs, err := x509.ParseCertificates(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificates: %w", err)
+	}
+	return certs[0], nil
+}
+
+// extractCertAWSALB implements https://docs.aws.amazon.com/elasticloadbalancing/latest/application/mutual-authentication.html#mtls-http-headers
+func extractCertAWSALB(r *http.Request) (*x509.Certificate, error) {
+	raw := r.Header.Get("X-Amzn-Mtls-Clientcert")
+	if raw == "" {
+		return nil, errors.New("missing_certificate_error")
+	}
+	rest, err := url.QueryUnescape(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificates: %w", err)
+	}
+	block, _ := pem.Decode([]byte(rest))
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse certificates: %w", err)
+	}
+	certs, err := x509.ParseCertificates(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificates: %w", err)
+	}
+	return certs[0], nil
+}
+
+func extractCertFromTLS(r *http.Request) (*x509.Certificate, error) {
 	nbCerts := len(r.TLS.PeerCertificates)
 	if nbCerts == 0 {
 		return nil, fmt.Errorf("missing_certificate_error")

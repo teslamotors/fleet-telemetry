@@ -288,3 +288,4 @@ Moreover, the following application-specific considerations apply:
   the frequency they need.
 * Providers agree to take full responsibility for privacy risks, as soon as data
   leave the devices (for more info read our privacy policies).
+* In some cases, fleet telemetry is deployed behind a trusted proxy that handles mTLS and terminates the connection. To set this up, set disable_tls to true in the configuration and ensure that the proxy implements RFC 9440 (https://datatracker.ietf.org/doc/rfc9440/).

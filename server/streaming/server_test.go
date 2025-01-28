@@ -1,6 +1,14 @@
 package streaming_test
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/base64"
+	"encoding/pem"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -10,7 +18,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/gorilla/websocket"
-
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter/noop"
@@ -18,6 +25,92 @@ import (
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
+
+var _ = Describe("Extract certificate from header test", func() {
+
+	It("No error", func() {
+		logger, hook := logrus.NoOpLogger()
+		producerRules := make(map[string][]telemetry.Producer)
+		registry := streaming.NewSocketRegistry()
+		conf := &config.Config{
+			TLSPassThrough:  ptr(config.RFC9440),
+			TLS:             nil,
+			MetricCollector: noop.NewCollector(),
+		}
+		_, s, err := streaming.InitServer(conf, airbrake.NewAirbrakeHandler(nil), producerRules, logger, registry)
+		Expect(err).NotTo(HaveOccurred())
+		srv := httptest.NewServer(http.HandlerFunc(s.ServeBinaryWs(conf)))
+		u, err := url.Parse(srv.URL)
+		u.Scheme = "ws"
+
+		dialer := &websocket.Dialer{HandshakeTimeout: 1 * time.Second}
+		req := httptest.NewRequest("GET", "http://test-server.example.com", nil)
+
+		priv, err := rsa.GenerateKey(rand.Reader, 2048)
+		Expect(err).NotTo(HaveOccurred())
+
+		issuerTemplate := x509.Certificate{
+			SerialNumber: big.NewInt(1),
+			Subject: pkix.Name{
+				CommonName:   "Tesla Motors Products CA",
+				Organization: []string{"Test Co"},
+			},
+			NotBefore:             time.Now(),
+			NotAfter:              time.Now().Add(24 * time.Hour),
+			KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			BasicConstraintsValid: true,
+			IsCA:                  true,
+		}
+
+		template := x509.Certificate{
+			SerialNumber: big.NewInt(2),
+			Subject: pkix.Name{
+				CommonName:   "device-1",
+				Organization: []string{"Test Co"},
+			},
+			NotBefore:             time.Now(),
+			NotAfter:              time.Now().Add(24 * time.Hour),
+			KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			BasicConstraintsValid: true,
+			IsCA:                  false,
+		}
+
+		certBytes, err := x509.CreateCertificate(
+			rand.Reader,
+			&template,
+			&issuerTemplate,
+			&priv.PublicKey,
+			priv,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		var caCertPEM bytes.Buffer
+		err = pem.Encode(&caCertPEM, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: certBytes,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		req.Header.Set("Client-Cert-Chain", base64.StdEncoding.EncodeToString(caCertPEM.Bytes()))
+		conn, _, err := dialer.Dial(u.String(), req.Header)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+		Expect(err).NotTo(HaveOccurred())
+
+		err = conn.WriteMessage(websocket.BinaryMessage, []byte(""))
+		Expect(err).NotTo(HaveOccurred())
+
+		_, _, _ = conn.ReadMessage()
+		_ = conn.Close()
+
+		for _, e := range hook.AllEntries() {
+			Expect(e.Level).NotTo(Equal(logrus.ERROR))
+		}
+	})
+})
 
 var _ = Describe("Socket handler test", func() {
 
@@ -75,3 +168,7 @@ var _ = Describe("Socket handler test", func() {
 		Expect(hook.AllEntries()).To(BeEmpty())
 	})
 })
+
+func ptr[T any](x T) *T {
+	return &x
+}
