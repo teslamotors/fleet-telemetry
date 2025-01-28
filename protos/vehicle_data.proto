@@ -418,8 +418,8 @@ enum ChargePortLatchValue {
 
 message Doors {
   bool DriverFront = 1;
-  bool PassengerFront = 2;
-  bool DriverRear = 3;
+  bool DriverRear = 2;
+  bool PassengerFront = 3;
   bool PassengerRear = 4;
   bool TrunkFront = 5;
   bool TrunkRear = 6;
