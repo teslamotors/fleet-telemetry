@@ -94,7 +94,9 @@ services:
       ]
 
   kinesis:
-    image: saidsef/aws-kinesis-local
+    image: localstack/localstack
+    environment:
+      - SERVICES=kinesis
     ports:
       - 4567:4567
     healthcheck:
