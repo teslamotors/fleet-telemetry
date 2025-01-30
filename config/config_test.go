@@ -211,6 +211,31 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
+	Context("VinsToTrack", func() {
+
+		AfterEach(func() {
+			maxVinsToTrack = 20
+		})
+
+		It("empty vins to track", func() {
+			config, err := loadTestApplicationConfig(TestSmallConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.VinsToTrack()).To(BeEmpty())
+		})
+
+		It("valid vins to track", func() {
+			config, err := loadTestApplicationConfig(TestVinsToTrackConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.VinsToTrack()).To(HaveLen(2))
+		})
+
+		It("returns an error when `vins_signal_tracking_enabled` exceeds limit", func() {
+			maxVinsToTrack = 2
+			_, err := loadTestApplicationConfig(BadVinsConfig)
+			Expect(err).To(MatchError("set the value of `vins_signal_tracking_enabled` less than 2 unique vins"))
+		})
+	})
+
 	Context("configure pubsub", func() {
 		var (
 			pubsubConfig *Config

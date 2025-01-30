@@ -135,6 +135,18 @@ func (record *Record) ensureEncoded() {
 	}
 }
 
+// SignalsCount received per record_type from the vehicle
+func (record *Record) SignalsCount() int {
+	switch payload := record.protoMessage.(type) {
+	case *protos.Payload:
+		return len(payload.GetData())
+	case *protos.VehicleAlerts:
+		return len(payload.GetAlerts())
+	default:
+		return 0
+	}
+}
+
 func (record *Record) applyProtoRecordTransforms() error {
 	switch record.TxType {
 	case "alerts":
