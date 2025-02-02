@@ -37,6 +37,9 @@
         "connect_timeout_ms": 30000,
         "publish_timeout_ms": 1000
     },
+    "vins_signal_tracking_enabled": [
+        "device-1"
+    ],
     "monitoring": {
         "prometheus_metrics_port": 9090,
         "profiler_port": 4269,

@@ -47,6 +47,7 @@ type SocketManager struct {
 	stopChan               chan struct{}
 	writeChan              chan SocketMessage
 	transmitDecodedRecords bool
+	vinsSignalTracking     map[string]struct{}
 }
 
 // SocketMessage represents incoming socket connection
@@ -66,6 +67,8 @@ type Metrics struct {
 	socketErrorCount             adapter.Counter
 	recordSizeBytesTotal         adapter.Counter
 	recordCount                  adapter.Counter
+	signalsCount                 adapter.Gauge
+	vinSignalCount               adapter.Gauge
 }
 
 var (
@@ -94,6 +97,7 @@ func NewSocketManager(ctx context.Context, requestIdentity *telemetry.RequestIde
 		stopChan:               make(chan struct{}),
 		requestIdentity:        requestIdentity,
 		transmitDecodedRecords: config.TransmitDecodedRecords,
+		vinsSignalTracking:     config.VinsToTrack(),
 	}
 }
 
@@ -205,6 +209,7 @@ func (sm *SocketManager) ProcessTelemetry(serializer *telemetry.BinarySerializer
 			// client exceeded the rate limit
 			messagesRateLimited++
 			record, _ := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
+			sm.trackSignalUsage(record)
 			metricsRegistry.rateLimitExceededCount.Inc(map[string]string{"device_id": sm.requestIdentity.DeviceID, "txtype": record.TxType})
 			if sm.config.RateLimit != nil && sm.config.RateLimit.Enabled {
 				continue
@@ -221,6 +226,15 @@ func (sm *SocketManager) ProcessTelemetry(serializer *telemetry.BinarySerializer
 		}
 		sm.ParseAndProcessRecord(serializer, message)
 	}
+}
+
+func (sm *SocketManager) trackSignalUsage(record *telemetry.Record) {
+	metricsRegistry.signalsCount.Add(int64(record.SignalsCount()), map[string]string{"record_type": record.TxType})
+	vin := record.Vin
+	if _, ok := sm.vinsSignalTracking[vin]; !ok {
+		return
+	}
+	metricsRegistry.vinSignalCount.Add(int64(record.SignalsCount()), map[string]string{"vin": vin, "record_type": record.TxType})
 }
 
 // ParseAndProcessRecord reads incoming client message and dispatches to relevant producer
@@ -389,6 +403,18 @@ func registerMetrics(metricsCollector metrics.MetricCollector) {
 		Name:   "record_total",
 		Help:   "The number of records processed.",
 		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.signalsCount = metricsCollector.RegisterGauge(adapter.CollectorOptions{
+		Name:   "signal_count",
+		Help:   "Total number of signals received per record type",
+		Labels: []string{"record_type"},
+	})
+
+	metricsRegistry.vinSignalCount = metricsCollector.RegisterGauge(adapter.CollectorOptions{
+		Name:   "vin_signal_count",
+		Help:   "Total number of signals received per vin per record type",
+		Labels: []string{"record_type", "vin"},
 	})
 
 }

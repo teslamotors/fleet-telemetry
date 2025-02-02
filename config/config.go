@@ -93,6 +93,8 @@ type Config struct {
 	// when vehicle configuration has prefer_typed set to true, enum fields will have a prefix
 	TransmitDecodedRecords bool `json:"transmit_decoded_records,omitempty"`
 
+	VinsSignalTrackingEnabled []string `json:"vins_signal_tracking_enabled"`
+
 	// MetricCollector collects metrics for the application
 	MetricCollector metrics.MetricCollector
 
@@ -190,6 +192,18 @@ func (c *Config) AirbrakeTLSConfig() (*tls.Config, error) {
 	}
 
 	return tlsConfig, nil
+}
+
+// VinsToTrack to track incoming signals in promemetheus
+func (c *Config) VinsToTrack() map[string]struct{} {
+	output := make(map[string]struct{}, 0)
+	if len(c.VinsSignalTrackingEnabled) == 0 {
+		return output
+	}
+	for _, vin := range c.VinsSignalTrackingEnabled {
+		output[vin] = struct{}{}
+	}
+	return output
 }
 
 // ExtractServiceTLSConfig return the TLS config needed for stating the mTLS Server

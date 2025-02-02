@@ -62,6 +62,30 @@ const TestSmallConfig = `
 }
 `
 
+const BadVinsConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"kafka": {
+		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
+		"ssl.ca.location": "kafka.ca",
+		"ssl.certificate.location": "kafka.crt",
+		"ssl.key.location": "kafka.key",
+		"queue.buffering.max.messages": 1000000
+	},
+	"records": {
+		"V": ["kafka"]
+	},
+	"vins_signal_tracking_enabled": ["vin1", "vin2", "vin3"],
+	"tls": {
+		"ca_file": "tesla.ca",
+		"server_cert": "your_own_cert.crt",
+		"server_key": "your_own_key.key"
+	}
+}
+`
 const TestBadReliableAckConfig = `
 {
 	"host": "127.0.0.1",
@@ -187,6 +211,19 @@ const TestTransmitDecodedRecords = `
 	"records": {
 		"V": ["logger"]
 	}
+}
+`
+
+const TestVinsToTrackConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"transmit_decoded_records": true,
+	"records": {
+		"V": ["logger"]
+	},
+	"vins_signal_tracking_enabled": ["v1", "v2"]
 }
 `
 

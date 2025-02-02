@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -12,6 +13,10 @@ import (
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
+)
+
+var (
+	maxVinsToTrack = 20
 )
 
 // LoadApplicationConfiguration loads the configuration from args and config files
@@ -27,7 +32,6 @@ func LoadApplicationConfiguration() (config *Config, logger *logrus.Logger, err 
 
 	config, err = loadApplicationConfig(configFilePath)
 	if err != nil {
-		logger.ErrorLog("read_application_configuration_error", err, nil)
 		return nil, nil, err
 	}
 
@@ -55,9 +59,20 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err := validateConfig(config); err != nil {
+		return nil, err
+	}
 	config.MetricCollector = metrics.NewCollector(config.Monitoring, logger)
 	config.AckChan = make(chan *telemetry.Record)
 	return config, err
+}
+
+func validateConfig(config *Config) error {
+	if len(config.VinsToTrack()) > maxVinsToTrack {
+		return fmt.Errorf("set the value of `vins_signal_tracking_enabled` less than %d unique vins", maxVinsToTrack)
+	}
+	return nil
 }
 
 func loadConfigFlags() string {
