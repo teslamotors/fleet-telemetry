@@ -3,7 +3,7 @@ FROM golang:1.23.0-bullseye
 
 # build libsodium (dep of libzmq)
 WORKDIR /build
-RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.19-RELEASE/libsodium-1.0.19.tar.gz
+RUN wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.19.tar.gz
 RUN tar -xzvf libsodium-1.0.19.tar.gz
 WORKDIR /build/libsodium-stable
 RUN ./configure --disable-shared --enable-static
