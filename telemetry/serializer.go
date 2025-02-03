@@ -11,8 +11,9 @@ import (
 
 // RequestIdentity stores identifiers for the socket connection
 type RequestIdentity struct {
-	DeviceID string
-	SenderID string
+	DeviceID            string
+	SenderID            string
+	DeviceClientVersion string
 }
 
 // BinarySerializer serializes records
@@ -57,6 +58,7 @@ func (bs *BinarySerializer) Deserialize(msg []byte, socketID string) (record *Re
 	record.Vin = string(bs.RequestIdentity.DeviceID)
 	record.PayloadBytes = streamMessage.Payload
 	record.ReceivedTimestamp = time.Now().Unix() * 1000
+	record.DeviceClientVersion = bs.RequestIdentity.DeviceClientVersion
 
 	if _, ok := bs.DispatchRules[streamMessage.Topic()]; ok {
 		return record, nil

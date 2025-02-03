@@ -41,6 +41,7 @@ type Record struct {
 	Txid                   string
 	TxType                 string
 	TripID                 string
+	DeviceClientVersion    string
 	Version                int
 	Vin                    string
 	PayloadBytes           []byte
@@ -84,6 +85,7 @@ func (record *Record) Metadata() map[string]string {
 	metadata["txid"] = record.Txid
 	metadata["txtype"] = record.TxType
 	metadata["version"] = fmt.Sprint(record.Version)
+	metadata["device_client_version"] = record.DeviceClientVersion
 	return metadata
 }
 

@@ -229,8 +229,9 @@ func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity,
 		return nil, fmt.Errorf("create_identity issuer: %s, common_name: %s, err: %v", cert.Issuer.CommonName, cert.Subject.CommonName, err)
 	}
 	return &telemetry.RequestIdentity{
-		DeviceID: deviceID,
-		SenderID: clientType + "." + deviceID,
+		DeviceID:            deviceID,
+		SenderID:            clientType + "." + deviceID,
+		DeviceClientVersion: r.Header.Get("Version"),
 	}, nil
 }
 

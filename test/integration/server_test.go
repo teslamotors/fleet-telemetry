@@ -20,11 +20,12 @@ import (
 )
 
 const (
-	txid       = "integration-test-txid"
-	messageID  = "integration-test-message-id"
-	senderID   = "vehicle_device.device-1"
-	deviceType = "vehicle_device"
-	deviceID   = "device-1"
+	txid                = "integration-test-txid"
+	messageID           = "integration-test-message-id"
+	senderID            = "vehicle_device.device-1"
+	deviceType          = "vehicle_device"
+	deviceID            = "device-1"
+	deviceClientVersion = "1.0.0"
 
 	serviceURL    = "app:4443"
 	statusURL     = "app:8080"
@@ -76,6 +77,7 @@ func CreateWebSocket(tlsConfig *tls.Config) *websocket.Conn {
 	}
 	headers := http.Header{}
 	headers.Add("X-Network-Interface", "wifi")
+	headers.Add("Version", deviceClientVersion)
 	c, _, err := tlsDialer.Dial(u.String(), headers)
 	Expect(err).NotTo(HaveOccurred())
 	return c
