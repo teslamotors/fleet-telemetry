@@ -320,6 +320,7 @@ func VerifyConnectivityMessageHeaders(headers map[string]string) {
 	Expect(headers["txid"]).NotTo(BeEmpty())
 	Expect(headers["txtype"]).To(Equal("connectivity"))
 	Expect(headers["vin"]).To(Equal(deviceID))
+	Expect(headers["device_client_version"]).To(Equal(deviceClientVersion))
 }
 
 // VerifyMessageHeaders validates headers returned from dispatchers
@@ -327,6 +328,7 @@ func VerifyMessageHeaders(headers map[string]string) {
 	Expect(headers["txid"]).To(Equal("integration-test-txid"))
 	Expect(headers["txtype"]).To(Equal("V"))
 	Expect(headers["vin"]).To(Equal(deviceID))
+	Expect(headers["device_client_version"]).To(Equal(deviceClientVersion))
 }
 
 // VerifyConnectivityMessageBody validates record message returned from dispatchers
