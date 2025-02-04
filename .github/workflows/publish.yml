@@ -10,7 +10,7 @@ on:
 
 jobs:
   validate-input:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Validate input
         id: validate
@@ -22,7 +22,7 @@ jobs:
 
   release:
     needs: validate-input
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
