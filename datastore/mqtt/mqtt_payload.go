@@ -80,25 +80,6 @@ func (p *Producer) processVehicleAlerts(rec *telemetry.Record, payload *protos.V
 	return tokens, nil
 }
 
-func (p *Producer) processVehicleErrors(rec *telemetry.Record, payload *protos.VehicleErrors) ([]pahomqtt.Token, error) {
-	var tokens []pahomqtt.Token
-
-	for _, vehicleError := range payload.Errors {
-		topicName := fmt.Sprintf("%s/%s/errors/%s", p.config.TopicBase, rec.Vin, vehicleError.Name)
-		errorMap := vehicleErrorToMqttMap(vehicleError)
-		jsonValue, err := json.Marshal(errorMap)
-		if err != nil {
-			return tokens, fmt.Errorf("failed to marshal JSON for MQTT topic %s: %v", topicName, err)
-		}
-
-		token := p.client.Publish(topicName, p.config.QoS, p.config.Retained, jsonValue)
-		tokens = append(tokens, token)
-		p.updateMetrics(rec.TxType, len(jsonValue))
-	}
-
-	return tokens, nil
-}
-
 func (p *Producer) processVehicleConnectivity(rec *telemetry.Record, payload *protos.VehicleConnectivity) ([]pahomqtt.Token, error) {
 	topicName := fmt.Sprintf("%s/%s/connectivity", p.config.TopicBase, rec.Vin)
 	value := map[string]interface{}{
@@ -135,17 +116,6 @@ func vehicleAlertToMqttMap(alert *protos.VehicleAlert) map[string]interface{} {
 	alertMap["Audiences"] = audiences
 
 	return alertMap
-}
-
-func vehicleErrorToMqttMap(vehicleError *protos.VehicleError) map[string]interface{} {
-	errorMap := map[string]interface{}{
-		"Body": vehicleError.Body,
-		"Tags": vehicleError.Tags,
-	}
-	if vehicleError.CreatedAt != nil {
-		errorMap["CreatedAt"] = vehicleError.CreatedAt.AsTime().Format(time.RFC3339)
-	}
-	return errorMap
 }
 
 // PayloadToMap transforms a Payload into a map for mqtt purposes

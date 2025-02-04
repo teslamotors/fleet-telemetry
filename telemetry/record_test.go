@@ -288,13 +288,6 @@ var _ = Describe("Socket handler test", func() {
 				}
 				return myMsg.GetVin() == "testAlertVin"
 			}),
-			Entry("for txType errors", "errors", "testErrorVin", &protos.VehicleErrors{Vin: "testErrorVin"}, func(msg proto.Message) bool {
-				myMsg, ok := msg.(*protos.VehicleErrors)
-				if !ok {
-					return false
-				}
-				return myMsg.GetVin() == "testErrorVin"
-			}),
 			Entry("for txType connectivity", "connectivity", "testConnectivityVin", &protos.VehicleConnectivity{Vin: "testConnectivityVin"}, func(msg proto.Message) bool {
 				myMsg, ok := msg.(*protos.VehicleConnectivity)
 				if !ok {

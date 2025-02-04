@@ -160,16 +160,6 @@ func (record *Record) applyProtoRecordTransforms() error {
 		record.PayloadBytes, err = proto.Marshal(message)
 		record.protoMessage = message
 		return err
-	case "errors":
-		message := &protos.VehicleErrors{}
-		err := proto.Unmarshal(record.Payload(), message)
-		if err != nil {
-			return err
-		}
-		message.Vin = record.Vin
-		record.PayloadBytes, err = proto.Marshal(message)
-		record.protoMessage = message
-		return err
 	case "V":
 		message := &protos.Payload{}
 		err := proto.Unmarshal(record.Payload(), message)

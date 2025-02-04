@@ -60,12 +60,6 @@ func (p *Producer) recordToLogMap(record *telemetry.Record, vin string) (interfa
 			alertMaps[i] = transformers.VehicleAlertToMap(alert)
 		}
 		return alertMaps, nil
-	case *protos.VehicleErrors:
-		errorMaps := make([]map[string]interface{}, len(payload.Errors))
-		for i, vehicleError := range payload.Errors {
-			errorMaps[i] = transformers.VehicleErrorToMap(vehicleError)
-		}
-		return errorMaps, nil
 	case *protos.VehicleConnectivity:
 		return transformers.VehicleConnectivityToMap(payload), nil
 	default:

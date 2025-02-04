@@ -85,11 +85,8 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
     "enabled": bool,
     "message_limit": int - ex.: 1000
   },
-  "records": { // list of records and their dispatchers, currently: alerts, errors, and V(vehicle data)
+  "records": { // list of records and their dispatchers, currently: alerts, and V(vehicle data)
     "alerts": [
-        "logger"
-    ],
-    "errors": [
         "logger"
     ],
     "V": [

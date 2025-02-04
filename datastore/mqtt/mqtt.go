@@ -151,8 +151,6 @@ func (p *Producer) Produce(rec *telemetry.Record) {
 		tokens, err = p.processVehicleFields(rec, payload)
 	case *protos.VehicleAlerts:
 		tokens, err = p.processVehicleAlerts(rec, payload)
-	case *protos.VehicleErrors:
-		tokens, err = p.processVehicleErrors(rec, payload)
 	case *protos.VehicleConnectivity:
 		tokens, err = p.processVehicleConnectivity(rec, payload)
 	default:
