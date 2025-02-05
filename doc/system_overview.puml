@@ -1,0 +1,26 @@
+@startuml
+title Fleet Telemetry
+
+== First time only ==
+
+Partner -> "Fleet API": Call register endpoint with CSR
+"Fleet API" -> "Fleet API": Process CSR\n(this will take some time)
+"Fleet API" -> Partner: Email notification
+Partner -> Partner: Setup fleet-telemetry server
+ 
+== For each user ==
+ 
+Partner -> Customer: Share the add virtual key to vehicle link\nhttps://tesla.com/_ak/your-domain.com
+Customer -> Vehicle: Click link, add virtual key to vehicle
+note over Partner: Prerequisites:\n- Virtual key on vehicle\n- Firmware version > 2023.20\n- Not a pre-2021 Model S or X
+Partner -> "Fleet API": Configure vehicle request
+"Fleet API" -> Vehicle: Configures vehicle for streaming
+ 
+== Once vehicle is configured ==
+ 
+group mTLS Websocket
+Vehicle -> "Fleet Telemetry Server": Data
+end
+"Fleet Telemetry Server" -> "Data Broker": Data
+
+@enduml
