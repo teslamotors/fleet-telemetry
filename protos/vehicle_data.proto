@@ -193,7 +193,7 @@ enum Field {
   DetailedChargeState = 179;
 
   // fields 180-183, 185-228 are first available in firmware version 2024.44.25
-  // field 184 is first available in firmware version 2024.44.32
+  // field 184 is first available in firmware version 2024.45.32
 
   CabinOverheatProtectionMode = 180;
   CabinOverheatProtectionTemperatureLimit = 181;
