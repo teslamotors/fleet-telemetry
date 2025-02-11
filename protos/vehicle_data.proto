@@ -192,8 +192,8 @@ enum Field {
 
   DetailedChargeState = 179;
 
-  // fields 180-183, 185-228 are first available in firmware version 2024.44.25
-  // field 184 is first available in firmware version 2024.44.32
+  // fields 180-183, 185-228 are first available in firmware version 2024.44.25 and 2024.45.25 (the 2024.45. versioning is ~equivalent to 2024.44.)
+  // field 184 is first available in firmware version 2024.44.32 and 2024.45.32 (the 2024.45. versioning is ~equivalent to 2024.44.)
 
   CabinOverheatProtectionMode = 180;
   CabinOverheatProtectionTemperatureLimit = 181;
@@ -245,7 +245,7 @@ enum Field {
   WheelType = 227;
   WiperHeatEnabled = 228;
 
-  // fields 229-238 are first available in firmware version 2024.44.32
+  // fields 229-238 are first available in firmware version 2024.44.32 and 2024.45.32 (the 2024.45 versioning is ~equivalent to 2024.44)
 
   LocatedAtHome = 229;
   LocatedAtWork = 230;
