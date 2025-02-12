@@ -107,6 +107,7 @@ var _ = Describe("ProtoLogger", func() {
 					"Gear":        "ShiftStateD",
 					"Vin":         "TEST123",
 					"CreatedAt":   "1970-01-01T00:00:00Z",
+					"IsResend":    false,
 				}))
 			},
 			Entry("record", true),
@@ -133,6 +134,7 @@ var _ = Describe("ProtoLogger", func() {
 					"Gear":        map[string]interface{}{"shiftStateValue": "ShiftStateD"},
 					"Vin":         "TEST123",
 					"CreatedAt":   "1970-01-01T00:00:00Z",
+					"IsResend":    false,
 				}))
 			})
 		})

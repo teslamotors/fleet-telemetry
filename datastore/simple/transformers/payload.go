@@ -18,6 +18,7 @@ func PayloadToMap(payload *protos.Payload, includeTypes bool, vin string, logger
 	convertedPayload := make(map[string]interface{}, len(payload.Data)+2)
 	convertedPayload["Vin"] = payload.Vin
 	convertedPayload["CreatedAt"] = payload.CreatedAt.AsTime().Format(time.RFC3339)
+	convertedPayload["IsResend"] = payload.IsResend
 
 	for _, datum := range payload.Data {
 		if datum == nil || datum.Value == nil {
@@ -222,6 +223,15 @@ func transformValue(value interface{}, includeTypes bool, vin string) (interface
 	case *protos.Value_DistanceUnitValue:
 		outputType = "distanceUnit"
 		outputValue = v.DistanceUnitValue.String()
+	case *protos.Value_SunroofInstalledStateValue:
+		outputType = "sunroofInstalledState"
+		outputValue = v.SunroofInstalledStateValue.String()
+	case *protos.Value_TurnSignalStateValue:
+		outputType = "turnSignalState"
+		outputValue = v.TurnSignalStateValue.String()
+	case *protos.Value_MediaStatusValue:
+		outputType = "mediaStatus"
+		outputValue = v.MediaStatusValue.String()
 	default:
 		return nil, false
 	}

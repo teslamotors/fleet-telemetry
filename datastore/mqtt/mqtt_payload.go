@@ -230,6 +230,12 @@ func getDatumValue(value *protos.Value) interface{} {
 		return fmt.Sprintf("%02d:%02d:%02d", v.TimeValue.Hour, v.TimeValue.Minute, v.TimeValue.Second)
 	case *protos.Value_DetailedChargeStateValue:
 		return v.DetailedChargeStateValue.String()
+	case *protos.Value_SunroofInstalledStateValue:
+		return v.SunroofInstalledStateValue.String()
+	case *protos.Value_TurnSignalStateValue:
+		return v.TurnSignalStateValue.String()
+	case *protos.Value_MediaStatusValue:
+		return v.MediaStatusValue.String()
 	default:
 		// Any other value will be processed using the generic getProtoValue function
 		return getProtoValue(value, true)
