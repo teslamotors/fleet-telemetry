@@ -4,6 +4,7 @@ go 1.23
 
 require (
 	cloud.google.com/go/pubsub v1.30.0
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/airbrake/gobrake/v5 v5.6.1
 	github.com/aws/aws-sdk-go v1.44.278
 	github.com/beefsack/go-rate v0.0.0-20220214233405-116f4ca011a0

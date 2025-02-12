@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/protos"
 
+	"github.com/Masterminds/semver/v3"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -158,7 +158,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 			return err
 		}
 		message.Vin = record.Vin
-		transformTimestamp(message)
+		transformAlertsTimestamp(message)
 		record.PayloadBytes, err = proto.Marshal(message)
 		record.protoMessage = message
 		return err
@@ -179,7 +179,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 			return err
 		}
 		message.Vin = record.Vin
-		transformLocation(message)
+		record.transformVRecord(message)
 		transformScientificNotation(message)
 		record.PayloadBytes, err = proto.Marshal(message)
 		record.protoMessage = message
@@ -220,21 +220,28 @@ func (record *Record) toJSON() ([]byte, error) {
 	return jsonOptions.Marshal(record.protoMessage)
 }
 
-// transformLocation does a best-effort attempt to convert the Location field to a proper protos.Location
-// type if what we receive is a string that can be parsed. This should make the transition from strings to
-// Locations easier to handle downstream.
-func transformLocation(message *protos.Payload) {
+// transformVRecord applies transformations to a V record payload
+func (record *Record) transformVRecord(message *protos.Payload) {
+	deviceSemver := record.deviceClientSemver()
 	for _, datum := range message.Data {
-		if datum.GetKey() == protos.Field_Location {
-			if strVal := datum.GetValue().GetStringValue(); strVal != "" {
-				if loc, err := ParseLocation(strVal); err == nil {
-					datum.Value = &protos.Value{Value: &protos.Value_LocationValue{LocationValue: loc}}
-				}
+		if transformationFuncs, ok := datumTransformations[datum.Key]; ok {
+			for _, transformationFunc := range transformationFuncs {
+				transformationFunc(datum, deviceSemver)
 			}
-			// There can be only one Field_Location Datum in the proto; abort once we've seen it.
-			return
 		}
 	}
+}
+
+// deviceClientSemver returns the semantic version of the device client version
+func (record *Record) deviceClientSemver() semver.Version {
+	if record.DeviceClientVersion == "" {
+		return semver.Version{}
+	}
+	version, err := semver.NewVersion(record.DeviceClientVersion)
+	if err != nil {
+		return semver.Version{}
+	}
+	return *version
 }
 
 // transformScientificNotation fixes floating point values which are represented in scientific notation
@@ -251,30 +258,7 @@ func transformScientificNotation(message *protos.Payload) {
 	}
 }
 
-// ParseLocation parses a location string (such as "(37.412374 N, 122.145867 W)") into a *proto.Location type.
-func ParseLocation(s string) (*protos.LocationValue, error) {
-	var lat, lon float64
-	var latQ, lonQ string
-	count, err := fmt.Sscanf(s, "(%f %1s, %f %1s)", &lat, &latQ, &lon, &lonQ)
-	if err != nil {
-		return nil, err
-	}
-	if count != 4 || !strings.Contains("NS", latQ) || !strings.Contains("EW", lonQ) {
-		return nil, fmt.Errorf("invalid location format: %s", s)
-	}
-	if latQ == "S" {
-		lat = -lat
-	}
-	if lonQ == "W" {
-		lon = -lon
-	}
-	return &protos.LocationValue{
-		Latitude:  lat,
-		Longitude: lon,
-	}, nil
-}
-
-func transformTimestamp(message *protos.VehicleAlerts) {
+func transformAlertsTimestamp(message *protos.VehicleAlerts) {
 	for _, alert := range message.Alerts {
 		alert.StartedAt = convertTimestamp(alert.StartedAt)
 		alert.EndedAt = convertTimestamp(alert.EndedAt)

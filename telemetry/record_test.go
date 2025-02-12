@@ -238,25 +238,6 @@ var _ = Describe("Socket handler test", func() {
 		Entry("for inactive alert with regular timestamp", timestamppb.New(time.Unix(1600000000, 337000000)), timestamppb.New(time.Unix(1600000000, 337000000)), false),
 	)
 
-	DescribeTable("ParseLocation",
-		func(locStr string, expected *protos.LocationValue, errRegex string) {
-			loc, err := telemetry.ParseLocation(locStr)
-			if errRegex == "" {
-				Expect(err).NotTo(HaveOccurred())
-			} else {
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(MatchRegexp(errRegex))
-			}
-			Expect(loc).To(Equal(clone(expected)))
-		},
-		Entry("for a bogus string", "Abhishek is NOT a location", nil, "input does not match format"),
-		Entry("for a broken location", "(37.412374 Q, 122.145867 W)", nil, "invalid location format.*"),
-		Entry("for a valid loc, NW", "(37.412374 N, 122.145867 W)", &protos.LocationValue{Latitude: 37.412374, Longitude: -122.145867}, ""),
-		Entry("for a valid loc, NE", "(37.412374 N, 122.145867 E)", &protos.LocationValue{Latitude: 37.412374, Longitude: 122.145867}, ""),
-		Entry("for a valid loc, SW", "(37.412374 S, 122.145867 W)", &protos.LocationValue{Latitude: -37.412374, Longitude: -122.145867}, ""),
-		Entry("for a valid loc, SE", "(37.412374 S, 122.145867 E)", &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}, ""),
-	)
-
 	Describe("GetProtoMessage", func() {
 		DescribeTable("valid alert types",
 			func(txType string, vin string, input proto.Message, verifyOutput func(proto.Message) bool) {
