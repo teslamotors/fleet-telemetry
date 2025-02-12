@@ -257,6 +257,28 @@ enum Field {
   SettingChargeUnit = 236;
   ClimateSeatCoolingFrontLeft = 237;
   ClimateSeatCoolingFrontRight = 238;
+
+  // fields 239-257 are first available in firmware version 2025.2.6 (device client version 1.0.0)
+
+  LightsHazardsActive = 239;
+  LightsTurnSignal = 240;
+  LightsHighBeams = 241;
+  MediaPlaybackStatus = 242;
+  MediaPlaybackSource = 243;
+  MediaAudioVolume = 244;
+  MediaNowPlayingDuration = 245;
+  MediaNowPlayingElapsed = 246;
+  MediaNowPlayingArtist = 247;
+  MediaNowPlayingTitle = 248;
+  MediaNowPlayingAlbum = 249;
+  MediaNowPlayingStation = 250;
+  MediaAudioVolumeIncrement = 251;
+  MediaAudioVolumeMax = 252;
+  SunroofInstalled = 253;
+  SeatVentEnabled = 254;
+  RearDefrostEnabled = 255;
+  ChargeRateMilePerHour = 256;
+  DCFastChargeEnergyAdded = 257;
 }
 
 // ChargingState is deprecated and not used
@@ -623,6 +645,28 @@ enum ChargeUnitPreference {
   ChargeUnitPercent = 2;
 }
 
+enum SunroofInstalledState {
+  SunroofInstalledStateUnknown = 0;
+  SunroofInstalledStateNotInstalled = 1;
+  SunroofInstalledStateGen1Installed = 2;
+  SunroofInstalledStateGen2Installed = 3;
+}
+
+enum TurnSignalState {
+  TurnSignalStateUnknown = 0;
+  TurnSignalStateOff = 1;
+  TurnSignalStateLeft = 2;
+  TurnSignalStateRight = 3;
+  TurnSignalStateBoth = 4;
+}
+
+enum MediaStatus {
+  MediaStatusUnknown = 0;
+  MediaStatusStopped = 1;
+  MediaStatusPlaying = 2;
+  MediaStatusPaused = 3;
+}
+
 message TireLocation {
   bool front_left = 1;
   bool front_right = 2;
@@ -698,6 +742,9 @@ message Value {
     TemperatureUnit temperature_unit_value = 49;
     PressureUnit pressure_unit_value = 50;
     ChargeUnitPreference charge_unit_preference_value = 51;
+    TurnSignalState turn_signal_state_value = 52;
+    MediaStatus media_status_value = 53;
+    SunroofInstalledState sunroof_installed_state_value = 54;
   }
 }
 
@@ -712,4 +759,5 @@ message Payload {
   repeated Datum data = 1;
   google.protobuf.Timestamp created_at = 2;
   string vin = 3;
+  bool is_resend = 4;
 }

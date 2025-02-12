@@ -320,7 +320,7 @@ var _ = Describe("Socket handler test", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(record).NotTo(BeNil())
 
-			expectedJSON := "{\"data\":[{\"key\":\"VehicleName\",\"value\":{\"stringValue\":\"cybertruck\"}}],\"createdAt\":null,\"vin\":\"42\"}"
+			expectedJSON := "{\"data\":[{\"key\":\"VehicleName\",\"value\":{\"stringValue\":\"cybertruck\"}}],\"isResend\":false,\"createdAt\":null,\"vin\":\"42\"}"
 			data, err := record.GetJSONPayload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(data)).To(MatchJSON(expectedJSON))
@@ -337,7 +337,7 @@ var _ = Describe("Socket handler test", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(record).NotTo(BeNil())
 
-			expectedJSON := "{\"data\":[{\"key\":\"VehicleName\",\"value\":{\"stringValue\":\"cybertruck\"}}],\"createdAt\":null,\"vin\":\"42\"}"
+			expectedJSON := "{\"data\":[{\"key\":\"VehicleName\",\"value\":{\"stringValue\":\"cybertruck\"}}],\"isResend\":false,\"createdAt\":null,\"vin\":\"42\"}"
 			Expect(string(record.Payload())).To(MatchJSON(expectedJSON))
 
 			data, err := record.GetJSONPayload()
