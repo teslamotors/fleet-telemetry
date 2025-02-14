@@ -278,7 +278,7 @@ enum Field {
   SeatVentEnabled = 254;
   RearDefrostEnabled = 255;
   ChargeRateMilePerHour = 256;
-  DCFastChargeEnergyAdded = 257;
+  Deprecated_3 = 257;
 }
 
 // ChargingState is deprecated and not used
