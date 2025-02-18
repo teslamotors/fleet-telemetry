@@ -59,13 +59,17 @@ var _ = Describe("Prometheus Metric Adapter", Ordered, func() {
 
 	Context("counter", func() {
 		It("reports with no labels", func() {
-			metricCollector.RegisterCounter(adapter.CollectorOptions{
+			counter := metricCollector.RegisterCounter(adapter.CollectorOptions{
 				Name:   "new_bucket",
 				Help:   "help text",
 				Labels: []string{},
-			}).Add(5, map[string]string{})
+			})
 
 			metrics := getMetrics()
+			Expect(metrics).To(ContainSubstring("new_bucket 0"))
+
+			counter.Add(5, map[string]string{})
+			metrics = getMetrics()
 			Expect(metrics).To(ContainSubstring("new_bucket 5"))
 		})
 

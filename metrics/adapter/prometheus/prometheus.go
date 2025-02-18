@@ -36,6 +36,10 @@ func (c *Collector) RegisterCounter(options adapter.CollectorOptions) adapter.Co
 
 	c.register(counter)
 
+	if len(options.Labels) == 0 {
+		counter.With(nil).Add(0)
+	}
+
 	return &Counter{
 		counter,
 	}
