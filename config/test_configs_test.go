@@ -283,3 +283,33 @@ const TestBadTxTypeReliableAckConfig = `
 	}
 }
 `
+
+const TestMultipleTxTypeReliableAckConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"reliable_ack_sources": {
+		"V": "kafka",
+		"errors": "kafka",
+		"alerts": "mqtt"
+	},
+	"kafka": {
+		"bootstrap.servers": "some.broker1:9093,some.broker1:9093",
+		"ssl.ca.location": "kafka.ca",
+		"ssl.certificate.location": "kafka.crt",
+		"ssl.key.location": "kafka.key",
+		"queue.buffering.max.messages": 1000000
+	},
+	"records": {
+		"V": ["kafka"],
+		"errors": ["kafka", "mqtt"],
+		"alerts": ["mqtt"]
+	},
+	"tls": {
+		"server_cert": "your_own_cert.crt",
+		"server_key": "your_own_key.key"
+	}
+}
+`

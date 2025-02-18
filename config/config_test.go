@@ -167,6 +167,18 @@ var _ = Describe("Test full application config", func() {
 	})
 
 	Context("configure reliable acks", func() {
+		It("configures each datasource", func() {
+			config, err := loadTestApplicationConfig(TestMultipleTxTypeReliableAckConfig)
+			Expect(err).NotTo(HaveOccurred())
+
+			reliableAcks, err := config.configureReliableAckSources()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reliableAcks["kafka"]).To(HaveLen(2))
+			Expect(reliableAcks["kafka"]["V"]).To(BeTrue())
+			Expect(reliableAcks["kafka"]["errors"]).To(BeTrue())
+			Expect(reliableAcks["mqtt"]).To(HaveLen(1))
+			Expect(reliableAcks["mqtt"]["alerts"]).To(BeTrue())
+		})
 
 		DescribeTable("fails",
 			func(configInput string, errMessage string) {
