@@ -53,6 +53,7 @@ type SocketManager struct {
 // SocketMessage represents incoming socket connection
 type SocketMessage struct {
 	MsgType int
+	Txid    string
 	Msg     []byte
 }
 
@@ -293,10 +294,9 @@ func (sm *SocketManager) processRecord(record *telemetry.Record) {
 func (sm *SocketManager) respondToVehicle(record *telemetry.Record, err error) {
 	var response []byte
 
-	logInfo := logrus.LogInfo{"txid": record.Txid, "record_type": record.TxType}
+	logInfo := logrus.LogInfo{"txid": record.Txid, "record_type": record.TxType, "device_id": sm.requestIdentity.DeviceID}
 
 	if err != nil {
-		logInfo["client_id"] = sm.requestIdentity.DeviceID
 		sm.logger.ErrorLog("unexpected_record", err, logInfo)
 		metricsRegistry.unexpectedRecordErrorCount.Inc(map[string]string{})
 		response = record.Error(errors.New("incorrect message format"))
@@ -307,7 +307,7 @@ func (sm *SocketManager) respondToVehicle(record *telemetry.Record, err error) {
 	}
 
 	sm.logger.Log(logrus.DEBUG, "message_respond", logInfo)
-	sm.writeChan <- SocketMessage{sm.MsgType, response}
+	sm.writeChan <- SocketMessage{sm.MsgType, record.Txid, response}
 }
 
 func (sm *SocketManager) writer() {
@@ -326,7 +326,7 @@ func (sm *SocketManager) writer() {
 			err := sm.writeMessage(msg.MsgType, msg.Msg)
 			if err != nil {
 				metricsRegistry.socketErrorCount.Inc(map[string]string{})
-				sm.logger.ErrorLog("socket_err", err, nil)
+				sm.logger.ErrorLog("socket_err", err, logrus.LogInfo{"txid": msg.Txid, "device_id": sm.requestIdentity.DeviceID})
 				return
 			}
 		}
