@@ -394,7 +394,10 @@ func (c *Config) configureReliableAckSources() (map[telemetry.Dispatcher]map[str
 		for _, dispatcher := range validDispatchers {
 			if dispatcher == dispatchRule {
 				dispatchRuleFound = true
-				reliableAckSources[dispatchRule] = map[string]interface{}{txType: true}
+				if _, ok := reliableAckSources[dispatchRule]; !ok {
+					reliableAckSources[dispatchRule] = make(map[string]interface{}, 1)
+				}
+				reliableAckSources[dispatchRule][txType] = true
 				break
 			}
 		}
