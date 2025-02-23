@@ -35,7 +35,7 @@ const (
 	zmqAddr     = "tcp://app:5284"
 	mqttBroker  = "mqtt:1883"
 	mqttTopic   = "telemetry/device-1/v/VehicleName"
-	kinesisHost = "http://kinesis:4567"
+	kinesisHost = "http://kinesis:4566"
 
 	kinesisStreamName             = "test_V"
 	kinesisConnectivityStreamName = "test_connectivity"
