@@ -39,4 +39,4 @@ ARG it_target
 ENV IT_TARGET=${it_target}
 
 # hadolint ignore=DL3025
-CMD go test -v ${IT_TARGET}
+CMD go test -v ${IT_TARGET} --ginkgo.poll-progress-after=10s
