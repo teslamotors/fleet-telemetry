@@ -18,7 +18,7 @@
         "gcp_project_id": "test-project-id"
     },
     "kinesis": {
-        "override_host": "http://kinesis:4567",
+        "override_host": "http://kinesis:4566",
         "max_retries": 3,
         "streams": {
             "V": "test_V",

@@ -94,11 +94,11 @@ services:
       ]
 
   kinesis:
-    image: saidsef/aws-kinesis-local
+    image: localstack/localstack
     ports:
-      - 4567:4567
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
     healthcheck:
-      test: nc -z localhost 4567 || exit -1
+      test: ["CMD", "curl", "-f", "http://localhost:4566"]
       start_period: 15s
       interval: 5s
       timeout: 10s
