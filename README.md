@@ -29,7 +29,7 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
     - From a local computer, create `validate_server.json` with the following fields:
       - `hostname`: The hostname the fleet-telemetry server.
       - `port`: The port the fleet-telemetry server -- Default 443.
-      - `ca`: The full certificate chain used to generate the server's TLS certificate.
+      - `ca`: The certificate authority used to generate the server's TLS certificate.
     - Run `./check_server_cert.sh validate_server.json`
 9. Pair the application's virtual key to the vehicle(s). See documentation here: https://developer.tesla.com/docs/fleet-api/virtual-keys/developer-guide.
 10. Configure and run the [vehicle-command proxy](https://github.com/teslamotors/vehicle-command#installation-and-configuration) with the application private key.
@@ -98,7 +98,7 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
     ]
   },
   "tls": {
-    "server_cert": string - server cert location,
+    "server_cert": string - server cert chain location,
     "server_key": string - server key location
   }
 }
