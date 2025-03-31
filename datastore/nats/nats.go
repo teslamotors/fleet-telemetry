@@ -1,7 +1,6 @@
 package nats
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/nats-io/nats.go"
