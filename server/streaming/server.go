@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -131,6 +132,36 @@ func (s *Server) Status() func(w http.ResponseWriter, r *http.Request) {
 // ServeBinaryWs serves a http query and upgrades it to a websocket -- only serves binary data coming from the ws
 func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Print the client certificates if available
+		if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+			// For example, print details of the first certificate
+			clientCert := r.TLS.PeerCertificates[0]
+			// Print out subject common name, issuer and expiration time, etc.
+			s.logger.Log(logrus.INFO, "client_certificate", logrus.LogInfo{
+				"Subject":   clientCert.Subject.CommonName,
+				"Issuer":    clientCert.Issuer.CommonName,
+				"NotBefore": clientCert.NotBefore.String(),
+				"NotAfter":  clientCert.NotAfter.String(),
+			})
+
+			chains := r.TLS.VerifiedChains
+			s.logger.Log(logrus.INFO, "chains_size", logrus.LogInfo{
+				"chains_size": len(chains),
+			})
+			for idx, chain := range chains {
+				chainCommonName := []string{}
+				for _, cert := range chain {
+					chainCommonName = append(chainCommonName, cert.Subject.CommonName)
+				}
+				s.logger.Log(logrus.INFO, "chain_subject_common_name", logrus.LogInfo{
+					"idx":               idx,
+					"common_name_chain": strings.Join(chainCommonName, "|"),
+				})
+			}
+		} else {
+			s.logger.Log(logrus.INFO, "client_certificate_not_found", logrus.LogInfo{})
+		}
+
 		if ws := s.promoteToWebsocket(w, r); ws != nil {
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
 			requestIdentity, err := extractIdentity(r, config)
