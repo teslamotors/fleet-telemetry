@@ -44,7 +44,7 @@ func TestProduce(t *testing.T) {
 	assert.NotNil(t, producer)
 
 	record := &telemetry.Record{
-		TxType: "test_type",
+		TxType:       "test_type",
 		PayloadBytes: []byte("test_payload"),
 	}
 
