@@ -5,7 +5,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
-	"github.com/teslamotors/fleet-telemetry/datastore/nats"
+	natspkg "github.com/teslamotors/fleet-telemetry/datastore/nats"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
@@ -19,11 +19,11 @@ func TestNewProducer(t *testing.T) {
 	ackChan := make(chan *telemetry.Record)
 	reliableAckTxTypes := make(map[string]interface{})
 
-	config := &nats.Config{
+	config := &natspkg.Config{
 		URL: nats.DefaultURL,
 	}
 
-	producer, err := nats.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
+	producer, err := natspkg.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, producer)
 }
@@ -35,11 +35,11 @@ func TestProduce(t *testing.T) {
 	ackChan := make(chan *telemetry.Record)
 	reliableAckTxTypes := make(map[string]interface{})
 
-	config := &nats.Config{
+	config := &natspkg.Config{
 		URL: nats.DefaultURL,
 	}
 
-	producer, err := nats.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
+	producer, err := natspkg.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, producer)
 
@@ -58,11 +58,11 @@ func TestClose(t *testing.T) {
 	ackChan := make(chan *telemetry.Record)
 	reliableAckTxTypes := make(map[string]interface{})
 
-	config := &nats.Config{
+	config := &natspkg.Config{
 		URL: nats.DefaultURL,
 	}
 
-	producer, err := nats.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
+	producer, err := natspkg.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, producer)
 
@@ -79,11 +79,11 @@ func TestProcessReliableAck(t *testing.T) {
 		"test_type": true,
 	}
 
-	config := &nats.Config{
+	config := &natspkg.Config{
 		URL: nats.DefaultURL,
 	}
 
-	producer, err := nats.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
+	producer, err := natspkg.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, producer)
 
@@ -104,11 +104,11 @@ func TestReportError(t *testing.T) {
 	ackChan := make(chan *telemetry.Record)
 	reliableAckTxTypes := make(map[string]interface{})
 
-	config := &nats.Config{
+	config := &natspkg.Config{
 		URL: nats.DefaultURL,
 	}
 
-	producer, err := nats.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
+	producer, err := natspkg.NewProducer(config, "test_namespace", true, metricsCollector, airbrakeHandler, ackChan, reliableAckTxTypes, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, producer)
 
