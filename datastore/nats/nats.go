@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/nats-io/nats.go"
@@ -68,7 +69,8 @@ func NewProducer(config *Config, namespace string, prometheusEnabled bool, metri
 
 // Produce asynchronously sends the record payload to NATS
 func (p *Producer) Produce(entry *telemetry.Record) {
-	subject := telemetry.BuildTopicName(p.namespace, entry.TxType)
+	// Hardcode the namespace for now
+	subject := fmt.Sprintf("telemetry.%s.%s", entry.Vin, entry.TxType)
 
 	err := p.natsConn.Publish(subject, entry.Payload())
 	if err != nil {
