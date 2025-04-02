@@ -88,7 +88,7 @@ func (p *Producer) ProvisionTopics(txTypes []string) error {
 func (p *Producer) Produce(entry *telemetry.Record) {
 	ctx := context.Background()
 
-	topicName := p.namespace
+	topicName := telemetry.BuildTopicName(p.namespace, entry.TxType)
 	pubsubTopic := p.pubsubClient.Topic(topicName)
 	logInfo := logrus.LogInfo{"topic_name": topicName, "txid": entry.Txid}
 
