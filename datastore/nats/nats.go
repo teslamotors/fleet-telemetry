@@ -3,6 +3,7 @@ package nats
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
@@ -45,14 +46,54 @@ var (
 
 // Config for NATS producer
 type Config struct {
-	URL string `json:"url"`
+	URL           string `json:"url"`
+	Name          string `json:"name,omitempty"`
+	RetryConnect  bool   `json:"retry_connect,omitempty"`
+	ReconnectWait int    `json:"reconnect_wait,omitempty"`
 }
 
 // NewProducer establishes the NATS connection and define the dispatch method
 func NewProducer(config *Config, namespace string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
-	natsConn, err := NatsConnect(config.URL)
+	// Use default values if not specified in config
+	name := "Tesla Fleet Telemetry"
+	if config.Name != "" {
+		name = config.Name
+	}
+
+	retryConnect := true
+	if !config.RetryConnect {
+		retryConnect = false
+	}
+
+	reconnectWait := 0
+	if config.ReconnectWait != 0 {
+		reconnectWait = config.ReconnectWait
+	}
+
+	natsConn, err := NatsConnect(
+		config.URL,
+		nats.Name(name),
+		nats.RetryOnFailedConnect(retryConnect),
+		nats.MaxReconnects(-1),
+		nats.ReconnectWait(time.Duration(reconnectWait)*time.Second),
+		nats.ClosedHandler(func(conn *nats.Conn) {
+			logger.ActivityLog("nats_closed", logrus.LogInfo{"reason": conn.LastError()})
+		}),
+		nats.ErrorHandler(func(conn *nats.Conn, sub *nats.Subscription, err error) {
+			logger.ActivityLog("nats_error", logrus.LogInfo{"error": err, "subject": sub.Subject})
+		}),
+		nats.ConnectHandler(func(conn *nats.Conn) {
+			logger.ActivityLog("nats_connected", logrus.LogInfo{"server": conn.ConnectedUrl()})
+		}),
+		nats.ReconnectHandler(func(conn *nats.Conn) {
+			logger.ActivityLog("nats_reconnected", logrus.LogInfo{"server": conn.ConnectedUrl()})
+		}),
+		nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
+			logger.ActivityLog("nats_disconnected", logrus.LogInfo{"error": err})
+		}),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +115,7 @@ func NewProducer(config *Config, namespace string, prometheusEnabled bool, metri
 // Produce asynchronously sends the record payload to NATS
 func (p *Producer) Produce(entry *telemetry.Record) {
 	// Hardcode the namespace for now
-	subject := fmt.Sprintf("telemetry.%s.%s", entry.Vin, entry.TxType)
+	subject := fmt.Sprintf("%s.%s.%s", p.namespace, entry.Vin, entry.TxType)
 
 	err := p.natsConn.Publish(subject, entry.Payload())
 	if err != nil {
