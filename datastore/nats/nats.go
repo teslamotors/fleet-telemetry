@@ -12,6 +12,10 @@ import (
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
 
+// NatsConnect is a variable that holds the function to create a NATS connection
+// This allows for testing by replacing it with a mock
+var NatsConnect = nats.Connect
+
 // Producer client to handle NATS interactions
 type Producer struct {
 	natsConn           *nats.Conn
@@ -48,7 +52,7 @@ type Config struct {
 func NewProducer(config *Config, namespace string, prometheusEnabled bool, metricsCollector metrics.MetricCollector, airbrakeHandler *airbrake.Handler, ackChan chan (*telemetry.Record), reliableAckTxTypes map[string]interface{}, logger *logrus.Logger) (telemetry.Producer, error) {
 	registerMetricsOnce(metricsCollector)
 
-	natsConn, err := nats.Connect(config.URL)
+	natsConn, err := NatsConnect(config.URL)
 	if err != nil {
 		return nil, err
 	}
