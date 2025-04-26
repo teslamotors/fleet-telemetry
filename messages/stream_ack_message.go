@@ -6,10 +6,10 @@ import (
 	"github.com/teslamotors/fleet-telemetry/messages/tesla"
 )
 
-// StreamAckMessage is struct that warps up information used for streaming response coming from Tesla Cloud
+// StreamAckMessage is a struct that warps up information used for streaming response coming from Tesla Cloud
 type StreamAckMessage struct {
 	envelope     *tesla.FlatbuffersEnvelope
-	TXID         []byte
+	TxId         []byte
 	MessageTopic []byte
 	EnvMessageID []byte // unique id of the message
 }
@@ -25,14 +25,14 @@ func StreamAckMessageFromBytes(value []byte) (*StreamAckMessage, error) {
 	return &StreamAckMessage{
 		envelope:     envelope,
 		MessageTopic: envelope.TopicBytes(),
-		TXID:         envelope.TxidBytes(),
+		TxId:         envelope.TxidBytes(),
 		EnvMessageID: envelope.MessageIdBytes(),
 	}, nil
 }
 
 // ToBytes deserializes a message into a slice of bytes
 func (m *StreamAckMessage) ToBytes() ([]byte, error) {
-	b := tesla.FlatbuffersStreamAckToBytes(m.TXID, m.MessageTopic, m.EnvMessageID)
+	b := tesla.FlatbuffersStreamAckToBytes(m.TxId, m.MessageTopic, m.EnvMessageID)
 	return b, nil
 }
 
@@ -51,7 +51,7 @@ func (m *StreamAckMessage) Topic() string {
 
 // Txid returns the type of message
 func (m *StreamAckMessage) Txid() []byte {
-	return m.TXID
+	return m.TxId
 }
 
 // IsExpired returns always returns false

@@ -283,7 +283,7 @@ func verifyAckMessage(connection *websocket.Conn, expectedTxType string) {
 	streamMessage, err := messages.StreamAckMessageFromBytes(msg)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(streamMessage.MessageTopic).To(Equal([]byte(expectedTxType)))
-	Expect(streamMessage.TXID).To(Equal([]byte("integration-test-txid")))
+	Expect(streamMessage.TxId).To(Equal([]byte("integration-test-txid")))
 }
 
 // VerifyHTTPSRequest validates API returns 200 status code

@@ -10,8 +10,8 @@ import (
 type Dispatcher string
 
 const (
-	// Pubsub registers a Google pubsub dispatcher
-	Pubsub Dispatcher = "pubsub"
+	// PubSub registers a Google PubSub dispatcher
+	PubSub Dispatcher = "pubsub"
 	// Kafka registers a kafka dispatcher
 	Kafka Dispatcher = "kafka"
 	// Kinesis registers a kinesis publisher

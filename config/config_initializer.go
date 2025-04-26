@@ -54,8 +54,8 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 		return nil, err
 	}
 
-	log, _ := test.NewNullLogger()
-	logger, err := logrus.NewLogrusLogger("null_logger", map[string]interface{}{}, log.WithField("context", "metrics"))
+	l, _ := test.NewNullLogger()
+	logger, err := logrus.NewLogrusLogger("null_logger", map[string]interface{}{}, l.WithField("context", "metrics"))
 	if err != nil {
 		return nil, err
 	}

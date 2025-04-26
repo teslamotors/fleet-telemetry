@@ -30,7 +30,7 @@ var (
 	scientificNotationFloatRegex = regexp.MustCompile(`^[+-]?(\d*\.\d+|\d+\.\d*)([eE][+-]?\d+)$`)
 )
 
-// Record is a structs that represents the telemetry records vehicles send to the backend
+// Record is a struct that represents the telemetry records vehicles send to the backend
 // vin is used as kafka produce partitioning key by default, can be configured to random
 type Record struct {
 	ProduceTime            time.Time
@@ -38,7 +38,7 @@ type Record struct {
 	Serializer             *BinarySerializer
 	SocketID               string
 	Timestamp              int64
-	Txid                   string
+	TxId                   string
 	TxType                 string
 	TripID                 string
 	DeviceClientVersion    string
@@ -51,7 +51,7 @@ type Record struct {
 }
 
 // NewRecord Sanitizes and instantiates a Record from a message
-// !! caller expect *Record to not be nil !!
+// !! caller expects *Record to not be nil !!
 func NewRecord(ts *BinarySerializer, msg []byte, socketID string, transmitDecodedRecords bool) (*Record, error) {
 	if len(msg) > SizeLimit {
 		return &Record{Serializer: ts, transmitDecodedRecords: transmitDecodedRecords}, ErrMessageTooBig
@@ -82,7 +82,7 @@ func (record *Record) Metadata() map[string]string {
 	metadata["vin"] = record.Vin
 	metadata["receivedat"] = fmt.Sprint(record.ReceivedTimestamp)
 	metadata["timestamp"] = fmt.Sprint(record.Timestamp)
-	metadata["txid"] = record.Txid
+	metadata["txid"] = record.TxId
 	metadata["txtype"] = record.TxType
 	metadata["version"] = fmt.Sprint(record.Version)
 	metadata["device_client_version"] = record.DeviceClientVersion
@@ -113,7 +113,7 @@ func (record *Record) LengthRawBytes() int {
 	return len(record.RawBytes)
 }
 
-// Length gets the records byte size
+// Length gets the record byte size
 func (record *Record) Length() int {
 	return len(record.PayloadBytes)
 }

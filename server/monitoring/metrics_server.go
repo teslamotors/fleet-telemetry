@@ -3,11 +3,10 @@ package monitoring
 import (
 	"fmt"
 	"net/http"
-	"sync"
-	"time"
-
 	// This registers the profiler on the default mux which we will use for monitoring port.
 	_ "net/http/pprof"
+	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 

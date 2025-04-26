@@ -44,15 +44,15 @@ func (p *profileServer) gcStats() func(w http.ResponseWriter, _ *http.Request) {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		stats := &debug.GCStats{}
 		debug.ReadGCStats(stats)
-
-		json, err := json.Marshal(stats)
-
+		jsonBytes, err := json.Marshal(stats)
 		if err != nil {
 			w.WriteHeader(500)
+			// TODO: Fix, might lead to an invalid JSON
 			_, _ = w.Write([]byte(`{"error":"` + err.Error() + `"}`))
+			return
 		}
 
-		_, _ = w.Write(json)
+		_, _ = w.Write(jsonBytes)
 	}
 }
 
