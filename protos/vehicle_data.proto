@@ -114,12 +114,12 @@ enum Field {
   SemitruckTractorParkBrakeStatus = 104;  // Semi-truck only
   SemitruckTrailerParkBrakeStatus = 105;  // Semi-truck only
   BrakePedalPos = 106;
-  RouteLastUpdated = 107;
-  RouteLine = 108;
-  MilesToArrival = 109;
-  MinutesToArrival = 110;
-  OriginLocation = 111;
-  DestinationLocation = 112;
+  RouteLastUpdated = 107; // Requires firmware version 2024.26 or later
+  RouteLine = 108; // Requires firmware version 2024.26 or later
+  MilesToArrival = 109; // Requires firmware version 2024.26 or later
+  MinutesToArrival = 110; // Requires firmware version 2024.26 or later
+  OriginLocation = 111; // Requires firmware version 2024.26 or later
+  DestinationLocation = 112; // Requires firmware version 2024.26 or later
   CarType = 113;
   Trim = 114;
   ExteriorColor = 115;
@@ -170,7 +170,7 @@ enum Field {
   BMSState = 160;
   GuestModeMobileAccessState = 161;
   Deprecated_1 = 162;
-  DestinationName = 163;
+  DestinationName = 163; // Requires firmware version 2024.26 or later
   DiInverterTR = 164;
   DiInverterTF = 165;
   DiInverterTREL = 166;
