@@ -131,12 +131,12 @@ const (
 	Field_SemitruckTractorParkBrakeStatus           Field = 104 // Semi-truck only
 	Field_SemitruckTrailerParkBrakeStatus           Field = 105 // Semi-truck only
 	Field_BrakePedalPos                             Field = 106
-	Field_RouteLastUpdated                          Field = 107
-	Field_RouteLine                                 Field = 108
-	Field_MilesToArrival                            Field = 109
-	Field_MinutesToArrival                          Field = 110
-	Field_OriginLocation                            Field = 111
-	Field_DestinationLocation                       Field = 112
+	Field_RouteLastUpdated                          Field = 107 // Requires firmware version 2024.26 or later
+	Field_RouteLine                                 Field = 108 // Requires firmware version 2024.26 or later
+	Field_MilesToArrival                            Field = 109 // Requires firmware version 2024.26 or later
+	Field_MinutesToArrival                          Field = 110 // Requires firmware version 2024.26 or later
+	Field_OriginLocation                            Field = 111 // Requires firmware version 2024.26 or later
+	Field_DestinationLocation                       Field = 112 // Requires firmware version 2024.26 or later
 	Field_CarType                                   Field = 113
 	Field_Trim                                      Field = 114
 	Field_ExteriorColor                             Field = 115
@@ -187,7 +187,7 @@ const (
 	Field_BMSState                                  Field = 160
 	Field_GuestModeMobileAccessState                Field = 161
 	Field_Deprecated_1                              Field = 162
-	Field_DestinationName                           Field = 163
+	Field_DestinationName                           Field = 163 // Requires firmware version 2024.26 or later
 	Field_DiInverterTR                              Field = 164
 	Field_DiInverterTF                              Field = 165
 	Field_DiInverterTREL                            Field = 166
