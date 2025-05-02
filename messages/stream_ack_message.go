@@ -6,7 +6,7 @@ import (
 	"github.com/teslamotors/fleet-telemetry/messages/tesla"
 )
 
-// StreamAckMessage is a struct that warps up information used for streaming response coming from Tesla Cloud
+// StreamAckMessage is a struct that wraps up information used for streaming response coming from Tesla Cloud
 type StreamAckMessage struct {
 	envelope     *tesla.FlatbuffersEnvelope
 	TxId         []byte
