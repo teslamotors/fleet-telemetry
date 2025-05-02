@@ -3,25 +3,26 @@ package airbrake
 import (
 	"net/http"
 
-	githubairbrake "github.com/airbrake/gobrake/v5"
+	"github.com/airbrake/gobrake/v5"
+
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/server/middleware"
 )
 
 // Handler reports errors to airbrake
 type Handler struct {
-	airbrakeNotifier *githubairbrake.Notifier
+	airbrakeNotifier *gobrake.Notifier
 }
 
 // NewAirbrakeHandler returns a new instance of AirbrakeHandler
-func NewAirbrakeHandler(airbrakeNotifier *githubairbrake.Notifier) *Handler {
+func NewAirbrakeHandler(airbrakeNotifier *gobrake.Notifier) *Handler {
 	return &Handler{
 		airbrakeNotifier: airbrakeNotifier,
 	}
 }
 
-func httpAirbrakeMessage(r *http.Request, w *middleware.WrappedResponseWriter) *githubairbrake.Notice {
-	notice := githubairbrake.NewNotice(string(w.Body()), r, 1)
+func httpAirbrakeMessage(r *http.Request, w *middleware.WrappedResponseWriter) *gobrake.Notice {
+	notice := gobrake.NewNotice(string(w.Body()), r, 1)
 	notice.Params["status_code"] = w.Status()
 	notice.Params["duration_ms"] = w.DurationMS()
 	for responseHeaderKey, responseHeaderValue := range w.Header() {
@@ -35,7 +36,7 @@ func (a *Handler) ReportError(r *http.Request, err error) {
 	if a.airbrakeNotifier == nil {
 		return
 	}
-	notice := githubairbrake.NewNotice(err.Error(), r, 1)
+	notice := gobrake.NewNotice(err.Error(), r, 1)
 	a.airbrakeNotifier.SendNoticeAsync(notice)
 }
 
@@ -50,8 +51,8 @@ func (a *Handler) WithReporting(next http.Handler) http.Handler {
 	})
 }
 
-func (a *Handler) logMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) *githubairbrake.Notice {
-	notice := githubairbrake.NewNotice(message, nil, 1)
+func (a *Handler) logMessage(logType logrus.LogType, message string, err error, logInfo logrus.LogInfo) *gobrake.Notice {
+	notice := gobrake.NewNotice(message, nil, 1)
 	notice.Params["log_type"] = logrus.AllLogType[logType]
 	if err != nil {
 		notice.Params["error"] = err.Error()

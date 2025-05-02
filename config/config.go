@@ -297,15 +297,15 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 		producers[telemetry.Kafka] = kafkaProducer
 	}
 
-	if _, ok := requiredDispatchers[telemetry.Pubsub]; ok {
+	if _, ok := requiredDispatchers[telemetry.PubSub]; ok {
 		if c.Pubsub == nil {
-			return nil, nil, errors.New("expected Pubsub to be configured")
+			return nil, nil, errors.New("expected PubSub to be configured")
 		}
-		googleProducer, err := googlepubsub.NewProducer(c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Pubsub], logger)
+		googleProducer, err := googlepubsub.NewProducer(c.prometheusEnabled(), c.Pubsub.ProjectID, c.Namespace, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.PubSub], logger)
 		if err != nil {
 			return nil, nil, err
 		}
-		producers[telemetry.Pubsub] = googleProducer
+		producers[telemetry.PubSub] = googleProducer
 	}
 
 	if recordNames, ok := requiredDispatchers[telemetry.Kinesis]; ok {
@@ -350,7 +350,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 	for recordName, dispatchRules := range c.Records {
 		var dispatchFuncs []telemetry.Producer
 		for _, dispatchRule := range dispatchRules {
-			if dispatchRule == telemetry.Pubsub {
+			if dispatchRule == telemetry.PubSub {
 				pubsubTxTypes = append(pubsubTxTypes, recordName)
 			}
 			dispatchFuncs = append(dispatchFuncs, producers[dispatchRule])
@@ -363,7 +363,7 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 	}
 
 	if !test && len(pubsubTxTypes) > 0 {
-		if err := producers[telemetry.Pubsub].(*googlepubsub.Producer).ProvisionTopics(pubsubTxTypes); err != nil {
+		if err := producers[telemetry.PubSub].(*googlepubsub.Producer).ProvisionTopics(pubsubTxTypes); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -447,7 +447,7 @@ func (c *Config) CreateKinesisStreamMapping(recordNames []string) map[string]str
 	return streamMapping
 }
 
-// CreateAirbrakeNotifier intializes an airbrake notifier with standard configs
+// CreateAirbrakeNotifier initializes an airbrake notifier with standard configs
 func (c *Config) CreateAirbrakeNotifier(logger *logrus.Logger) (*githubairbrake.Notifier, *githubairbrake.NotifierOptions, error) {
 	if c.Airbrake == nil {
 		return nil, nil, nil
