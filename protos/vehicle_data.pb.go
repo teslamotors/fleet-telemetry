@@ -127,7 +127,7 @@ const (
 	Field_Deprecated_2                              Field = 100
 	Field_CruiseSetSpeed                            Field = 101
 	Field_LifetimeEnergyUsed                        Field = 102
-	Field_LifetimeEnergyUsedDrive                   Field = 103
+	Field_LifetimeEnergyUsedDrive                   Field = 103 // Semi-truck only
 	Field_SemitruckTractorParkBrakeStatus           Field = 104 // Semi-truck only
 	Field_SemitruckTrailerParkBrakeStatus           Field = 105 // Semi-truck only
 	Field_BrakePedalPos                             Field = 106

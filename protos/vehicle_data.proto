@@ -110,7 +110,7 @@ enum Field {
   Deprecated_2 = 100;
   CruiseSetSpeed = 101;
   LifetimeEnergyUsed = 102;
-  LifetimeEnergyUsedDrive = 103;
+  LifetimeEnergyUsedDrive = 103; // Semi-truck only
   SemitruckTractorParkBrakeStatus = 104;  // Semi-truck only
   SemitruckTrailerParkBrakeStatus = 105;  // Semi-truck only
   BrakePedalPos = 106;
