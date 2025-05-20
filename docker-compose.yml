@@ -33,7 +33,7 @@ services:
       errbit:
         condition: service_healthy
       mqtt:
-       condition: service_started
+        condition: service_started
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.6
@@ -82,23 +82,14 @@ services:
     image: google/cloud-sdk:415.0.0
     ports:
       - '8085:8085'
-    command:
-      [
-        "gcloud",
-        "beta",
-        "emulators",
-        "pubsub",
-        "start",
-        "--host-port",
-        "pubsub:8085"
-      ]
+    command: [ "gcloud", "beta", "emulators", "pubsub", "start", "--host-port", "pubsub:8085" ]
 
   kinesis:
     image: localstack/localstack
     ports:
-      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4566:4566" # LocalStack Gateway
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566"]
+      test: [ "CMD", "curl", "-f", "http://localhost:4566" ]
       start_period: 15s
       interval: 5s
       timeout: 10s
@@ -106,15 +97,15 @@ services:
 
   # Errbit implements airbrake's API, so we can use it to test the airbrake
   errbit:
-    image: errbit/errbit:latest
+    image: errbit/errbit:v0.8.0
     ports:
       - '48088:8080'
-    command: sh -c "bundle exec rake errbit:init_errbit && bundle exec puma -C config/puma.default.rb"
+    command: sh -c "bundle exec rake errbit:bootstrap && bundle exec puma -C config/puma.default.rb"
     volumes:
       - ./test/integration/errbit/apps.json:/initialize/apps.json:ro
       - ./test/integration/errbit/site_configs.json:/initialize/site_configs.json:ro
       - ./test/integration/errbit/users.json:/initialize/users.json:ro
-      - ./test/integration/errbit/init_errbit.rake:/app/lib/tasks/errbit/init_errbit.rake
+      - ./test/integration/errbit/init_errbit.rake:/app/lib/tasks/init_errbit.rake:ro
     depends_on:
       mongodb:
         condition: service_healthy
@@ -122,6 +113,10 @@ services:
       RACK_ENV: production
       PORT: 8080
       MONGO_URL: mongodb://errbit_user:errbit_password@mongodb:27017/errbit
+      # Add these environment variables to control the initialization
+      ERRBIT_ADMIN_EMAIL: admin@example.com
+      ERRBIT_ADMIN_PASSWORD: password
+      ERRBIT_ADMIN_USER: admin
 
   mongodb:
     image: mongo:4.1
