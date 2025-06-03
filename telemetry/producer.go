@@ -22,6 +22,8 @@ const (
 	ZMQ Dispatcher = "zmq"
 	// MQTT registers an MQTT dispatcher
 	MQTT Dispatcher = "mqtt"
+	// NATS registers a NATS dispatcher
+	NATS Dispatcher = "nats"
 )
 
 // BuildTopicName creates a topic from a namespace and a recordName
