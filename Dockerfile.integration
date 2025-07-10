@@ -1,6 +1,6 @@
 # start the fleet-telemetry server
 # hadolint ignore=DL3006
-FROM gcr.io/distroless/cc-debian11
+FROM gcr.io/distroless/cc-debian12
 WORKDIR /
 
 COPY --from=fleet-telemetry-integration-tests /go/bin/fleet-telemetry /
