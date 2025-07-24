@@ -26,6 +26,7 @@ import (
 )
 
 const (
+	deviceID    = "device-1"
 	vehicleName = "My Test Vehicle"
 	location    = "(37.412374 S, 122.145867 E)"
 	projectID   = "test-project-id"
@@ -73,7 +74,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		timestamp = timestamppb.Now()
 
-		payload = GenerateVehicleMessage(vehicleName, location, timestamp)
+		payload = GenerateVehicleMessage(deviceID, vehicleName, location, timestamp)
 
 		kinesisConsumer, err = NewTestKinesisConsumer(kinesisHost, []string{kinesisStreamName, kinesisConnectivityStreamName})
 		Expect(err).NotTo(HaveOccurred())
@@ -118,7 +119,32 @@ var _ = Describe("Test messages", Ordered, func() {
 			defer GinkgoRecover()
 			err := kafkaConsumer.Subscribe(vehicleTopic, nil)
 			Expect(err).NotTo(HaveOccurred())
-			err = connection.WriteMessage(websocket.BinaryMessage, GenerateVehicleMessage(vehicleName, location, timestamp))
+			err = connection.WriteMessage(websocket.BinaryMessage, GenerateVehicleMessage(deviceID, vehicleName, location, timestamp))
+			verifyAckMessage(connection, "V")
+			Expect(err).NotTo(HaveOccurred())
+			msg, err := kafkaConsumer.ReadMessage(10 * time.Second)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(msg).NotTo(BeNil())
+			Expect(*msg.TopicPartition.Topic).To(Equal(vehicleTopic))
+			Expect(string(msg.Key)).To(Equal(deviceID))
+
+			headers := make(map[string]string)
+			for _, h := range msg.Headers {
+				headers[string(h.Key)] = string(h.Value)
+			}
+			VerifyMessageHeaders(headers)
+			VerifyMessageBody(msg.Value, vehicleName)
+		})
+
+		It("does not allow spoofing", func() {
+			defer GinkgoRecover()
+			err := kafkaConsumer.Subscribe(vehicleTopic, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			spoofedID := "BAD123"
+			vehicleMessage := GenerateVehicleMessage(spoofedID, vehicleName, location, timestamp)
+			err = connection.WriteMessage(websocket.BinaryMessage, vehicleMessage)
 			verifyAckMessage(connection, "V")
 			Expect(err).NotTo(HaveOccurred())
 			msg, err := kafkaConsumer.ReadMessage(10 * time.Second)
@@ -343,7 +369,7 @@ func VerifyConnectivityMessageBody(body []byte) {
 	Expect(payload.GetStatus()).To(Or(Equal(protos.ConnectivityEvent_CONNECTED), Equal(protos.ConnectivityEvent_DISCONNECTED)))
 }
 
-// VerifyMessageHeaders validates record message returned from dispatchers
+// VerifyMessageBody validates record message returned from dispatchers
 func VerifyMessageBody(body []byte, vehicleName string) {
 	payload := &protos.Payload{}
 	err := proto.Unmarshal(body, payload)
