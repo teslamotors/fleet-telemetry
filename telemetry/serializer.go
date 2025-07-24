@@ -37,7 +37,7 @@ func NewBinarySerializer(requestIdentity *RequestIdentity, dispatchRules map[str
 func (bs *BinarySerializer) Deserialize(msg []byte, socketID string) (record *Record, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("panic while serializing binary hermes stream: %v", r)
+			err = fmt.Errorf("panic while deserializing binary hermes stream: %v", r)
 		}
 	}()
 

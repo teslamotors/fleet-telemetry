@@ -1,14 +1,12 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile.integration
+    image: fleet-telemetry-integration-tests:latest
     volumes:
       - ./test/integration/config.json:/etc/tesla/config.json:ro
       - ./test/integration/test-certs:/etc/tesla/certs/server:ro
       - /tmp/fleet-telemetry/:/tmp/fleet-telemetry:rw
     command:
-      - "/fleet-telemetry"
+      - "/go/bin/fleet-telemetry"
       - "-config=/etc/tesla/config.json"
     ports:
       - "4443:4443"
@@ -98,6 +96,7 @@ services:
   # Errbit implements airbrake's API, so we can use it to test the airbrake
   errbit:
     image: errbit/errbit:v0.8.0
+    platform: linux/amd64
     ports:
       - '48088:8080'
     command: sh -c "bundle exec rake errbit:bootstrap && bundle exec puma -C config/puma.default.rb"

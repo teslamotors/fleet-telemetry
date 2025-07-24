@@ -24,7 +24,6 @@ const (
 	messageID           = "integration-test-message-id"
 	senderID            = "vehicle_device.device-1"
 	deviceType          = "vehicle_device"
-	deviceID            = "device-1"
 	deviceClientVersion = "1.0.0"
 
 	serviceURL    = "app:4443"
@@ -37,8 +36,9 @@ const (
 	caClient   = "./test-certs/vehicle_device.CA.cert"
 )
 
-func GenerateVehicleMessage(vehicleName, location string, timestamp *timestamppb.Timestamp) []byte {
-	return tesla.FlatbuffersStreamToBytes([]byte(senderID), []byte("V"), []byte(txid), generatePayload(vehicleName, location, timestamp), 1, []byte(messageID), []byte(deviceType), []byte(deviceID), uint64(time.Now().UnixMilli()))
+func GenerateVehicleMessage(id, vehicleName, location string, timestamp *timestamppb.Timestamp) []byte {
+	senderID := fmt.Sprintf("%s.%s", deviceType, id)
+	return tesla.FlatbuffersStreamToBytes([]byte(senderID), []byte("V"), []byte(txid), generatePayload(vehicleName, location, timestamp), 1, []byte(messageID), []byte(deviceType), []byte(id), uint64(time.Now().UnixMilli()))
 }
 
 func generatePayload(vehicleName, location string, timestamp *timestamppb.Timestamp) []byte {
