@@ -98,7 +98,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		return
 	}
 	p.ProcessReliableAck(entry)
-	p.logger.Log(logrus.DEBUG, "kinesis_message_dispatched", logrus.LogInfo{"vin": entry.Vin, "record_type": entry.TxType, "txid": entry.Txid, "shard_id": *kinesisRecordOutput.ShardId, "sequence_number": *kinesisRecordOutput.SequenceNumber})
+	p.logger.Log(logrus.DEBUG, "kinesis_message_dispatched", logrus.LogInfo{"vin": entry.Vin, "record_type": entry.TxType, "txid": entry.TxId, "shard_id": *kinesisRecordOutput.ShardId, "sequence_number": *kinesisRecordOutput.SequenceNumber})
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": entry.TxType})
 	metricsRegistry.byteTotal.Add(int64(entry.Length()), map[string]string{"record_type": entry.TxType})
 }

@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 )
 

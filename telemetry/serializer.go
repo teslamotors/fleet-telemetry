@@ -50,11 +50,11 @@ func (bs *BinarySerializer) Deserialize(msg []byte, socketID string) (record *Re
 	streamMessage.SetDeliveredAt(time.Now())
 	record.RawBytes, err = streamMessage.ToBytes()
 	if err != nil {
-		bs.logger.ErrorLog("set_delivered_at_bytes_error", err, logrus.LogInfo{"record_type": record.TxType, "txid": record.Txid})
+		bs.logger.ErrorLog("set_delivered_at_bytes_error", err, logrus.LogInfo{"record_type": record.TxType, "txid": record.TxId})
 	}
 
 	record.TxType = streamMessage.Topic()
-	record.Txid = string(streamMessage.TXID)
+	record.TxId = string(streamMessage.TXID)
 	record.Vin = string(bs.RequestIdentity.DeviceID)
 	record.PayloadBytes = streamMessage.Payload
 	record.ReceivedTimestamp = time.Now().Unix() * 1000
@@ -65,7 +65,7 @@ func (bs *BinarySerializer) Deserialize(msg []byte, socketID string) (record *Re
 	}
 
 	if string(streamMessage.SenderID) != bs.RequestIdentity.SenderID && string(streamMessage.SenderID) != bs.RequestIdentity.DeviceID {
-		bs.logger.ErrorLog("unexpected_sender_id", err, logrus.LogInfo{"sender_id": string(streamMessage.SenderID), "expected_sender_id": bs.RequestIdentity.SenderID, "txid": record.Txid, "record_type": record.TxType})
+		bs.logger.ErrorLog("unexpected_sender_id", err, logrus.LogInfo{"sender_id": string(streamMessage.SenderID), "expected_sender_id": bs.RequestIdentity.SenderID, "txid": record.TxId, "record_type": record.TxType})
 		return record, fmt.Errorf("message SenderID: %s do not match vehicleID: %s", string(streamMessage.SenderID), bs.RequestIdentity.SenderID)
 	}
 
@@ -74,14 +74,14 @@ func (bs *BinarySerializer) Deserialize(msg []byte, socketID string) (record *Re
 
 // Ack returns an ack response
 func (bs *BinarySerializer) Ack(record *Record) []byte {
-	ackMessage := messages.StreamAckMessage{TXID: []byte(record.Txid), MessageTopic: []byte(record.TxType)}
+	ackMessage := messages.StreamAckMessage{TxId: []byte(record.TxId), MessageTopic: []byte(record.TxType)}
 	b, _ := ackMessage.ToBytes()
 	return b
 }
 
 // Error returns an error response
 func (bs *BinarySerializer) Error(err error, record *Record) []byte {
-	ackMessage := messages.StreamMessage{TXID: []byte(record.Txid), Payload: []byte(err.Error())}
+	ackMessage := messages.StreamMessage{TXID: []byte(record.TxId), Payload: []byte(err.Error())}
 	b, _ := ackMessage.ToBytes()
 	return b
 }
@@ -104,6 +104,6 @@ func (bs *BinarySerializer) guessError(record *Record, msg []byte) error {
 		return &UnknownMessageType{Bytes: msg}
 	}
 
-	record.Txid = string(envelope.TxidBytes())
-	return &UnknownMessageType{Txid: record.Txid, GuessedType: envelope.MessageType(), Bytes: msg}
+	record.TxId = string(envelope.TxidBytes())
+	return &UnknownMessageType{TxId: record.TxId, GuessedType: envelope.MessageType(), Bytes: msg}
 }
