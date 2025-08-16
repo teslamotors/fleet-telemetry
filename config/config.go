@@ -22,6 +22,7 @@ import (
 	"github.com/teslamotors/fleet-telemetry/datastore/kafka"
 	"github.com/teslamotors/fleet-telemetry/datastore/kinesis"
 	"github.com/teslamotors/fleet-telemetry/datastore/mqtt"
+	"github.com/teslamotors/fleet-telemetry/datastore/nats"
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
 	"github.com/teslamotors/fleet-telemetry/datastore/zmq"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
@@ -106,6 +107,9 @@ type Config struct {
 
 	// MQTT config
 	MQTT *mqtt.Config `json:"mqtt,omitempty"`
+
+	// NATS config
+	NATS *nats.Config `json:"nats,omitempty"`
 }
 
 // Airbrake config
@@ -344,6 +348,17 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 			return nil, nil, err
 		}
 		producers[telemetry.MQTT] = mqttProducer
+	}
+
+	if _, ok := requiredDispatchers[telemetry.NATS]; ok {
+		if c.NATS == nil {
+			return nil, nil, errors.New("expected NATS to be configured")
+		}
+		natsProducer, err := nats.NewProducer(c.NATS, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.NATS], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.NATS] = natsProducer
 	}
 
 	dispatchProducerRules := make(map[string][]telemetry.Producer)
