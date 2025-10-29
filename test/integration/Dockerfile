@@ -1,5 +1,5 @@
 # build executable and run integration tests
-FROM golang:1.23-bullseye
+FROM golang:1.24-trixie
 
 # build libsodium (dep of libzmq)
 WORKDIR /build
@@ -12,9 +12,9 @@ RUN make install
 
 # build libzmq (dep of zmq datastore)
 WORKDIR /build
-RUN wget https://github.com/zeromq/libzmq/releases/download/v4.3.4/zeromq-4.3.4.tar.gz
-RUN tar -xvf zeromq-4.3.4.tar.gz
-WORKDIR /build/zeromq-4.3.4
+RUN wget https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz
+RUN tar -xvf zeromq-4.3.5.tar.gz
+WORKDIR /build/zeromq-4.3.5
 RUN ./configure --enable-static --disable-shared --disable-Werror
 RUN make -j`nproc`
 RUN make install
