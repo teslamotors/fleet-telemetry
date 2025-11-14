@@ -7,6 +7,7 @@ import (
 	_ "go.uber.org/automaxprocs"
 
 	"github.com/airbrake/gobrake/v5"
+
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
@@ -17,25 +18,25 @@ import (
 func main() {
 	var err error
 
-	config, logger, err := config.LoadApplicationConfiguration()
+	cfg, logger, err := config.LoadApplicationConfiguration()
 	if err != nil {
 		// logger is not available yet
 		panic(fmt.Sprintf("error=load_service_config value=\"%s\"", err.Error()))
 	}
 
-	if config.Monitoring != nil && config.Monitoring.ProfilingPath != "" {
-		if config.Monitoring.ProfilerFile, err = os.Create(config.Monitoring.ProfilingPath); err != nil {
+	if cfg.Monitoring != nil && cfg.Monitoring.ProfilingPath != "" {
+		if cfg.Monitoring.ProfilerFile, err = os.Create(cfg.Monitoring.ProfilingPath); err != nil {
 			logger.ErrorLog("profiling_file_error", err, nil)
-			config.Monitoring.ProfilingPath = ""
+			cfg.Monitoring.ProfilingPath = ""
 		}
 
 		defer func() {
-			config.MetricCollector.Shutdown()
-			_ = config.Monitoring.ProfilerFile.Close()
+			cfg.MetricCollector.Shutdown()
+			_ = cfg.Monitoring.ProfilerFile.Close()
 		}()
 	}
 
-	airbrakeNotifier, _, err := config.CreateAirbrakeNotifier(logger)
+	airbrakeNotifier, _, err := cfg.CreateAirbrakeNotifier(logger)
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +48,7 @@ func main() {
 			}
 		}()
 	}
-	panic(startServer(config, airbrakeNotifier, logger))
+	panic(startServer(cfg, airbrakeNotifier, logger))
 }
 
 func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logger *logrus.Logger) (err error) {

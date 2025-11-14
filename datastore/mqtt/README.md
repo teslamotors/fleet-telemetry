@@ -4,11 +4,11 @@ This package implements an MQTT (Message Queuing Telemetry Transport) producer f
 
 ## Overview
 
-The MQTT datastore allows the Fleet Telemetry system to publish vehicle data, alerts, errors and connectivity to an MQTT broker. It uses the Paho MQTT client library for Go and implements the `telemetry.Producer` interface.
+The MQTT datastore allows the Fleet Telemetry system to publish vehicle data, alerts, errors, and connectivity to an MQTT broker. It uses the Paho MQTT client library for Go and implements the `telemetry.Producer` interface.
 
 ## Key Design Decisions
 
-1. **Separate topics for different data types**: We use distinct topic structures for metrics, alerts, errors and connectivity to allow easy filtering and processing by subscribers.
+1. **Separate topics for different data types**: We use distinct topic structures for metrics, alerts, errors, and connectivity to allow easy filtering and processing by subscribers.
 
 2. **Individual field publishing**: Each metric field is published as a separate MQTT message, allowing for granular updates and subscriptions.
 

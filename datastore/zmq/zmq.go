@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/pebbe/zmq4"
+
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter"
