@@ -1,5 +1,5 @@
 # Start by building the application.
-FROM golang:1.24-trixie AS build
+FROM golang:1.25-trixie AS build
 
 # build libsodium (dep of libzmq)
 WORKDIR /build

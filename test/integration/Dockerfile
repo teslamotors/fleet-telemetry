@@ -1,5 +1,5 @@
 # build executable and run integration tests
-FROM golang:1.24-trixie
+FROM golang:1.25-trixie
 
 # build libsodium (dep of libzmq)
 WORKDIR /build
