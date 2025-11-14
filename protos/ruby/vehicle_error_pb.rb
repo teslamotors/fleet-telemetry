@@ -9,7 +9,7 @@ require 'google/protobuf/timestamp_pb'
 
 descriptor_data = "\n\x13vehicle_error.proto\x12\x17telemetry.vehicle_error\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\x01\n\rVehicleErrors\x12\x35\n\x06\x65rrors\x18\x01 \x03(\x0b\x32%.telemetry.vehicle_error.VehicleError\x12.\n\ncreated_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0b\n\x03vin\x18\x03 \x01(\t\"\xc6\x01\n\x0cVehicleError\x12.\n\ncreated_at\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04name\x18\x02 \x01(\t\x12=\n\x04tags\x18\x03 \x03(\x0b\x32/.telemetry.vehicle_error.VehicleError.TagsEntry\x12\x0c\n\x04\x62ody\x18\x04 \x01(\t\x1a+\n\tTagsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42/Z-github.com/teslamotors/fleet-telemetry/protosb\x06proto3"
 
-pool = Google::Protobuf::DescriptorPool.generated_pool
+pool = ::Google::Protobuf::DescriptorPool.generated_pool
 pool.add_serialized_file(descriptor_data)
 
 module Telemetry
