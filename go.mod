@@ -17,7 +17,7 @@ require (
 	github.com/onsi/gomega v1.36.2
 	github.com/pebbe/zmq4 v1.2.10
 	github.com/prometheus/client_golang v1.14.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.1
 	github.com/smira/go-statsd v1.3.2
 	go.uber.org/automaxprocs v1.5.2
 	google.golang.org/api v0.114.0
