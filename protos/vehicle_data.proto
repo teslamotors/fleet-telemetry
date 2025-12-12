@@ -279,6 +279,11 @@ enum Field {
   RearDefrostEnabled = 255;
   ChargeRateMilePerHour = 256;
   Deprecated_3 = 257;
+
+  // fields 258-259 are first available in firmware version 2025.44.25.5 (device client version 1.2.0)
+
+  MilesSinceReset = 258;
+  SelfDrivingMilesSinceReset = 259;
 }
 
 // ChargingState is deprecated and not used
