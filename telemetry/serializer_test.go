@@ -85,7 +85,7 @@ var _ = Describe("BinarySerializer", func() {
 				Serializer: nil,
 				RawBytes:   nil,
 				TxType:     "T",
-				Txid:       "test-42",
+				TxId:       "test-42",
 				SocketID:   "Socket-42",
 				Vin:        "VIN42",
 			},
@@ -106,7 +106,7 @@ var _ = Describe("BinarySerializer", func() {
 				Serializer: nil,
 				RawBytes:   nil,
 				TxType:     "T",
-				Txid:       "test-42",
+				TxId:       "test-42",
 				SocketID:   "Socket-42",
 				Vin:        "VIN42",
 			},
@@ -133,7 +133,7 @@ var _ = Describe("BinarySerializer", func() {
 				Serializer: nil,
 				RawBytes:   nil,
 				TxType:     "T1",
-				Txid:       "test-42",
+				TxId:       "test-42",
 				SocketID:   "Socket-42",
 				Vin:        "VIN43",
 			},
@@ -160,7 +160,7 @@ var _ = Describe("BinarySerializer", func() {
 				Serializer: nil,
 				RawBytes:   nil,
 				TxType:     "T1",
-				Txid:       "test-42",
+				TxId:       "test-42",
 				SocketID:   "Socket-42",
 				Vin:        "VIN43",
 			},
@@ -237,18 +237,18 @@ var _ = Describe("BinarySerializer", func() {
 
 	It("Serializer Acks", func() {
 		bs := &telemetry.BinarySerializer{DispatchRules: DispatchRules}
-		msg := &telemetry.Record{Txid: "1234", TxType: "test-topic"}
+		msg := &telemetry.Record{TxId: "1234", TxType: "test-topic"}
 
 		ackBytes := bs.Ack(msg)
 		result, err := messages.StreamAckMessageFromBytes(ackBytes)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(result.TXID)).To(Equal("1234"))
+		Expect(string(result.TxId)).To(Equal("1234"))
 		Expect(string(result.MessageTopic)).To(Equal("test-topic"))
 	})
 
 	It("Serializer Errors", func() {
 		bs := &telemetry.BinarySerializer{DispatchRules: DispatchRules}
-		msg := &telemetry.Record{Txid: "1234"}
+		msg := &telemetry.Record{TxId: "1234"}
 		e := errors.New("a bug")
 
 		errBytes := bs.Error(e, msg)

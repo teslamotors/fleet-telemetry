@@ -53,7 +53,7 @@ type SocketManager struct {
 // SocketMessage represents incoming socket connection
 type SocketMessage struct {
 	MsgType int
-	Txid    string
+	TxId    string
 	Msg     []byte
 }
 
@@ -238,13 +238,13 @@ func (sm *SocketManager) trackSignalUsage(record *telemetry.Record) {
 	metricsRegistry.vinSignalCount.Add(int64(record.SignalsCount()), map[string]string{"vin": vin, "record_type": record.TxType})
 }
 
-// ParseAndProcessRecord reads incoming client message and dispatches to relevant producer
+// ParseAndProcessRecord reads the incoming client message and dispatches to the relevant producer
 func (sm *SocketManager) ParseAndProcessRecord(serializer *telemetry.BinarySerializer, message []byte) {
 	record, err := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
-	logInfo := logrus.LogInfo{"txid": record.Txid, "record_type": record.TxType}
+	logInfo := logrus.LogInfo{"txid": record.TxId, "record_type": record.TxType}
 
 	if err != nil {
-		if err == telemetry.ErrMessageTooBig {
+		if errors.Is(err, telemetry.ErrMessageTooBig) {
 			sm.respondToVehicle(record, err)
 			metricsRegistry.recordTooBigCount.Inc(map[string]string{})
 			return
@@ -259,7 +259,7 @@ func (sm *SocketManager) ParseAndProcessRecord(serializer *telemetry.BinarySeria
 			sm.respondToVehicle(record, nil) // respond to the client message was accepted so they are not resending it over and over
 			return
 		case *telemetry.UnknownMessageType:
-			logInfo["msg_txid"] = typedError.Txid
+			logInfo["msg_txid"] = typedError.TxId
 			logInfo["msg_type"] = string(typedError.GuessedType)
 			sm.logger.ErrorLog("unknown_message_type_error", err, logInfo)
 			metricsRegistry.unknownMessageTypeErrorCount.Inc(map[string]string{"msg_type": string(typedError.GuessedType)})
@@ -294,7 +294,7 @@ func (sm *SocketManager) processRecord(record *telemetry.Record) {
 func (sm *SocketManager) respondToVehicle(record *telemetry.Record, err error) {
 	var response []byte
 
-	logInfo := logrus.LogInfo{"txid": record.Txid, "record_type": record.TxType, "device_id": sm.requestIdentity.DeviceID}
+	logInfo := logrus.LogInfo{"txid": record.TxId, "record_type": record.TxType, "device_id": sm.requestIdentity.DeviceID}
 
 	if err != nil {
 		sm.logger.ErrorLog("unexpected_record", err, logInfo)
@@ -307,7 +307,7 @@ func (sm *SocketManager) respondToVehicle(record *telemetry.Record, err error) {
 	}
 
 	sm.logger.Log(logrus.DEBUG, "message_respond", logInfo)
-	sm.writeChan <- SocketMessage{sm.MsgType, record.Txid, response}
+	sm.writeChan <- SocketMessage{sm.MsgType, record.TxId, response}
 }
 
 func (sm *SocketManager) writer() {
@@ -326,7 +326,12 @@ func (sm *SocketManager) writer() {
 			err := sm.writeMessage(msg.MsgType, msg.Msg)
 			if err != nil {
 				metricsRegistry.socketErrorCount.Inc(map[string]string{})
-				sm.logger.ErrorLog("socket_err", err, logrus.LogInfo{"txid": msg.Txid, "device_id": sm.requestIdentity.DeviceID})
+				sm.logger.ErrorLog(
+					"socket_err", err,
+					logrus.LogInfo{
+						"txid": msg.TxId, "device_id": sm.requestIdentity.DeviceID,
+					},
+				)
 				return
 			}
 		}
@@ -339,7 +344,7 @@ func (sm *SocketManager) writeMessage(msgType int, msg []byte) error {
 }
 
 // ReportMetricBytesPerRecords records metrics for metric size
-func (sm SocketManager) ReportMetricBytesPerRecords(recordType string, byteSize int) {
+func (sm *SocketManager) ReportMetricBytesPerRecords(recordType string, byteSize int) {
 	sm.RecordsStats[recordType] += byteSize
 
 	metricsRegistry.recordSizeBytesTotal.Add(int64(byteSize), map[string]string{"record_type": recordType})

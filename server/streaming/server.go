@@ -36,7 +36,7 @@ var (
 )
 
 const (
-	connectitivityTopic = "connectivity"
+	connectivityTopic = "connectivity"
 )
 
 // ServerMetrics stores metrics reported from this package
@@ -145,7 +145,7 @@ func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter
 }
 
 func (s *Server) dispatchConnectivityEvent(sm *SocketManager, serializer *telemetry.BinarySerializer, event protos.ConnectivityEvent) error {
-	connectivityDispatcher, ok := s.DispatchRules[connectitivityTopic]
+	connectivityDispatcher, ok := s.DispatchRules[connectivityTopic]
 	if !ok {
 		return nil
 	}
@@ -169,7 +169,7 @@ func (s *Server) dispatchConnectivityEvent(sm *SocketManager, serializer *teleme
 		SenderID:     []byte(sm.requestIdentity.SenderID),
 		DeviceID:     []byte(sm.requestIdentity.DeviceID),
 		DeviceType:   []byte("vehicle_device"),
-		MessageTopic: []byte(connectitivityTopic),
+		MessageTopic: []byte(connectivityTopic),
 		Payload:      payload,
 		CreatedAt:    uint32(connectivityMessage.CreatedAt.AsTime().Unix()),
 	}

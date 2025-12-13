@@ -28,11 +28,11 @@ func (e *NonAnonymizedError) Error() string {
 // UnknownMessageType is an error struct representing a message that cannot be parsed
 type UnknownMessageType struct {
 	Bytes       []byte
-	Txid        string
+	TxId        string
 	GuessedType byte
 }
 
 // Error returns an error string implementing the error interface
 func (e *UnknownMessageType) Error() string {
-	return fmt.Sprintf("Unknown message Type for %s - %v", e.Txid, e.GuessedType)
+	return fmt.Sprintf("Unknown message Type for %s - %v", e.TxId, e.GuessedType)
 }

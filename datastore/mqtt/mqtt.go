@@ -212,7 +212,7 @@ func (p *Producer) updateMetrics(txType string, byteCount int) {
 func (p *Producer) createLogInfo(rec *telemetry.Record) logrus.LogInfo {
 	logInfo := logrus.LogInfo{
 		"topic_name": telemetry.BuildTopicName(p.namespace, rec.TxType),
-		"txid":       rec.Txid,
+		"txid":       rec.TxId,
 		"vin":        rec.Vin,
 	}
 	return logInfo

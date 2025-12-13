@@ -102,7 +102,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 
 	topicName := telemetry.BuildTopicName(p.namespace, entry.TxType)
 	pubsubTopic := p.pubsubClient.Topic(topicName)
-	logInfo := logrus.LogInfo{"topic_name": topicName, "txid": entry.Txid}
+	logInfo := logrus.LogInfo{"topic_name": topicName, "txid": entry.TxId}
 
 	entry.ProduceTime = time.Now()
 	result := pubsubTopic.Publish(ctx, &pubsub.Message{
