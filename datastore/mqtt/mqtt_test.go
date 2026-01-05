@@ -3,6 +3,7 @@ package mqtt_test
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"time"
 
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
@@ -100,12 +101,15 @@ func (m *MockToken) Error() error {
 }
 
 var publishedTopics = make(map[string][]byte)
+var lastOptions *pahomqtt.ClientOptions
 
 func resetPublishedTopics() {
 	publishedTopics = make(map[string][]byte)
+	lastOptions = nil
 }
 
-func mockPahoNewClient(_ *pahomqtt.ClientOptions) pahomqtt.Client {
+func mockPahoNewClient(opts *pahomqtt.ClientOptions) pahomqtt.Client {
+	lastOptions = opts
 	return &MockMQTTClient{
 
 		ConnectFunc: func() pahomqtt.Token {
@@ -489,6 +493,56 @@ var _ = Describe("MQTTProducer", func() {
 			// Check that an error was logged
 			Expect(loggerHook.LastEntry().Message).To(Equal("mqtt_publish_error"))
 
+		})
+	})
+
+	Describe("NewProducer with TLS", func() {
+		It("should configure TLS when enabled", func() {
+			caFile, err := os.CreateTemp("", "ca.crt")
+			Expect(err).NotTo(HaveOccurred())
+			defer os.Remove(caFile.Name())
+
+			_, err = caFile.Write([]byte("-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"))
+			Expect(err).NotTo(HaveOccurred())
+			caFile.Close()
+
+			mockConfig.TLS = &mqtt.TLSConfig{
+				Enabled: true,
+				CAFile:  caFile.Name(),
+			}
+
+			_, err = mqtt.NewProducer(
+				context.Background(),
+				mockConfig,
+				mockCollector,
+				"test_namespace",
+				mockAirbrake,
+				nil,
+				nil,
+				mockLogger,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(lastOptions.TLSConfig).NotTo(BeNil())
+			Expect(lastOptions.TLSConfig.RootCAs).NotTo(BeNil())
+		})
+
+		It("should not configure TLS when disabled", func() {
+			mockConfig.TLS = &mqtt.TLSConfig{
+				Enabled: false,
+			}
+
+			_, err := mqtt.NewProducer(
+				context.Background(),
+				mockConfig,
+				mockCollector,
+				"test_namespace",
+				mockAirbrake,
+				nil,
+				nil,
+				mockLogger,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(lastOptions.TLSConfig).To(BeNil())
 		})
 	})
 })

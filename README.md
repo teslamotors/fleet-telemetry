@@ -97,6 +97,24 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
         "kafka"
     ]
   },
+  "mqtt": {
+    "broker": "tcp://localhost:1883",
+    "client_id": "fleet-telemetry",
+    "username": "user",
+    "password": "password",
+    "topic_base": "tesla/telemetry",
+    "qos": 0,
+    "retained": false,
+    "connect_timeout_ms": 30000,
+    "publish_timeout_ms": 2500,
+    "disconnect_timeout_ms": 250,
+    "connect_retry_interval_ms": 10000,
+    "keep_alive_seconds": 30,
+    "tls": {
+      "enabled": true,
+      "ca": "/etc/mqtt-certs/ca.crt"
+    }
+  },
   "tls": {
     "server_cert": string - server cert location,
     "server_key": string - server key location
