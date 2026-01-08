@@ -41,6 +41,41 @@ func GenerateVehicleMessage(id, vehicleName, location string, timestamp *timesta
 	return tesla.FlatbuffersStreamToBytes([]byte(senderID), []byte("V"), []byte(txid), generatePayload(vehicleName, location, timestamp), 1, []byte(messageID), []byte(deviceType), []byte(id), uint64(time.Now().UnixMilli()))
 }
 
+func Generate12VVehicleMessage(id string, voltage, current, soc float64, timestamp *timestamppb.Timestamp) []byte {
+	senderID := fmt.Sprintf("%s.%s", deviceType, id)
+	data := []*protos.Datum{
+		{
+			Key: protos.Field_Voltage12V,
+			Value: &protos.Value{
+				Value: &protos.Value_DoubleValue{
+					DoubleValue: voltage,
+				},
+			},
+		},
+		{
+			Key: protos.Field_Current12V,
+			Value: &protos.Value{
+				Value: &protos.Value_DoubleValue{
+					DoubleValue: current,
+				},
+			},
+		},
+		{
+			Key: protos.Field_Soc12V,
+			Value: &protos.Value{
+				Value: &protos.Value_DoubleValue{
+					DoubleValue: soc,
+				},
+			},
+		},
+	}
+	payload, _ := proto.Marshal(&protos.Payload{
+		Data:      data,
+		CreatedAt: timestamp,
+	})
+	return tesla.FlatbuffersStreamToBytes([]byte(senderID), []byte("V"), []byte(txid), payload, 1, []byte(messageID), []byte(deviceType), []byte(id), uint64(time.Now().UnixMilli()))
+}
+
 func generatePayload(vehicleName, location string, timestamp *timestamppb.Timestamp) []byte {
 	var data []*protos.Datum
 	data = append(data, &protos.Datum{
