@@ -18,11 +18,17 @@ type MonitoringConfig struct {
 	// PrometheusMetricsPort port to run prometheus on
 	PrometheusMetricsPort int `json:"prometheus_metrics_port,omitempty"`
 
+	// PrometheusMetricsHost is the address to bind the prometheus metrics server to (default "127.0.0.1")
+	PrometheusMetricsHost string `json:"prometheus_metrics_host,omitempty"`
+
 	// Statsd metrics if you are not using prometheus
 	Statsd *StatsdConfig `json:"statsd,omitempty"`
 
 	// ProfilerPort if non-zero enable http profiler on this port
 	ProfilerPort int `json:"profiler_port,omitempty"`
+
+	// ProfilerHost is the address to bind the profiler to (default "127.0.0.1")
+	ProfilerHost string `json:"profiler_host,omitempty"`
 
 	// ProfilingPath is the variable that enable deep profiling is set
 	ProfilingPath string `json:"profiling_path,omitempty"`

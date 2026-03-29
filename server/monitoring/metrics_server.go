@@ -6,8 +6,7 @@ import (
 	"sync"
 	"time"
 
-	// This registers the profiler on the default mux which we will use for monitoring port.
-	_ "net/http/pprof"
+	"net/http/pprof"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -37,7 +36,11 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 		promMux := http.NewServeMux()
 		promMux.Handle("/metrics", promhttp.Handler())
 		go func() {
-			if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Monitoring.PrometheusMetricsPort), promMux); err != nil {
+			metricsHost := config.Monitoring.PrometheusMetricsHost
+			if metricsHost == "" {
+				metricsHost = "127.0.0.1"
+			}
+			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", metricsHost, config.Monitoring.PrometheusMetricsPort), promMux); err != nil {
 				logger.ErrorLog("metrics_server_err", err, nil)
 			}
 		}()
@@ -45,9 +48,20 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 
 	if config.Monitoring.ProfilerPort > 0 {
 		go func() {
-			StartProfilerServer(config, http.DefaultServeMux, logger)
+			profilerMux := http.NewServeMux()
+			profilerMux.HandleFunc("/debug/pprof/", pprof.Index)
+			profilerMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+			profilerMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			profilerMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			profilerMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
-			if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Monitoring.ProfilerPort), nil); err != nil {
+			StartProfilerServer(config, profilerMux, logger)
+
+			profilerHost := config.Monitoring.ProfilerHost
+			if profilerHost == "" {
+				profilerHost = "127.0.0.1"
+			}
+			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", profilerHost, config.Monitoring.ProfilerPort), profilerMux); err != nil {
 				logger.ErrorLog("profiler_listen_error", err, nil)
 			}
 		}()

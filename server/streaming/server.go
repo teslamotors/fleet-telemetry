@@ -132,6 +132,8 @@ func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter
 			requestIdentity, err := extractIdentityFromConnection(r)
 			if err != nil {
 				s.logger.ErrorLog("extract_sender_id_err", err, nil)
+				_ = ws.Close()
+				return
 			}
 
 			binarySerializer := telemetry.NewBinarySerializer(requestIdentity, s.DispatchRules, s.logger)
@@ -236,12 +238,13 @@ func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity,
 }
 
 func extractCertFromHeaders(r *http.Request) (*x509.Certificate, error) {
-	nbCerts := len(r.TLS.PeerCertificates)
-	if nbCerts == 0 {
-		return nil, fmt.Errorf("missing_certificate_error")
+	if r.TLS == nil {
+		return nil, fmt.Errorf("missing_tls_state")
 	}
-
-	return r.TLS.PeerCertificates[nbCerts-1], nil
+	if len(r.TLS.VerifiedChains) == 0 || len(r.TLS.VerifiedChains[0]) == 0 {
+		return nil, fmt.Errorf("missing_verified_client_certificate")
+	}
+	return r.TLS.VerifiedChains[0][0], nil
 }
 
 func registerServerMetricsOnce(metricsCollector metrics.MetricCollector) {
