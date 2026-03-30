@@ -2,7 +2,10 @@ package mqtt
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -45,6 +48,13 @@ type Config struct {
 	DisconnectTimeout    int    `json:"disconnect_timeout_ms"`
 	ConnectRetryInterval int    `json:"connect_retry_interval_ms"`
 	KeepAlive            int    `json:"keep_alive_seconds"`
+	TLS                  *TLSConfig `json:"tls"`
+}
+
+// TLSConfig holds the TLS configuration for the MQTT producer.
+type TLSConfig struct {
+	Enabled bool   `json:"enabled"`
+	CAFile  string `json:"ca"`
 }
 
 // Metrics holds the metrics for the MQTT producer.
@@ -108,6 +118,20 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 		SetConnectTimeout(time.Duration(config.ConnectTimeout) * time.Millisecond).
 		SetOrderMatters(false).
 		SetKeepAlive(time.Duration(config.KeepAlive) * time.Second)
+
+	if config.TLS != nil && config.TLS.Enabled {
+		tlsConfig := &tls.Config{}
+		if config.TLS.CAFile != "" {
+			caCert, err := os.ReadFile(config.TLS.CAFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read MQTT CA file: %w", err)
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+			tlsConfig.RootCAs = caCertPool
+		}
+		opts.SetTLSConfig(tlsConfig)
+	}
 
 	client := PahoNewClient(opts)
 
