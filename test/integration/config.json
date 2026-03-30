@@ -42,7 +42,9 @@
     ],
     "monitoring": {
         "prometheus_metrics_port": 9090,
+        "prometheus_metrics_host": "0.0.0.0",
         "profiler_port": 4269,
+        "profiler_host": "0.0.0.0",
         "profiling_path": "/tmp/fleet-telemetry/profile"
     },
     "rate_limit": {
