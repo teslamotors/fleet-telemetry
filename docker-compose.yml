@@ -83,7 +83,7 @@ services:
     command: [ "gcloud", "beta", "emulators", "pubsub", "start", "--host-port", "pubsub:8085" ]
 
   kinesis:
-    image: localstack/localstack
+    image: localstack/localstack:3.8.1
     ports:
       - "127.0.0.1:4566:4566" # LocalStack Gateway
     healthcheck:
