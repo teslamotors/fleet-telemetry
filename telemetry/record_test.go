@@ -153,6 +153,61 @@ var _ = Describe("Socket handler test", func() {
 		Expect(second.Key).To(Equal(protos.Field_VehicleName))
 	})
 
+	It("handles 12V battery fields", func() {
+		extraData := []*protos.Datum{
+			{
+				Key: protos.Field_Voltage12V,
+				Value: &protos.Value{
+					Value: &protos.Value_DoubleValue{
+						DoubleValue: 12.5,
+					},
+				},
+			},
+			{
+				Key: protos.Field_Current12V,
+				Value: &protos.Value{
+					Value: &protos.Value_DoubleValue{
+						DoubleValue: 1.2,
+					},
+				},
+			},
+			{
+				Key: protos.Field_Soc12V,
+				Value: &protos.Value{
+					Value: &protos.Value_DoubleValue{
+						DoubleValue: 85.0,
+					},
+				},
+			},
+		}
+
+		message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: generatePayload("cybertruck", "42", nil, extraData...)}
+		recordMsg, err := message.ToBytes()
+		Expect(err).NotTo(HaveOccurred())
+
+		record, err := telemetry.NewRecord(serializer, recordMsg, "1", false)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(record).NotTo(BeNil())
+
+		data := &protos.Payload{}
+		err = proto.Unmarshal(record.Payload(), data)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(data.Data).To(HaveLen(4)) // VehicleName + 3 12V fields
+
+		sort.Slice(data.Data, func(i, j int) bool {
+			return data.Data[i].Key < data.Data[j].Key
+		})
+
+		Expect(data.Data[1].Key).To(Equal(protos.Field_Voltage12V))
+		Expect(data.Data[1].Value.GetDoubleValue()).To(Equal(12.5))
+
+		Expect(data.Data[2].Key).To(Equal(protos.Field_Current12V))
+		Expect(data.Data[2].Value.GetDoubleValue()).To(Equal(1.2))
+
+		Expect(data.Data[3].Key).To(Equal(protos.Field_Soc12V))
+		Expect(data.Data[3].Value.GetDoubleValue()).To(Equal(85.0))
+	})
+
 	DescribeTable("number formatting fixes",
 		func(in string, expected string) {
 			brakePedalPos := stringDatum(protos.Field_BrakePedalPos, in)

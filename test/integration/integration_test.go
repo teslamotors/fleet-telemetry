@@ -223,6 +223,22 @@ var _ = Describe("Test messages", Ordered, func() {
 			Expect(topic).To(Equal(vehicleTopic))
 			VerifyMessageBody(data, vehicleName)
 		})
+
+		It("reads 12V battery data from kafka consumer", func() {
+			defer GinkgoRecover()
+			err := kafkaConsumer.Subscribe(vehicleTopic, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			voltage, current, soc := 13.2, 0.5, 98.0
+			err = connection.WriteMessage(websocket.BinaryMessage, Generate12VVehicleMessage(deviceID, voltage, current, soc, timestamp))
+			verifyAckMessage(connection, "V")
+			Expect(err).NotTo(HaveOccurred())
+			msg, err := kafkaConsumer.ReadMessage(10 * time.Second)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(msg).NotTo(BeNil())
+			Verify12VMessageBody(msg.Value, voltage, current, soc)
+		})
 	})
 
 	Describe("connectivity records", Ordered, func() {
@@ -390,4 +406,25 @@ func VerifyMessageBody(body []byte, vehicleName string) {
 	datum = data[1]
 	Expect(datum.GetKey()).To(Equal(protos.Field_VehicleName))
 	Expect(datum.GetValue().GetStringValue()).To(Equal(vehicleName))
+}
+
+func Verify12VMessageBody(body []byte, voltage, current, soc float64) {
+	payload := &protos.Payload{}
+	err := proto.Unmarshal(body, payload)
+	Expect(err).NotTo(HaveOccurred())
+	data := payload.GetData()
+	Expect(data).To(HaveLen(3))
+
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].Key < data[j].Key
+	})
+
+	Expect(data[0].GetKey()).To(Equal(protos.Field_Voltage12V))
+	Expect(data[0].GetValue().GetDoubleValue()).To(Equal(voltage))
+
+	Expect(data[1].GetKey()).To(Equal(protos.Field_Current12V))
+	Expect(data[1].GetValue().GetDoubleValue()).To(Equal(current))
+
+	Expect(data[2].GetKey()).To(Equal(protos.Field_Soc12V))
+	Expect(data[2].GetValue().GetDoubleValue()).To(Equal(soc))
 }
