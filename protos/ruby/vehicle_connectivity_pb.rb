@@ -9,7 +9,7 @@ require 'google/protobuf/timestamp_pb'
 
 descriptor_data = "\n\x1avehicle_connectivity.proto\x12\x1etelemetry.vehicle_connectivity\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc7\x01\n\x13VehicleConnectivity\x12\x0b\n\x03vin\x18\x01 \x01(\t\x12\x15\n\rconnection_id\x18\x02 \x01(\t\x12\x41\n\x06status\x18\x03 \x01(\x0e\x32\x31.telemetry.vehicle_connectivity.ConnectivityEvent\x12.\n\ncreated_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x19\n\x11network_interface\x18\x05 \x01(\t*A\n\x11\x43onnectivityEvent\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tCONNECTED\x10\x01\x12\x10\n\x0c\x44ISCONNECTED\x10\x02\x42/Z-github.com/teslamotors/fleet-telemetry/protosb\x06proto3"
 
-pool = Google::Protobuf::DescriptorPool.generated_pool
+pool = ::Google::Protobuf::DescriptorPool.generated_pool
 pool.add_serialized_file(descriptor_data)
 
 module Telemetry

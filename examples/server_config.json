@@ -1,10 +1,10 @@
 {
     "host": "0.0.0.0",
     "port": 443,
+    "status_port": 8080,
     "log_level": "info",
     "json_log_enable": true,
     "namespace": "tesla_telemetry",
-    "reliable_ack": false,
     "monitoring": {
         "prometheus_metrics_port": 9090,
         "profiler_port": 4269,

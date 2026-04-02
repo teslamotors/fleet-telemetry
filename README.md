@@ -11,6 +11,12 @@ The service handles device connectivity as well as receiving and storing transmi
 
 By configuring `fleet_telemetry_config`, individual owners and fleet operators can control the selected fields and minimum intervals for data transmission. All signals are transmitted on change, but not more frequently than the configured interval.
 
+## Requirements
+
+* Go 1.25 or later
+* protoc 29.0 or later
+* protoc-gen-go v1.36.0 or later
+
 ## Configuring and running the service
 
 ### Setup steps
@@ -52,11 +58,14 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
 {
   "host": string - hostname,
   "port": int - port,
+  "status_port": int - port for health check endpoint (optional),
   "log_level": string - trace, debug, info, warn, error,
   "json_log_enable": bool,
   "namespace": string - kafka topic prefix,
-  "reliable_ack": bool - for use with reliable datastores, recommend setting to true with kafka,
-  "transmit_decoded_records": bool - if true, transmit JSON to dispatchers instead of proto.
+  "reliable_ack_sources": { // mapping of record types to dispatcher for reliable acks
+    "V": "kafka" // example: use kafka for reliable acks on vehicle data
+  },
+  "transmit_decoded_records": bool - if true, transmit JSON to dispatchers instead of proto,
   "monitoring": {
     "prometheus_metrics_port": int,
     "profiler_port": int,
@@ -75,17 +84,34 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
     "bootstrap.servers": "kafka:9092",
     "queue.buffering.max.messages": 1000000
   },
+  "pubsub": {
+    "gcp_project_id": string - GCP project ID for Google Pub/Sub
+  },
   "kinesis": {
     "max_retries": 3,
+    "override_host": string - optional override for Kinesis endpoint,
     "streams": {
       "V": "custom_stream_name"
     }
   },
+  "zmq": {
+    "addr": string - ZMQ socket address (e.g., "tcp://*:5284")
+  },
+  "mqtt": {
+    "broker": string - MQTT broker address (e.g., "mqtt:1883"),
+    "client_id": string - MQTT client ID,
+    "topic_base": string - base topic for MQTT messages,
+    "qos": int - Quality of Service level (0, 1, or 2),
+    "retained": bool - whether to retain messages,
+    "connect_timeout_ms": int - connection timeout in milliseconds,
+    "publish_timeout_ms": int - publish timeout in milliseconds
+  },
   "rate_limit": {
     "enabled": bool,
-    "message_limit": int - ex.: 1000
+    "message_limit": int - ex.: 1000,
+    "message_interval_time": int - time interval in seconds (e.g., 30)
   },
-  "records": { // list of records and their dispatchers, currently: alerts, errors, and V(vehicle data)
+  "records": { // list of records and their dispatchers, currently: alerts, errors, V(vehicle data), and connectivity
     "alerts": [
         "logger"
     ],
@@ -95,12 +121,26 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
     "V": [
         "kinesis",
         "kafka"
+    ],
+    "connectivity": [
+        "kafka"
     ]
   },
   "tls": {
+    "ca_file": string - optional custom CA file location,
     "server_cert": string - server cert location,
     "server_key": string - server key location
-  }
+  },
+  "airbrake": {
+    "host": string - Airbrake/Errbit host URL,
+    "project_id": int - Airbrake project ID,
+    "project_key": string - Airbrake project key (can also be set via AIRBRAKE_PROJECT_KEY env var),
+    "environment": string - environment name
+  },
+  "vins_signal_tracking_enabled": [ // optional list of VINs to track metrics for
+    "VIN1",
+    "VIN2"
+  ]
 }
 ```
 Example: [server_config.json](./examples/server_config.json)
@@ -149,24 +189,31 @@ spec:
 Vehicles must be running firmware version 2023.20.6 or later.  Some older model S/X are not supported.
 
 ## Personalized Backends/Dispatchers
-Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to  STDOUT logger.  Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L10-L19)::
-* Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
-  * Topics will need to be created for \*prefix\*`_V`,\*prefix\*`_connectivity` and \*prefix\*`_alerts`. The default prefix is `tesla`
-* Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default AWS credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
-  * By default, stream names will be \*configured namespace\*_\*topic_name\*  ex.: `tesla_V`, `tesla_alerts`, etc
+Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to STDOUT logger. Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L10-L25):
+
+* **Kafka** (preferred): Configure with the config.json file. See implementation here: [config/config.go](./config/config.go)
+  * Topics will need to be created for \*prefix\*`_V`, \*prefix\*`_connectivity`, \*prefix\*`_alerts`, and \*prefix\*`_errors`. The default prefix is `tesla`
+  * Supports reliable acks
+* **Kinesis**: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default AWS credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
+  * By default, stream names will be \*configured namespace\*_\*topic_name\* ex.: `tesla_V`, `tesla_alerts`, etc
   * Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
   * Override stream names with env variables: KINESIS_STREAM_\*uppercase topic\* ex.: `KINESIS_STREAM_V`
-* Google pubsub: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
-  * On startup, the server will attempt to create missing topics and panic on failure.
-* ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
-* MQTT: Configure using the config.json file. See implementation in [config/config.go](./config/config.go)
+  * Supports reliable acks
+* **Google Pub/Sub**: Along with the required pubsub config (See ./test/integration/config.json for example), be sure to set the environment variable `GOOGLE_APPLICATION_CREDENTIALS`
+  * On startup, the server will attempt to create missing topics and panic on failure
+  * Supports reliable acks
+* **ZMQ**: Configure with the config.json file. See implementation here: [config/config.go](./config/config.go)
+  * Supports reliable acks
+* **MQTT**: Configure using the config.json file. See implementation in [config/config.go](./config/config.go)
   * See detailed MQTT information in the [MQTT README](./datastore/mqtt/README.md)
-* Logger: This is a simple STDOUT logger that serializes the protos to json.
+  * Supports reliable acks
+* **Logger**: This is a simple STDOUT logger that serializes the protos to json.
+  * Cannot be used for reliable acks
 
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
 
 ## Reliable Acks
-Fleet Telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+Fleet Telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`, `kinesis`, `pubsub`, `zmq`, `mqtt`) in the config file. Reliable acks can only be set to one dispatcher per recordType. The `logger` dispatcher cannot be used for reliable acks, and `connectivity` records do not support reliable acks. See [here](./test/integration/config.json#L8) for sample config.
 
 ## Detecting Vehicle Connectivity Changes
 On the vehicle, Fleet Telemetry client behave similarly to how the connectivity engine for vehicle commands. Therefore we can use Fleet Telemetry connectivity event to assume when a vehicle is online. Note that it is a proxy, but if configured properly Fleet Telemetry connectivity time should match vehicle connectivity state in 99%+. To enable connectivity events simply add the `connectivity` records in the list of events in [server_config.json](./examples/server_config.json) file:
@@ -194,8 +241,8 @@ To suppress [tls handshake error logging](https://cs.opensource.google/go/go/+/m
 ## Protos
 Data is encapsulated into protobuf messages of different types. Protos can be recompiled via:
 
-  1. Install protoc, currently on version 4.25.1: https://grpc.io/docs/protoc-installation/
-  2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
+  1. Install protoc, currently on version 29.0: https://grpc.io/docs/protoc-installation/
+  2. Install protoc-gen-go: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.0`
   3. Run make command
   ```sh
   make generate-protos
