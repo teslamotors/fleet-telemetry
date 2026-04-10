@@ -37,6 +37,7 @@ const (
 	mqttBroker  = "mqtt:1883"
 	mqttTopic   = "telemetry/device-1/v/VehicleName"
 	kinesisHost = "http://kinesis:4566"
+	natsURL     = "nats://nats:4222"
 
 	kinesisStreamName             = "test_V"
 	kinesisConnectivityStreamName = "test_connectivity"
@@ -53,6 +54,7 @@ var _ = Describe("Test messages", Ordered, func() {
 	var (
 		vehicleTopic             = "tesla_telemetry_V"
 		vehicleConnectivityTopic = "tesla_telemetry_connectivity"
+		natsNamespace            = "tesla_telemetry"
 
 		payload         []byte
 		connection      *websocket.Conn
@@ -61,6 +63,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		kafkaConsumer   *kafka.Consumer
 		zmqConsumer     *TestZMQConsumer
 		mqttConsumer    *TestMQTTConsumer
+		natsConsumer    *TestNATSConsumer
 		tlsConfig       *tls.Config
 		timestamp       *timestamppb.Timestamp
 		logger          *logrus.Logger
@@ -95,6 +98,9 @@ var _ = Describe("Test messages", Ordered, func() {
 
 		mqttConsumer, err = NewTestMQTTConsumer(mqttBroker, mqttTopic, logger)
 		Expect(err).NotTo(HaveOccurred())
+
+		natsConsumer, err = NewTestNATSConsumer(natsURL, []string{natsNamespace}, logger)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	BeforeEach(func() {
@@ -110,6 +116,7 @@ var _ = Describe("Test messages", Ordered, func() {
 		pubsubConsumer.ClearSubscriptions()
 		_ = connection.Close()
 		zmqConsumer.Close()
+		natsConsumer.Close()
 		os.Clearenv()
 	})
 
@@ -213,6 +220,19 @@ var _ = Describe("Test messages", Ordered, func() {
 			Expect(jsonMsg).To(Equal(vehicleName), "Vehicle name %s not found in MQTT message", vehicleName)
 		})
 
+		It("reads vehicle data from NATS", func() {
+			err := connection.WriteMessage(websocket.BinaryMessage, payload)
+			Expect(err).NotTo(HaveOccurred())
+
+			var msg []byte
+			Eventually(func() error {
+				msg, err = natsConsumer.FetchNATSMessage(natsNamespace)
+				return err
+			}, time.Second*5, time.Millisecond*100).Should(BeNil())
+			Expect(msg).NotTo(BeNil())
+			VerifyMessageBody(msg, vehicleName)
+		})
+
 		It("reads data from zmq subscriber", func() {
 			err := connection.WriteMessage(websocket.BinaryMessage, payload)
 			Expect(err).NotTo(HaveOccurred())
@@ -276,6 +296,17 @@ var _ = Describe("Test messages", Ordered, func() {
 			Expect(data).NotTo(BeNil())
 			Expect(topic).To(Equal(vehicleConnectivityTopic))
 			VerifyConnectivityMessageBody(data)
+		})
+
+		It("reads connectivity data from NATS", func() {
+			var err error
+			var msg []byte
+			Eventually(func() error {
+				msg, err = natsConsumer.FetchNATSMessage(natsNamespace)
+				return err
+			}, time.Second*5, time.Millisecond*100).Should(BeNil())
+			Expect(msg).NotTo(BeNil())
+			VerifyConnectivityMessageBody(msg)
 		})
 
 	})

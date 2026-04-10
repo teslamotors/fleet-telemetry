@@ -37,6 +37,10 @@
         "connect_timeout_ms": 30000,
         "publish_timeout_ms": 1000
     },
+    "nats": {
+        "url": "nats://nats:4222",
+        "name": "fleet-telemetry-integration"
+    },
     "vins_signal_tracking_enabled": [
         "device-1"
     ],
@@ -59,14 +63,16 @@
             "pubsub",
             "logger",
             "mqtt",
-            "zmq"
+            "zmq",
+            "nats"
         ],
         "connectivity": [
             "kafka",
             "kinesis",
             "pubsub",
             "logger",
-            "zmq"
+            "zmq",
+            "nats"
         ]
     },
     "tls": {
