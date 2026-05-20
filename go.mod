@@ -9,9 +9,11 @@ require (
 	github.com/beefsack/go-rate v0.0.0-20220214233405-116f4ca011a0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.3.0
 	github.com/eclipse/paho.mqtt.golang v1.5.0
+	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/flatbuffers v23.3.3+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/lib/pq v1.10.9
 	github.com/mattn/go-colorable v0.1.13
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2

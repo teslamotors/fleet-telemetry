@@ -71,6 +71,9 @@ type Config struct {
 	// ZMQ configures a zeromq socket
 	ZMQ *zmq.Config `json:"zmq,omitempty"`
 
+	// MySQL configures a MySQL database connection
+	MySQL *mysql.Config `json:"mysql,omitempty"`
+
 	// Namespace defines a prefix for the kafka/pubsub topic
 	Namespace string `json:"namespace,omitempty"`
 
@@ -344,6 +347,28 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 			return nil, nil, err
 		}
 		producers[telemetry.MQTT] = mqttProducer
+	}
+
+	if _, ok := requiredDispatchers[telemetry.MySQL]; ok {
+		if c.MySQL == nil {
+			return nil, nil, errors.New("expected MySQL to be configured")
+		}
+		mysqlProducer, err := mysql.NewProducer(c.MySQL, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.MySQL], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.MySQL] = mysqlProducer
+	}
+
+	if _, ok := requiredDispatchers[telemetry.Postgres]; ok {
+		if c.Postgres == nil {
+			return nil, nil, errors.New("expected Postgres to be configured")
+		}
+		postgresProducer, err := postgres.NewProducer(c.Postgres, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Postgres], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.Postgres] = postgresProducer
 	}
 
 	dispatchProducerRules := make(map[string][]telemetry.Producer)
