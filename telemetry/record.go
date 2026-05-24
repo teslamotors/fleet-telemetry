@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -87,6 +88,11 @@ func (record *Record) Metadata() map[string]string {
 	metadata["version"] = fmt.Sprint(record.Version)
 	metadata["device_client_version"] = record.DeviceClientVersion
 	return metadata
+}
+
+// MetadataJSON marshals record metadata to JSON
+func (record *Record) MetadataJSON() ([]byte, error) {
+	return json.Marshal(record.Metadata())
 }
 
 // Payload returns the bytes of the telemetry record gdata

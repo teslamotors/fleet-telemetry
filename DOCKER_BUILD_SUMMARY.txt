@@ -1,0 +1,208 @@
+DOCKER COMPOSE POSTGRES UPDATE - SUMMARY
+════════════════════════════════════════════════════════════════════
+
+✅ CHANGE: From Pre-Built Image → Auto-Build from Dockerfile
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BEFORE (Pre-Built Image):
+┌─────────────────────────────────────────────────────────────┐
+│ app:                                                        │
+│   image: fleet-telemetry-integration-tests:latest          │
+│   container_name: fleet-telemetry-app                      │
+│   volumes:                                                  │
+│     - ./test/integration/config.json:/etc/tesla/...        │
+│                                                             │
+│ PROBLEM: ❌ Requires pre-built image                       │
+│          ❌ Not in repo (must build separately)            │
+│          ❌ Config file name mismatch                      │
+└─────────────────────────────────────────────────────────────┘
+
+AFTER (Auto-Build):
+┌─────────────────────────────────────────────────────────────┐
+│ app:                                                        │
+│   build:                                                    │
+│     context: .                                              │
+│     dockerfile: Dockerfile                                  │
+│   container_name: fleet-telemetry-app                      │
+│   volumes:                                                  │
+│     - ./test/integration/postgres_config.json:/etc/...     │
+│                                                             │
+│ BENEFIT: ✅ Builds from source automatically               │
+│          ✅ Uses project Dockerfile                        │
+│          ✅ Config file correctly named                    │
+│          ✅ No manual build step needed                    │
+└─────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 HOW TO USE (Step by Step)
+
+Step 1: Generate TLS Certificates (One-Time)
+──────────────────────────────────────────────
+  go run tools/main.go
+
+Step 2: Start Everything
+──────────────────────────────────────────────
+  docker-compose -f docker-compose.postgres.yml up -d
+
+  What happens:
+  ├─ Docker builds the app image
+  │  ├─ Installs libsodium
+  │  ├─ Installs libzmq
+  │  ├─ Compiles via: make (runs go build cmd/main.go)
+  │  └─ Creates minimal runtime image
+  │
+  └─ Starts PostgreSQL and Fleet Telemetry
+
+Step 3: Wait for Services to Be Ready
+──────────────────────────────────────────────
+  docker-compose -f docker-compose.postgres.yml ps
+
+  Expected output:
+  ┌─────────────────────────────────────────────────────┐
+  │ NAME                          STATUS     PORTS     │
+  ├─────────────────────────────────────────────────────┤
+  │ fleet-telemetry-postgres      Up         5432/tcp  │
+  │                               (healthy)             │
+  ├─────────────────────────────────────────────────────┤
+  │ fleet-telemetry-app           Up         443/tcp   │
+  │                                          8000/tcp  │
+  │                                          8080/tcp  │
+  └─────────────────────────────────────────────────────┘
+
+Step 4: Verify It Works
+──────────────────────────────────────────────
+  curl http://localhost:8080/status
+
+Step 5: Access Services
+──────────────────────────────────────────────
+  Status Endpoint: http://localhost:8080/status
+  Metrics:        http://localhost:8000/metrics
+  DB:             localhost:5432
+                  psql -h localhost -U telemetry_user -d fleet_telemetry
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 BUILD PROCESS VISUALIZATION
+
+User Code                    Docker Compose             Running Containers
+─────────────────────────────────────────────────────────────────────────
+fleet-telemetry/             docker-compose up -d       ┌──────────────────┐
+├── cmd/main.go              ├─ Builds app               │ postgres:15       │
+├── Dockerfile               │  ├─ Downloads libs       │ ───────────────── │
+├── .go files                │  ├─ Compiles (make)      │ fleet-telemetry   │
+└── go.mod                   │  └─ Creates image        └──────────────────┘
+                              │
+test/integration/            └─ Starts services
+├── postgres_config.json        ├─ PostgreSQL ready
+└── test-certs/              └─ App ready
+   ├── server.crt
+   └── server.key
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 REBUILD AFTER CODE CHANGES
+
+Change Your Code:
+  vim datastore/postgres/postgres.go
+
+Rebuild and Restart:
+  docker-compose -f docker-compose.postgres.yml up -d --build
+
+Benefits of --build flag:
+  ✓ Recompiles your changes
+  ✓ Uses Docker build cache (fast!)
+  ✓ Restarts only affected services
+  ✗ Doesn't rebuild if code unchanged (cache used)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 KEY FILES INVOLVED
+
+File                              | Role
+──────────────────────────────────────────────────────────────────
+Dockerfile                        | Compiles app + dependencies
+cmd/main.go                       | Entry point
+Makefile                          | Build rules (used by Dockerfile)
+docker-compose.postgres.yml       | Orchestration config
+test/integration/
+  ├── postgres_config.json        | App configuration
+  └── test-certs/
+      ├── server.crt             | TLS certificate
+      └── server.key             | TLS key
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚙️ WHAT DOCKERFILE BUILDS
+
+Stage 1: Compilation
+─────────────────────
+  Base: golang:1.23-bullseye
+  ├─ Downloads libsodium-1.0.19
+  ├─ Downloads zeromq-4.3.4
+  ├─ Compiles both from source
+  ├─ Copies your project
+  ├─ Runs: make
+  │  └─ Runs: go build -o /go/bin/fleet-telemetry cmd/main.go
+  └─ Result: /go/bin/fleet-telemetry binary
+
+Stage 2: Runtime
+────────────────
+  Base: gcr.io/distroless/cc-debian11:nonroot
+  ├─ Copies binary from Stage 1
+  ├─ No build tools (minimal image)
+  ├─ ~50MB final image
+  └─ Runs: /fleet-telemetry -config /etc/tesla/config.json
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ BENEFITS VS BEFORE
+
+Before                              After
+─────────────────────────────────────────────────────────────────
+❌ Need to build image separately  ✅ Auto-builds with docker-compose
+❌ Must push to registry/store     ✅ Built locally each time
+❌ Config file name mismatch       ✅ Uses correct postgres_config.json
+❌ Manual sync between code & img  ✅ Always matches current code
+❌ Version management overhead     ✅ No image versioning needed
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 QUICK COMMANDS
+
+Generate Certificates:
+  go run tools/main.go
+
+Start (Builds + Runs):
+  docker-compose -f docker-compose.postgres.yml up -d
+
+View Logs:
+  docker-compose -f docker-compose.postgres.yml logs -f app
+
+Rebuild After Code Change:
+  docker-compose -f docker-compose.postgres.yml up -d --build
+
+Query Database:
+  psql -h localhost -U telemetry_user -d fleet_telemetry
+
+Stop:
+  docker-compose -f docker-compose.postgres.yml down
+
+Remove Everything (including data):
+  docker-compose -f docker-compose.postgres.yml down -v
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 FULL DOCUMENTATION
+
+See: DOCKER_BUILD_SETUP.md
+  • Detailed explanation
+  • Troubleshooting guide
+  • Development workflow
+  • Production notes
+
+═════════════════════════════════════════════════════════════════════
+
+✨ NO MORE MANUAL IMAGE BUILDS - JUST RUN docker-compose! 🚀
+

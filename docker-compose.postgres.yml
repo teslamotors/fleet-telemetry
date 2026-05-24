@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: fleet-telemetry-postgres
+    environment:
+      POSTGRES_DB: fleet_telemetry
+      POSTGRES_USER: telemetry_user
+      POSTGRES_PASSWORD: telemetry_password
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telemetry_user -d fleet_telemetry"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fleet-telemetry-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-telemetry-app
+    volumes:
+      - ./test/integration/postgres_config.json:/etc/tesla/config.json:ro
+      - ./test/integration/test-certs:/etc/tesla/certs/server:ro
+      - /tmp/fleet-telemetry/:/tmp/fleet-telemetry:rw
+    command:
+      - "/go/bin/fleet-telemetry"
+      - "-config=/etc/tesla/config.json"
+    ports:
+      - "443:443"
+      - "8080:8080"
+      - "8000:8000"
+    environment:
+      SUPPRESS_TLS_HANDSHAKE_ERROR_LOGGING: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fleet-telemetry-network
+
+volumes:
+  postgres_data:
+
+networks:
+  fleet-telemetry-network:
+    driver: bridge
+

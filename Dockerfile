@@ -25,6 +25,7 @@ COPY . .
 ENV CGO_ENABLED=1
 ENV CGO_LDFLAGS="-lstdc++"
 
+RUN go mod tidy
 RUN make
 
 # hadolint ignore=DL3006

@@ -1,0 +1,33 @@
+{
+  "host": "0.0.0.0",
+  "port": 443,
+  "status_port": 8080,
+  "log_level": "info",
+  "json_log_enable": true,
+  "namespace": "tesla",
+  "tls": {
+    "server_cert": "/etc/tesla/certs/server/server.crt",
+    "server_key": "/etc/tesla/certs/server/server.key"
+  },
+  "postgres": {
+    "host": "postgres",
+    "port": 5432,
+    "user": "telemetry_user",
+    "password": "telemetry_password",
+    "database": "fleet_telemetry",
+    "ssl_mode": "disable",
+    "max_open_conns": 25,
+    "max_idle_conns": 5,
+    "conn_max_lifetime": 300
+  },
+  "records": {
+    "V": ["postgres"],
+    "alerts": ["postgres"],
+    "errors": ["postgres"],
+    "connectivity": ["postgres"]
+  },
+  "monitoring": {
+    "prometheus_metrics_port": 8000
+  }
+}
+

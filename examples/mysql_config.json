@@ -1,0 +1,32 @@
+{
+  "host": "0.0.0.0",
+  "port": 443,
+  "status_port": 8080,
+  "log_level": "info",
+  "json_log_enable": false,
+  "namespace": "tesla",
+  "tls": {
+    "server_cert": "/etc/fleet-telemetry/server.crt",
+    "server_key": "/etc/fleet-telemetry/server.key"
+  },
+  "mysql": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "telemetry_user",
+    "password": "your_secure_password",
+    "database": "fleet_telemetry",
+    "max_open_conns": 25,
+    "max_idle_conns": 5,
+    "conn_max_lifetime": 300
+  },
+  "records": {
+    "V": ["mysql"],
+    "alerts": ["mysql"],
+    "errors": ["mysql"],
+    "connectivity": ["mysql"]
+  },
+  "monitoring": {
+    "prometheus_metrics_port": 8000
+  }
+}
+

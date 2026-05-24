@@ -14,6 +14,8 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	githubairbrake "github.com/airbrake/gobrake/v5"
+	"github.com/teslamotors/fleet-telemetry/datastore/mysql"
+	"github.com/teslamotors/fleet-telemetry/datastore/postgres"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	githublogrus "github.com/sirupsen/logrus"
@@ -71,6 +73,9 @@ type Config struct {
 	// ZMQ configures a zeromq socket
 	ZMQ *zmq.Config `json:"zmq,omitempty"`
 
+	// MySQL configures a MySQL database connection
+	MySQL *mysql.Config `json:"mysql,omitempty"`
+
 	// Namespace defines a prefix for the kafka/pubsub topic
 	Namespace string `json:"namespace,omitempty"`
 
@@ -106,6 +111,17 @@ type Config struct {
 
 	// MQTT config
 	MQTT *mqtt.Config `json:"mqtt,omitempty"`
+
+	// Postgres configures a Postgres database connection
+	Postgres *postgres.Config `json:"postgres,omitempty"`
+
+	// Cert contains public key info
+	Cert *Cert `json:"cert,omitempty"`
+}
+
+// Cert config
+type Cert struct {
+	PublicKeyFile string `json:"pub_key"`
 }
 
 // Airbrake config
@@ -344,6 +360,28 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 			return nil, nil, err
 		}
 		producers[telemetry.MQTT] = mqttProducer
+	}
+
+	if _, ok := requiredDispatchers[telemetry.MySQL]; ok {
+		if c.MySQL == nil {
+			return nil, nil, errors.New("expected MySQL to be configured")
+		}
+		mysqlProducer, err := mysql.NewProducer(c.MySQL, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.MySQL], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.MySQL] = mysqlProducer
+	}
+
+	if _, ok := requiredDispatchers[telemetry.Postgres]; ok {
+		if c.Postgres == nil {
+			return nil, nil, errors.New("expected Postgres to be configured")
+		}
+		postgresProducer, err := postgres.NewProducer(c.Postgres, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Postgres], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.Postgres] = postgresProducer
 	}
 
 	dispatchProducerRules := make(map[string][]telemetry.Producer)

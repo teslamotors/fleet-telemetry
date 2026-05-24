@@ -22,6 +22,10 @@ const (
 	ZMQ Dispatcher = "zmq"
 	// MQTT registers an MQTT dispatcher
 	MQTT Dispatcher = "mqtt"
+	// MySQL registers a MySQL dispatcher
+	MySQL Dispatcher = "mysql"
+	// Postgres registers a PostgreSQL dispatcher
+	Postgres Dispatcher = "postgres"
 )
 
 // BuildTopicName creates a topic from a namespace and a recordName
