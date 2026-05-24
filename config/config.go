@@ -112,6 +112,9 @@ type Config struct {
 	// MQTT config
 	MQTT *mqtt.Config `json:"mqtt,omitempty"`
 
+	// Postgres configures a Postgres database connection
+	Postgres *postgres.Config `json:"postgres,omitempty"`
+
 	// Cert contains public key info
 	Cert *Cert `json:"cert,omitempty"`
 }

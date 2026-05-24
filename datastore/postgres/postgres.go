@@ -221,7 +221,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		table,
 	)
 
-	metadata, err := entry.Metadata().MarshalJSON()
+	metadata, err := entry.MetadataJSON()
 	if err != nil {
 		p.logError(fmt.Errorf("failed to marshal metadata: %w", err))
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
@@ -253,7 +253,7 @@ func (p *Producer) ProcessReliableAck(entry *telemetry.Record) {
 		case p.ackChan <- entry:
 			metricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": entry.TxType})
 		default:
-			p.logger.WarningLog("ack_channel_full", logrus.LogInfo{"vin": entry.Vin, "txtype": entry.TxType})
+			p.logger.Log(logrus.WARN, "ack_channel_full", logrus.LogInfo{"vin": entry.Vin, "txtype": entry.TxType})
 		}
 	}
 }
@@ -281,34 +281,34 @@ func (p *Producer) logError(err error) {
 // registerMetricsOnce registers metrics on first use
 func registerMetricsOnce(metricsCollector metrics.MetricCollector) {
 	metricsOnce.Do(func() {
-		metricsRegistry.producerCount = metricsCollector.RegisterCounter(
-			"records_produced_total",
-			"Total records produced to PostgreSQL",
-			"record_type",
-		)
-		metricsRegistry.bytesTotal = metricsCollector.RegisterCounter(
-			"record_bytes_produced_total",
-			"Total bytes produced to PostgreSQL",
-			"record_type",
-		)
-		metricsRegistry.producerAckCount = metricsCollector.RegisterCounter(
-			"records_produced_ack_total",
-			"Total records acked from PostgreSQL",
-			"record_type",
-		)
-		metricsRegistry.bytesAckTotal = metricsCollector.RegisterCounter(
-			"record_bytes_produced_ack_total",
-			"Total bytes acked from PostgreSQL",
-			"record_type",
-		)
-		metricsRegistry.errorCount = metricsCollector.RegisterCounter(
-			"postgres_errors_total",
-			"Total PostgreSQL errors",
-		)
-		metricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(
-			"records_reliable_ack_total",
-			"Total records with reliable ack",
-			"record_type",
-		)
+		metricsRegistry.producerCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+			Name:   "records_produced_total",
+			Help:   "Total records produced to PostgreSQL",
+			Labels: []string{"record_type"},
+		})
+		metricsRegistry.bytesTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+			Name:   "record_bytes_produced_total",
+			Help:   "Total bytes produced to PostgreSQL",
+			Labels: []string{"record_type"},
+		})
+		metricsRegistry.producerAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+			Name:   "records_produced_ack_total",
+			Help:   "Total records acked from PostgreSQL",
+			Labels: []string{"record_type"},
+		})
+		metricsRegistry.bytesAckTotal = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+			Name:   "record_bytes_produced_ack_total",
+			Help:   "Total bytes acked from PostgreSQL",
+			Labels: []string{"record_type"},
+		})
+		metricsRegistry.errorCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+			Name: "postgres_errors_total",
+			Help: "Total PostgreSQL errors",
+		})
+		metricsRegistry.reliableAckCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+			Name:   "records_reliable_ack_total",
+			Help:   "Total records with reliable ack",
+			Labels: []string{"record_type"},
+		})
 	})
 }
