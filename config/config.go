@@ -14,6 +14,8 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	githubairbrake "github.com/airbrake/gobrake/v5"
+	"github.com/teslamotors/fleet-telemetry/datastore/mysql"
+	"github.com/teslamotors/fleet-telemetry/datastore/postgres"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	githublogrus "github.com/sirupsen/logrus"
@@ -109,6 +111,14 @@ type Config struct {
 
 	// MQTT config
 	MQTT *mqtt.Config `json:"mqtt,omitempty"`
+
+	// Cert contains public key info
+	Cert *Cert `json:"cert,omitempty"`
+}
+
+// Cert config
+type Cert struct {
+	PublicKeyFile string `json:"pub_key"`
 }
 
 // Airbrake config

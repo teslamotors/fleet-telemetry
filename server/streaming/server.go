@@ -80,6 +80,11 @@ func InitServer(c *config.Config, airbrakeHandler *airbrake.Handler, producerRul
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", socketServer.ServeBinaryWs(c))
 	mux.Handle("/status", socketServer.airbrakeHandler.WithReporting(http.HandlerFunc(socketServer.Status())))
+	if c.Cert != nil && c.Cert.PublicKeyFile != "" {
+		mux.Handle("/.well-known/appspecific/com.tesla.3p.public-key.pem", socketServer.airbrakeHandler.WithReporting(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, c.Cert.PublicKeyFile)
+		})))
+	}
 
 	server := &http.Server{Addr: fmt.Sprintf("%v:%v", c.Host, c.Port), Handler: serveHTTPWithLogs(mux, logger)}
 	go socketServer.handleAcks()
