@@ -73,7 +73,8 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
   },
   "kafka": { // librdkafka kafka config, seen here: https://raw.githubusercontent.com/confluentinc/librdkafka/master/CONFIGURATION.md
     "bootstrap.servers": "kafka:9092",
-    "queue.buffering.max.messages": 1000000
+    "queue.buffering.max.messages": 1000000,
+    "partitioner": "consistent_random" // optional: controls partition assignment; Fleet Telemetry keys every message by VIN. See Partition Strategy section below.
   },
   "kinesis": {
     "max_retries": 3,
@@ -152,6 +153,7 @@ Vehicles must be running firmware version 2023.20.6 or later.  Some older model 
 Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to  STDOUT logger.  Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L10-L19)::
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
   * Topics will need to be created for \*prefix\*`_V`,\*prefix\*`_connectivity` and \*prefix\*`_alerts`. The default prefix is `tesla`
+  * **Partition strategy**: Every message is keyed by VIN (see [kafka.go](./datastore/kafka/kafka.go)). The default librdkafka partitioner (`consistent_random`) routes by key, so all records for a given vehicle land on the same partition automatically. To guarantee ordering across consumer restarts or use the Java-compatible MurmurHash algorithm, set `"partitioner": "murmur2_random"` in the `kafka` config block. All supported partitioners are listed in the [librdkafka configuration reference](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md).
 * Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default AWS credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
   * By default, stream names will be \*configured namespace\*_\*topic_name\*  ex.: `tesla_V`, `tesla_alerts`, etc
   * Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
