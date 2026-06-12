@@ -81,6 +81,16 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
       "V": "custom_stream_name"
     }
   },
+  "redis": { // Redis pub/sub config
+    "addrs": ["redis:6379"], // one or more addresses (cluster/sentinel supported)
+    "username": string - optional,
+    "password": string - optional,
+    "db": int - optional,
+    "subscriber_set_prefix": string - optional; names the per-VIN subscriber sorted set. When empty, the sorted set is not consulted,
+    "publish_vin_topics": bool - additionally publish each record to the VIN channel namespace_topic_{vin},
+    "tls": { "ca_file": string, "server_cert": string, "server_key": string }, // optional
+    "pool": { "pool_size": int, "min_idle_conns": int, "conn_max_lifetime": int } // optional
+  },
   "rate_limit": {
     "enabled": bool,
     "message_limit": int - ex.: 1000
@@ -149,7 +159,7 @@ spec:
 Vehicles must be running firmware version 2023.20.6 or later.  Some older model S/X are not supported.
 
 ## Personalized Backends/Dispatchers
-Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to  STDOUT logger.  Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L10-L19)::
+Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to  STDOUT logger.  Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L13-L26)::
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
   * Topics will need to be created for \*prefix\*`_V`,\*prefix\*`_connectivity` and \*prefix\*`_alerts`. The default prefix is `tesla`
 * Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default AWS credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
@@ -161,12 +171,17 @@ Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry s
 * ZMQ: Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
 * MQTT: Configure using the config.json file. See implementation in [config/config.go](./config/config.go)
   * See detailed MQTT information in the [MQTT README](./datastore/mqtt/README.md)
+* Redis: Publishes records to Redis Pub/Sub channels. Configure with the config.json file. See implementation here: [datastore/redis/redis.go](./datastore/redis/redis.go)
+  * When `subscriber_set_prefix` is set, the producer reads a per-VIN sorted set at `<subscriber_set_prefix>_`\*namespace\*`_`\*topic\*`_{`\*vin\*`}` (e.g. `consumer_tesla_V_{<vin>}`). Sorted-set scores are subscriber lease expiries (epoch seconds); entries scored below the current time are purged before each publish, and the payload is published to every surviving member channel.
+  * If `publish_vin_topics` is enabled, the payload is additionally published to the VIN channel \*namespace\*`_`\*topic\*`_{`\*vin\*`}` (e.g. `tesla_V_{<vin>}`). Member channels and the VIN channel both receive the record.
+  * At least one of `subscriber_set_prefix` or `publish_vin_topics` must be configured — otherwise no records could ever be published and the server fails to start.
+  * Supports TLS via the `tls` block and connection-pool tuning via the `pool` block.
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
 
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
 
 ## Reliable Acks
-Fleet Telemetry can send ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To enable this feature, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+Fleet Telemetry sends ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To tie acks to a datasource, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`, `redis`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
 
 ## Detecting Vehicle Connectivity Changes
 On the vehicle, Fleet Telemetry client behave similarly to how the connectivity engine for vehicle commands. Therefore we can use Fleet Telemetry connectivity event to assume when a vehicle is online. Note that it is a proxy, but if configured properly Fleet Telemetry connectivity time should match vehicle connectivity state in 99%+. To enable connectivity events simply add the `connectivity` records in the list of events in [server_config.json](./examples/server_config.json) file:

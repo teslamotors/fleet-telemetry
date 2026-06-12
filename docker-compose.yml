@@ -130,6 +130,11 @@ services:
     volumes:
       - ./test/integration/mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
+  redis:
+    image: redis:7.2.0
+    ports:
+      - "6379:6379"
+
   prometheus:
     image: prom/prometheus
     ports:
