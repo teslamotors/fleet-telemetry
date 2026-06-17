@@ -22,6 +22,8 @@ const (
 	ZMQ Dispatcher = "zmq"
 	// MQTT registers an MQTT dispatcher
 	MQTT Dispatcher = "mqtt"
+	// Redis registers a Redis pub/sub dispatcher
+	Redis Dispatcher = "redis"
 )
 
 // BuildTopicName creates a topic from a namespace and a recordName

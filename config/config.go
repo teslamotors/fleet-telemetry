@@ -16,12 +16,14 @@ import (
 	githubairbrake "github.com/airbrake/gobrake/v5"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	goredis "github.com/redis/go-redis/v9"
 	githublogrus "github.com/sirupsen/logrus"
 
 	"github.com/teslamotors/fleet-telemetry/datastore/googlepubsub"
 	"github.com/teslamotors/fleet-telemetry/datastore/kafka"
 	"github.com/teslamotors/fleet-telemetry/datastore/kinesis"
 	"github.com/teslamotors/fleet-telemetry/datastore/mqtt"
+	redisdatastore "github.com/teslamotors/fleet-telemetry/datastore/redis"
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
 	"github.com/teslamotors/fleet-telemetry/datastore/zmq"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
@@ -70,6 +72,9 @@ type Config struct {
 
 	// ZMQ configures a zeromq socket
 	ZMQ *zmq.Config `json:"zmq,omitempty"`
+
+	// Redis configures a Redis pub/sub producer
+	Redis *Redis `json:"redis,omitempty"`
 
 	// Namespace defines a prefix for the kafka/pubsub topic
 	Namespace string `json:"namespace,omitempty"`
@@ -148,6 +153,65 @@ type Kinesis struct {
 	Streams      map[string]string `json:"streams,omitempty"`
 }
 
+// Redis is a configuration for the Redis pub/sub producer.
+type Redis struct {
+	Addrs          []string      `json:"addrs"`
+	Username       string        `json:"username,omitempty"`
+	Password       string        `json:"password,omitempty"`
+	DB             int           `json:"db,omitempty"`
+	TLS            *TLS          `json:"tls,omitempty"`
+	Pool           *RedisPool    `json:"pool,omitempty"`
+	PublishTimeout time.Duration `json:"publish_timeout,omitempty"`
+
+	// PublishVINTopics, when true, always publishes on the VIN set-key
+	// channel.
+	PublishVINTopics bool `json:"publish_vin_topics,omitempty"`
+
+	// SubscriberSetPrefix names the per-VIN sorted set of subscriber channels
+	// (<prefix>_<namespace>_<txtype>_{<vin>}). When empty, the sorted set is not
+	// consulted and records route only via the VIN channel if set.
+	SubscriberSetPrefix string `json:"subscriber_set_prefix,omitempty"`
+}
+
+// RedisPool configures the Redis connection pool. Zero values use go-redis defaults.
+type RedisPool struct {
+	PoolSize        int           `json:"pool_size,omitempty"`
+	MinIdleConns    int           `json:"min_idle_conns,omitempty"`
+	MaxIdleConns    int           `json:"max_idle_conns,omitempty"`
+	MaxActiveConns  int           `json:"max_active_conns,omitempty"`
+	ReadTimeout     time.Duration `json:"read_timeout,omitempty"`
+	WriteTimeout    time.Duration `json:"write_timeout,omitempty"`
+	PoolTimeout     time.Duration `json:"pool_timeout,omitempty"`
+	ConnMaxIdleTime time.Duration `json:"conn_max_idle_time,omitempty"`
+	ConnMaxLifetime time.Duration `json:"conn_max_lifetime,omitempty"`
+}
+
+func (r *Redis) options() (*goredis.UniversalOptions, error) {
+	tlsConfig, err := r.TLS.ClientTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+	options := &goredis.UniversalOptions{
+		Addrs:     r.Addrs,
+		Username:  r.Username,
+		Password:  r.Password,
+		DB:        r.DB,
+		TLSConfig: tlsConfig,
+	}
+	if r.Pool != nil {
+		options.PoolSize = r.Pool.PoolSize
+		options.MinIdleConns = r.Pool.MinIdleConns
+		options.MaxIdleConns = r.Pool.MaxIdleConns
+		options.MaxActiveConns = r.Pool.MaxActiveConns
+		options.PoolTimeout = r.Pool.PoolTimeout
+		options.ReadTimeout = r.Pool.ReadTimeout
+		options.WriteTimeout = r.Pool.WriteTimeout
+		options.ConnMaxIdleTime = r.Pool.ConnMaxIdleTime
+		options.ConnMaxLifetime = r.Pool.ConnMaxLifetime
+	}
+	return options, nil
+}
+
 //go:embed files/eng_ca.crt
 var defaultEngCA []byte
 
@@ -161,37 +225,38 @@ type TLS struct {
 	ServerKey  string `json:"server_key"`
 }
 
-// AirbrakeTLSConfig return the TLS config needed for connecting with airbrake server
-func (c *Config) AirbrakeTLSConfig() (*tls.Config, error) {
-	if c.Airbrake.TLS == nil {
+// ClientTLSConfig builds a client-side *tls.Config from an optional cert pair
+// (mutual TLS) and CA file (server verification). A nil receiver yields a nil
+// config so callers can treat "no TLS" uniformly.
+func (t *TLS) ClientTLSConfig() (*tls.Config, error) {
+	if t == nil {
 		return nil, nil
 	}
-	caPath := c.Airbrake.TLS.CAFile
-	certPath := c.Airbrake.TLS.ServerCert
-	keyPath := c.Airbrake.TLS.ServerKey
 	tlsConfig := &tls.Config{}
-	if certPath != "" && keyPath != "" {
-		cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if t.ServerCert != "" && t.ServerKey != "" {
+		cert, err := tls.LoadX509KeyPair(t.ServerCert, t.ServerKey)
 		if err != nil {
-			return nil, fmt.Errorf("can't properly load cert pair (%s, %s): %s", certPath, keyPath, err.Error())
+			return nil, fmt.Errorf("can't properly load cert pair (%s, %s): %s", t.ServerCert, t.ServerKey, err.Error())
 		}
 		tlsConfig.Certificates = []tls.Certificate{cert}
-		// TODO remove the lint bypass
-		// nolint:staticcheck
-		tlsConfig.BuildNameToCertificate()
 	}
 
-	if caPath != "" {
-		clientCACert, err := os.ReadFile(caPath)
+	if t.CAFile != "" {
+		caCert, err := os.ReadFile(t.CAFile)
 		if err != nil {
-			return nil, fmt.Errorf("can't properly load ca cert (%s): %s", caPath, err.Error())
+			return nil, fmt.Errorf("can't properly load ca cert (%s): %s", t.CAFile, err.Error())
 		}
-		clientCertPool := x509.NewCertPool()
-		clientCertPool.AppendCertsFromPEM(clientCACert)
-		tlsConfig.RootCAs = clientCertPool
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+		tlsConfig.RootCAs = caCertPool
 	}
 
 	return tlsConfig, nil
+}
+
+// AirbrakeTLSConfig return the TLS config needed for connecting with airbrake server
+func (c *Config) AirbrakeTLSConfig() (*tls.Config, error) {
+	return c.Airbrake.TLS.ClientTLSConfig()
 }
 
 // VinsToTrack to track incoming signals in promemetheus
@@ -344,6 +409,21 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 			return nil, nil, err
 		}
 		producers[telemetry.MQTT] = mqttProducer
+	}
+
+	if _, ok := requiredDispatchers[telemetry.Redis]; ok {
+		if c.Redis == nil {
+			return nil, nil, errors.New("expected Redis to be configured")
+		}
+		options, err := c.Redis.options()
+		if err != nil {
+			return nil, nil, err
+		}
+		redisProducer, err := redisdatastore.NewProducer(options, c.Redis.PublishTimeout, c.Redis.PublishVINTopics, c.Redis.SubscriberSetPrefix, c.Namespace, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.Redis], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.Redis] = redisProducer
 	}
 
 	dispatchProducerRules := make(map[string][]telemetry.Producer)
