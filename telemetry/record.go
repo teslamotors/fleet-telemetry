@@ -190,6 +190,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 		if err != nil {
 			return err
 		}
+		message.Vin = record.Vin
 		record.PayloadBytes, err = proto.Marshal(message)
 		record.protoMessage = message
 		return err
