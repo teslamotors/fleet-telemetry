@@ -311,6 +311,40 @@ var _ = Describe("Socket handler test", func() {
 			}),
 		)
 
+		It("overwrites a spoofed connectivity body VIN with the authenticated cert VIN", func() {
+			const certVin = "certVin"
+			const spoofedVin = "spoofedVin"
+			payloadBytes, err := proto.Marshal(&protos.VehicleConnectivity{Vin: spoofedVin})
+			Expect(err).NotTo(HaveOccurred())
+
+			message := messages.StreamMessage{
+				TXID:         []byte("1234"),
+				DeviceID:     []byte(certVin),
+				SenderID:     []byte(fmt.Sprintf("vehicle_device.%s", certVin)),
+				MessageTopic: []byte("connectivity"),
+				Payload:      payloadBytes,
+			}
+			recordMsg, err := message.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			serializer = telemetry.NewBinarySerializer(
+				&telemetry.RequestIdentity{
+					DeviceID: certVin,
+					SenderID: fmt.Sprintf("vehicle_device.%s", certVin),
+				},
+				map[string][]telemetry.Producer{"D4": nil},
+				logger,
+			)
+
+			record, err := telemetry.NewRecord(serializer, recordMsg, "1", true)
+			Expect(err).NotTo(HaveOccurred())
+
+			output, ok := record.GetProtoMessage().(*protos.VehicleConnectivity)
+			Expect(ok).To(BeTrue())
+			Expect(output.GetVin()).To(Equal(certVin))
+			Expect(output.GetVin()).NotTo(Equal(spoofedVin))
+		})
+
 		It("json payload returns valid data when transmitDecodedRecords is false", func() {
 			message := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: generatePayload("cybertruck", "42", nil)}
 			recordMsg, err := message.ToBytes()
