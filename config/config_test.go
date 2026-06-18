@@ -223,6 +223,30 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
+	Context("configure redis", func() {
+		AfterEach(func() {
+			_ = os.Unsetenv("REDIS_PASSWORD")
+		})
+
+		It("uses the password from config when REDIS_PASSWORD is unset", func() {
+			redis := &Redis{Addrs: []string{"redis:6379"}, Password: "config-password"}
+
+			options, err := redis.options()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(options.Password).To(Equal("config-password"))
+		})
+
+		It("overrides the password with the REDIS_PASSWORD env variable when set", func() {
+			err := os.Setenv("REDIS_PASSWORD", "env-password")
+			Expect(err).NotTo(HaveOccurred())
+			redis := &Redis{Addrs: []string{"redis:6379"}, Password: "config-password"}
+
+			options, err := redis.options()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(options.Password).To(Equal("env-password"))
+		})
+	})
+
 	Context("VinsToTrack", func() {
 
 		AfterEach(func() {
