@@ -7,7 +7,9 @@ import (
 	_ "embed" //Used for default CAs
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -155,13 +157,15 @@ type Kinesis struct {
 
 // Redis is a configuration for the Redis pub/sub producer.
 type Redis struct {
-	Addrs          []string      `json:"addrs"`
-	Username       string        `json:"username,omitempty"`
-	Password       string        `json:"password,omitempty"`
-	DB             int           `json:"db,omitempty"`
-	TLS            *TLS          `json:"tls,omitempty"`
-	Pool           *RedisPool    `json:"pool,omitempty"`
-	PublishTimeout time.Duration `json:"publish_timeout,omitempty"`
+	Addrs                 []string      `json:"addrs"`
+	Username              string        `json:"username,omitempty"`
+	Password              string        `json:"password,omitempty"`
+	DB                    int           `json:"db,omitempty"`
+	TLS                   *TLS          `json:"tls,omitempty"`
+	OverrideTLSServerName bool          `json:"override_tls_server_name,omitempty"`
+	Pool                  *RedisPool    `json:"pool,omitempty"`
+	PublishTimeout        time.Duration `json:"publish_timeout,omitempty"`
+	ClusterMode           bool          `json:"cluster_mode,omitempty"`
 
 	// PublishVINTopics, when true, always publishes on the VIN set-key
 	// channel.
@@ -191,6 +195,9 @@ func (r *Redis) options() (*goredis.UniversalOptions, error) {
 	if err != nil {
 		return nil, err
 	}
+	if r.OverrideTLSServerName && tlsConfig != nil {
+		tlsConfig.ServerName = r.getServerName()
+	}
 	password := r.Password
 	if envPassword := os.Getenv("REDIS_PASSWORD"); envPassword != "" {
 		password = envPassword
@@ -202,6 +209,9 @@ func (r *Redis) options() (*goredis.UniversalOptions, error) {
 		Password:  password,
 		DB:        r.DB,
 		TLSConfig: tlsConfig,
+	}
+	if r.ClusterMode {
+		options.IsClusterMode = true
 	}
 	if r.Pool != nil {
 		options.PoolSize = r.Pool.PoolSize
@@ -215,6 +225,24 @@ func (r *Redis) options() (*goredis.UniversalOptions, error) {
 		options.ConnMaxLifetime = r.Pool.ConnMaxLifetime
 	}
 	return options, nil
+}
+
+func (r *Redis) getServerName() string {
+	if len(r.Addrs) == 0 {
+		return ""
+	}
+
+	addr := r.Addrs[0]
+	// A scheme-qualified addr (e.g. rediss://host:6379) parses cleanly here.
+	if parsedURL, err := url.Parse(addr); err == nil && parsedURL.Hostname() != "" {
+		return parsedURL.Hostname()
+	}
+	// A bare host:port (the common case) is mis-parsed by url.Parse as
+	// scheme:opaque, so strip the port directly.
+	if host, _, err := net.SplitHostPort(addr); err == nil {
+		return host
+	}
+	return addr
 }
 
 //go:embed files/eng_ca.crt

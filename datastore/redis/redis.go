@@ -86,6 +86,9 @@ func NewProducer(options *redis.UniversalOptions, publishTimeout time.Duration, 
 		timeout:             timeout,
 	}
 
+	if err := client.Ping(context.Background()).Err(); err != nil {
+		return nil, fmt.Errorf("redis_connect_error %w", err)
+	}
 	producer.logger.ActivityLog("redis_registered", logrus.LogInfo{"namespace": namespace, "publish_vin_topics": publishVINTopics, "subscriber_set_prefix": subscriberSetPrefix})
 	return producer, nil
 }
@@ -97,7 +100,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 	payload := entry.Payload()
 	channels, err := p.channelsForRecord(entry)
 	if err != nil {
-		p.ReportError("redis_err", err, logrus.LogInfo{"channel": "", "txid": entry.Txid})
+		p.ReportError("redis_err", err, logrus.LogInfo{"vin": entry.Vin, "tx_type": entry.TxType, "txid": entry.Txid})
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 		return
 	}
@@ -105,7 +108,7 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 		ctx, cancel := context.WithTimeout(context.Background(), p.timeout)
 		defer cancel()
 		if err := p.client.Publish(ctx, channel, payload).Err(); err != nil {
-			p.ReportError("redis_err", err, logrus.LogInfo{"channel": channel, "txid": entry.Txid})
+			p.ReportError("redis_err", err, logrus.LogInfo{"channel": channel, "vin": entry.Vin, "tx_type": entry.TxType, "txid": entry.Txid})
 			metricsRegistry.errorCount.Inc(map[string]string{"record_type": entry.TxType})
 			return
 		}
