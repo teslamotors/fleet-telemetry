@@ -191,10 +191,15 @@ func (r *Redis) options() (*goredis.UniversalOptions, error) {
 	if err != nil {
 		return nil, err
 	}
+	password := r.Password
+	if envPassword := os.Getenv("REDIS_PASSWORD"); envPassword != "" {
+		password = envPassword
+	}
+
 	options := &goredis.UniversalOptions{
 		Addrs:     r.Addrs,
 		Username:  r.Username,
-		Password:  r.Password,
+		Password:  password,
 		DB:        r.DB,
 		TLSConfig: tlsConfig,
 	}

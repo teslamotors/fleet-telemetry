@@ -84,7 +84,7 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
   "redis": { // Redis pub/sub config
     "addrs": ["redis:6379"], // one or more addresses (cluster/sentinel supported)
     "username": string - optional,
-    "password": string - optional,
+    "password": string - optional; overridden by the REDIS_PASSWORD environment variable when set,
     "db": int - optional,
     "subscriber_set_prefix": string - optional; names the per-VIN subscriber sorted set. When empty, the sorted set is not consulted,
     "publish_vin_topics": bool - additionally publish each record to the VIN channel namespace_topic_{vin},
