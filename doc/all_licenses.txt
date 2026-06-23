@@ -13,6 +13,7 @@ github.com/beorn7/perks, v1.0.1, MIT
 github.com/caio/go-tdigest/v4, v4.0.1, MIT
 github.com/cespare/xxhash/v2, v2.2.0, MIT
 github.com/confluentinc/confluent-kafka-go/v2, v2.3.0, "Apache 2.0, MIT"
+github.com/eclipse/paho.mqtt.golang, v1.5.0, unknown
 github.com/golang/groupcache, v0.0.0-20210331224755-41bb18bfe9da, "Apache 2.0"
 github.com/golang/protobuf, v1.5.3, "New BSD"
 github.com/google/flatbuffers, v23.3.3, "Apache 2.0"
@@ -20,7 +21,7 @@ github.com/google/go-cmp, v0.5.9, "New BSD"
 github.com/google/uuid, v1.3.0, "New BSD"
 github.com/googleapis/enterprise-certificate-proxy, v0.2.3, "Apache 2.0"
 github.com/googleapis/gax-go/v2, v2.8.0, "New BSD"
-github.com/gorilla/websocket, v1.5.0, "Simplified BSD"
+github.com/gorilla/websocket, v1.5.3, "Simplified BSD"
 github.com/jmespath/go-jmespath, v0.4.0, unknown
 github.com/jonboulle/clockwork, v0.3.0, "Apache 2.0"
 github.com/mattn/go-colorable, v0.1.13, MIT
@@ -36,11 +37,11 @@ github.com/sirupsen/logrus, v1.9.0, MIT
 github.com/smira/go-statsd, v1.3.2, MIT
 go.opencensus.io, v0.24.0, "Apache 2.0"
 go.uber.org/automaxprocs, v1.5.2, MIT
-golang.org/x/net, v0.23.0, "New BSD"
+golang.org/x/net, v0.33.0, "New BSD"
 golang.org/x/oauth2, v0.7.0, "New BSD"
-golang.org/x/sync, v0.1.0, "New BSD"
-golang.org/x/sys, v0.18.0, "New BSD"
-golang.org/x/text, v0.14.0, "New BSD"
+golang.org/x/sync, v0.10.0, "New BSD"
+golang.org/x/sys, v0.28.0, "New BSD"
+golang.org/x/text, v0.21.0, "New BSD"
 google.golang.org/api, v0.114.0, "New BSD"
 google.golang.org/genproto, v0.0.0-20230410155749-daa745c078e1, "Apache 2.0"
 google.golang.org/grpc, v1.56.3, "Apache 2.0"
