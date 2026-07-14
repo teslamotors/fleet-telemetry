@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
@@ -170,7 +171,7 @@ func (l *Logger) ErrorLog(message string, err error, info LogInfo) {
 // SetJSONFormatter sets logger to emit JSON or false => TextFormatter
 func (l *Logger) SetJSONFormatter(json bool) {
 	if json {
-		logrus.SetFormatter(&logrus.JSONFormatter{})
+		logrus.SetFormatter(&logrus.JSONFormatter{TimestampFormat: time.RFC3339Nano})
 	} else {
 		logrus.SetFormatter(&logrus.TextFormatter{})
 	}
