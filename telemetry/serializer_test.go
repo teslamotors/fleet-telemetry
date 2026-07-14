@@ -3,6 +3,7 @@ package telemetry_test
 import (
 	"errors"
 	"reflect"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -178,7 +179,7 @@ var _ = Describe("BinarySerializer", func() {
 			gotRecord, err := bs.Deserialize(msgBytes, tt.args.socketID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(gotRecord.ReceivedTimestamp).NotTo(Equal(0))
+			Expect(gotRecord.ReceivedTimestamp).To(BeNumerically("<=", time.Now().UnixMilli(), 1000))
 
 			gotRecord.ReceivedTimestamp = 0
 			tt.wantRecord.Serializer = bs
