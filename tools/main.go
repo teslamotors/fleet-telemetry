@@ -57,7 +57,7 @@ func getCertFilename(cert *x509.Certificate) string {
 		log.Fatalf("invalid certificate type: %v", cert.Issuer)
 	}
 	clientType = strings.TrimSuffix(clientType, " CA")
-	clientType = strings.Replace(strings.ToLower(clientType), " ", "_", -1)
+	clientType = strings.ReplaceAll(strings.ToLower(clientType), " ", "_")
 	if clientName == "" {
 		return clientType
 	}

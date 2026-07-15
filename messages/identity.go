@@ -76,7 +76,7 @@ var (
 
 // CreateIdentityFromCert given the X509 Cert return a deviceID
 func CreateIdentityFromCert(fullCert *x509.Certificate) (clientType, deviceID string, err error) {
-	deviceID = strings.Replace(fullCert.Subject.CommonName, ".", "-", -1)
+	deviceID = strings.ReplaceAll(fullCert.Subject.CommonName, ".", "-")
 	if _, ok := knownOIDIssuers[fullCert.Issuer.CommonName]; ok {
 		return createIdentifyFromOID(fullCert, deviceID)
 	}
