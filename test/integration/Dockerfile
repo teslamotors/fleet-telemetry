@@ -1,5 +1,5 @@
 # build executable and run integration tests
-FROM golang:1.23-bullseye
+FROM golang:1.26-bookworm
 
 # build libsodium (dep of libzmq)
 WORKDIR /build

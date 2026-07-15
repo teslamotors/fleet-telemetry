@@ -31,10 +31,10 @@ func (p *profileServer) liveProfiler(config *config.Config) func(w http.Response
 		}
 
 		if metrics.EnableProfiler(mode) {
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"result":"mode %v"}`, mode)))
+			_, _ = fmt.Fprintf(w, `{"result":"mode %v"}`, mode)
 		} else {
 			w.WriteHeader(304)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"result":"mode already %v"}`, mode)))
+			_, _ = fmt.Fprintf(w, `{"result":"mode already %v"}`, mode)
 		}
 	}
 }

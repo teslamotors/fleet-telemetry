@@ -56,11 +56,8 @@ func (a *Handler) logMessage(logType logrus.LogType, message string, err error, 
 	if err != nil {
 		notice.Params["error"] = err.Error()
 	}
-	//nolint:gosimple
-	if logInfo != nil {
-		for logKey, logValue := range logInfo {
-			notice.Params[logKey] = logValue
-		}
+	for logKey, logValue := range logInfo {
+		notice.Params[logKey] = logValue
 	}
 	return notice
 }

@@ -84,6 +84,6 @@
         "project_id": 1,
         "project_key": "test1",
         "environment": "integration",
-        "host": "http://errbit:48088"
+        "host": "http://errbit:80"
     }
 }
