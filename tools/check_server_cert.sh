@@ -33,17 +33,21 @@ CA=$(jq -r ".ca" "$CONFIG")
 PORT=$(jq -r '.port // 443' "$CONFIG")
 
 CA_CERT_FILE=$(mktemp)
+INTERMEDIATE_CERT_FILE=$(mktemp)
 SERVER_CERT_FILE=$(mktemp)
 TMP_SERVER_CERT_FILE=$(mktemp)
 echo "$CA" > "$CA_CERT_FILE"
 
 echo | openssl s_client -connect "$HOSTNAME:$PORT" -servername "$HOSTNAME" -showcerts 2>/dev/null > "$TMP_SERVER_CERT_FILE"
 openssl x509 -in "$TMP_SERVER_CERT_FILE" -outform PEM > "$SERVER_CERT_FILE"
+awk '/-----BEGIN CERTIFICATE-----/&&++k==2,/-----END CERTIFICATE-----/' "$TMP_SERVER_CERT_FILE" > "$INTERMEDIATE_CERT_FILE"
 
-if openssl verify -CAfile "$CA_CERT_FILE" "$SERVER_CERT_FILE"; then
+if openssl verify -CAfile "$CA_CERT_FILE" "$SERVER_CERT_FILE" 2>/dev/null; then
     success "The server certificate is valid."
 else
-  if openssl verify -partial_chain -CAfile "$CA_CERT_FILE" "$SERVER_CERT_FILE"; then
+  if [ -s "$INTERMEDIATE_CERT_FILE" ] && openssl verify -CAfile "$CA_CERT_FILE" -untrusted "$INTERMEDIATE_CERT_FILE" "$SERVER_CERT_FILE" 2>/dev/null; then
+      success "The server certificate chain is valid."
+  elif openssl verify -partial_chain -CAfile "$CA_CERT_FILE" "$SERVER_CERT_FILE" 2>/dev/null; then
       warning "The server certificate has a valid partial chain, and may work with the root chain."
   else
       error "The server certificate is invalid."
@@ -51,5 +55,6 @@ else
 fi
 
 rm "$CA_CERT_FILE"
+rm "$INTERMEDIATE_CERT_FILE"
 rm "$SERVER_CERT_FILE"
 rm "$TMP_SERVER_CERT_FILE"
