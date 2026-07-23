@@ -7,15 +7,51 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus/hooks/test"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/messages/tesla"
+	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
 )
+
+// gaugeValue reads a gauge from the default prometheus gatherer, returning 0
+// when the metric or label combination has not been reported yet.
+func gaugeValue(name string, labels map[string]string) float64 {
+	families, err := prom.DefaultGatherer.Gather()
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, family := range families {
+		if family.GetName() != name {
+			continue
+		}
+		for _, metric := range family.GetMetric() {
+			matched := map[string]string{}
+			for _, label := range metric.GetLabel() {
+				matched[label.GetName()] = label.GetValue()
+			}
+			if len(matched) != len(labels) {
+				continue
+			}
+			found := true
+			for key, value := range labels {
+				if matched[key] != value {
+					found = false
+					break
+				}
+			}
+			if found {
+				return metric.GetGauge().GetValue()
+			}
+		}
+	}
+	return 0
+}
 
 var _ = Describe("Socket test", func() {
 	var (
@@ -128,6 +164,59 @@ var _ = Describe("Socket test", func() {
 			Expect(hook.Entries).To(HaveLen(0))
 
 			Expect(string(streamMessage.MessageTopic)).To(Equal("canlogs"))
+		})
+
+		It("tracks signal usage for processed records", func() {
+			conf.VinsSignalTrackingEnabled = []string{"42"}
+			sm := streaming.NewSocketManager(context.Background(), requestIdentity, nil, conf, logger)
+
+			payload := &protos.Payload{
+				Data: []*protos.Datum{
+					{Key: protos.Field_VehicleName, Value: &protos.Value{Value: &protos.Value_StringValue{StringValue: "car"}}},
+					{Key: protos.Field_Odometer, Value: &protos.Value{Value: &protos.Value_DoubleValue{DoubleValue: 42000}}},
+				},
+			}
+			payloadBytes, err := proto.Marshal(payload)
+			Expect(err).NotTo(HaveOccurred())
+
+			record := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: payloadBytes}
+			recordMsg, err := record.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			signalLabels := map[string]string{"record_type": "V"}
+			vinLabels := map[string]string{"vin": "42", "record_type": "V"}
+			signalsBefore := gaugeValue("signal_count", signalLabels)
+			vinSignalsBefore := gaugeValue("vin_signal_count", vinLabels)
+
+			sm.ParseAndProcessRecord(serializer, recordMsg)
+
+			msg := sm.ListenToWriteChannel()
+			_, err = messages.StreamAckMessageFromBytes(msg.Msg)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(gaugeValue("signal_count", signalLabels) - signalsBefore).To(Equal(2.0))
+			Expect(gaugeValue("vin_signal_count", vinLabels) - vinSignalsBefore).To(Equal(2.0))
+		})
+
+		It("does not track vin signal usage for untracked vins", func() {
+			payload := &protos.Payload{
+				Data: []*protos.Datum{
+					{Key: protos.Field_Odometer, Value: &protos.Value{Value: &protos.Value_DoubleValue{DoubleValue: 42000}}},
+				},
+			}
+			payloadBytes, err := proto.Marshal(payload)
+			Expect(err).NotTo(HaveOccurred())
+
+			record := messages.StreamMessage{TXID: []byte("1234"), SenderID: []byte("vehicle_device.42"), MessageTopic: []byte("V"), Payload: payloadBytes}
+			recordMsg, err := record.ToBytes()
+			Expect(err).NotTo(HaveOccurred())
+
+			vinLabels := map[string]string{"vin": "42", "record_type": "V"}
+			vinSignalsBefore := gaugeValue("vin_signal_count", vinLabels)
+
+			sm.ParseAndProcessRecord(serializer, recordMsg)
+
+			Expect(gaugeValue("vin_signal_count", vinLabels)).To(Equal(vinSignalsBefore))
 		})
 
 		It("empty network interface", func() {
