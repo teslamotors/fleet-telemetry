@@ -28,6 +28,17 @@ var (
 	metricsOnce     sync.Once
 )
 
+// listenAddress builds the host:port a monitoring server binds to, defaulting
+// to localhost when no host is configured. Set prometheus_metrics_host or
+// profiler_host to 0.0.0.0 to expose the server on all interfaces, e.g. for
+// Kubernetes liveness probes.
+func listenAddress(host string, port int) string {
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	return fmt.Sprintf("%s:%d", host, port)
+}
+
 // StartServerMetrics initializes the metrics server on http
 func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *streaming.SocketRegistry) {
 	registerMetricsOnce(config.MetricCollector)
@@ -36,11 +47,7 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 		promMux := http.NewServeMux()
 		promMux.Handle("/metrics", promhttp.Handler())
 		go func() {
-			metricsHost := config.Monitoring.PrometheusMetricsHost
-			if metricsHost == "" {
-				metricsHost = "127.0.0.1"
-			}
-			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", metricsHost, config.Monitoring.PrometheusMetricsPort), promMux); err != nil {
+			if err := http.ListenAndServe(listenAddress(config.Monitoring.PrometheusMetricsHost, config.Monitoring.PrometheusMetricsPort), promMux); err != nil {
 				logger.ErrorLog("metrics_server_err", err, nil)
 			}
 		}()
@@ -57,11 +64,7 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 
 			StartProfilerServer(config, profilerMux, logger)
 
-			profilerHost := config.Monitoring.ProfilerHost
-			if profilerHost == "" {
-				profilerHost = "127.0.0.1"
-			}
-			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", profilerHost, config.Monitoring.ProfilerPort), profilerMux); err != nil {
+			if err := http.ListenAndServe(listenAddress(config.Monitoring.ProfilerHost, config.Monitoring.ProfilerPort), profilerMux); err != nil {
 				logger.ErrorLog("profiler_listen_error", err, nil)
 			}
 		}()
