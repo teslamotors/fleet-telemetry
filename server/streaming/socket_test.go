@@ -84,6 +84,15 @@ var _ = Describe("Socket test", func() {
 			Expect(envelope.MessageType()).To(Equal(tesla.MessageFlatbuffersStreamAck))
 			lastLogEntry := hook.LastEntry()
 			Expect(lastLogEntry.Message).To(ContainSubstring("unknown_message_type_error"))
+
+			// the record must not fall through to the success path:
+			// no bytes are recorded against an empty record type ...
+			Expect(sm.RecordsStats).To(BeEmpty())
+
+			// ... and the vehicle is acked exactly once
+			extra := make(chan streaming.SocketMessage, 1)
+			go func() { extra <- sm.ListenToWriteChannel() }()
+			Consistently(extra).ShouldNot(Receive())
 		})
 
 		It("returns error for unknown topic and unmatched sender", func() {
