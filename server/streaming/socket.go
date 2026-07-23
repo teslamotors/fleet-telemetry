@@ -210,9 +210,10 @@ func (sm *SocketManager) ProcessTelemetry(serializer *telemetry.BinarySerializer
 			// client exceeded the rate limit
 			messagesRateLimited++
 			record, _ := telemetry.NewRecord(serializer, message, sm.UUID, sm.transmitDecodedRecords)
-			sm.trackSignalUsage(record)
 			metricsRegistry.rateLimitExceededCount.Inc(map[string]string{"device_id": sm.requestIdentity.DeviceID, "txtype": record.TxType})
 			if sm.config.RateLimit != nil && sm.config.RateLimit.Enabled {
+				// the message is dropped, so it will not reach ParseAndProcessRecord where signals are tracked
+				sm.trackSignalUsage(record)
 				continue
 			}
 		}
@@ -269,6 +270,8 @@ func (sm *SocketManager) ParseAndProcessRecord(serializer *telemetry.BinarySeria
 			return
 		}
 	}
+
+	sm.trackSignalUsage(record)
 
 	// write the record out to kafka
 	sm.ReportMetricBytesPerRecords(record.TxType, record.Length())
