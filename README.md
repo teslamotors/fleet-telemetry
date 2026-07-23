@@ -162,6 +162,7 @@ Vehicles must be running firmware version 2023.20.6 or later.  Some older model 
 Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to  STDOUT logger.  Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L13-L26)::
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
   * Topics will need to be created for \*prefix\*`_V`,\*prefix\*`_connectivity` and \*prefix\*`_alerts`. The default prefix is `tesla`
+  * Messages are produced with the vehicle VIN as the message key, so with librdkafka's default partitioner all records for a vehicle land on the same partition and stay ordered relative to each other. To change the partitioning strategy, set the librdkafka `partitioner` property (e.g. `"partitioner": "murmur2_random"`) in the `kafka` config block.
 * Kinesis: Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html). The default AWS credentials and config files are: `~/.aws/credentials` and `~/.aws/config`.
   * By default, stream names will be \*configured namespace\*_\*topic_name\*  ex.: `tesla_V`, `tesla_alerts`, etc
   * Configure stream names directly by setting the streams config `"kinesis": { "streams": { *topic_name*: stream_name } }`
