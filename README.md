@@ -184,7 +184,11 @@ Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry s
 Fleet Telemetry sends ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To tie acks to a datasource, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`, `redis`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
 
 ## Detecting Vehicle Connectivity Changes
-On the vehicle, Fleet Telemetry client behave similarly to how the connectivity engine for vehicle commands. Therefore we can use Fleet Telemetry connectivity event to assume when a vehicle is online. Note that it is a proxy, but if configured properly Fleet Telemetry connectivity time should match vehicle connectivity state in 99%+. To enable connectivity events simply add the `connectivity` records in the list of events in [server_config.json](./examples/server_config.json) file:
+On the vehicle, Fleet Telemetry client behave similarly to how the connectivity engine for vehicle commands. Therefore we can use Fleet Telemetry connectivity event to assume when a vehicle is online. Note that it is a proxy, but if configured properly Fleet Telemetry connectivity time should match vehicle connectivity state in 99%+.
+
+Connectivity events are emitted at the **VIN level**, not per WebSocket. A vehicle may open more than one socket at a time (for example wifi and cellular, or a reconnect that overlaps the previous connection). The server publishes `CONNECTED` when the first socket for a VIN becomes active and `DISCONNECTED` only when the last socket for that VIN closes. Intermediate socket churn does not produce additional connectivity events, so consumers can treat the stream as an online/offline signal without false offline gaps while data is still flowing.
+
+To enable connectivity events simply add the `connectivity` records in the list of events in [server_config.json](./examples/server_config.json) file:
 
   ```
     "records": {
