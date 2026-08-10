@@ -59,7 +59,9 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
   "transmit_decoded_records": bool - if true, transmit JSON to dispatchers instead of proto.
   "monitoring": {
     "prometheus_metrics_port": int,
+    "prometheus_metrics_host": string - bind address for /metrics (default 0.0.0.0; set 127.0.0.1 for localhost-only),
     "profiler_port": int,
+    "profiler_host": string - bind address for pprof (default 0.0.0.0; set 127.0.0.1 for localhost-only),
     "profiling_path": string - out path,
     "statsd": { if not using prometheus
       "host": string - host:port of the statsd server,

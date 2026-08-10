@@ -28,6 +28,22 @@ var (
 	metricsOnce     sync.Once
 )
 
+// monitoringListenAddr builds host:port for metrics/profiler servers.
+// An empty host defaults to 0.0.0.0 so Kubernetes probes that hit the pod IP
+// succeed (see #458). Set prometheus_metrics_host / profiler_host to 127.0.0.1
+// to keep the server localhost-only.
+func monitoringListenAddr(host string, port int) string {
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	return fmt.Sprintf("%s:%d", host, port)
+}
+
+// ListenAddrForTest exports monitoringListenAddr for unit tests.
+func ListenAddrForTest(host string, port int) string {
+	return monitoringListenAddr(host, port)
+}
+
 // StartServerMetrics initializes the metrics server on http
 func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *streaming.SocketRegistry) {
 	registerMetricsOnce(config.MetricCollector)
@@ -36,11 +52,9 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 		promMux := http.NewServeMux()
 		promMux.Handle("/metrics", promhttp.Handler())
 		go func() {
-			metricsHost := config.Monitoring.PrometheusMetricsHost
-			if metricsHost == "" {
-				metricsHost = "127.0.0.1"
-			}
-			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", metricsHost, config.Monitoring.PrometheusMetricsPort), promMux); err != nil {
+			addr := monitoringListenAddr(config.Monitoring.PrometheusMetricsHost, config.Monitoring.PrometheusMetricsPort)
+			logger.ActivityLog("metrics_server_configured", logrus.LogInfo{"addr": addr})
+			if err := http.ListenAndServe(addr, promMux); err != nil {
 				logger.ErrorLog("metrics_server_err", err, nil)
 			}
 		}()
@@ -57,11 +71,9 @@ func StartServerMetrics(config *config.Config, logger *logrus.Logger, registry *
 
 			StartProfilerServer(config, profilerMux, logger)
 
-			profilerHost := config.Monitoring.ProfilerHost
-			if profilerHost == "" {
-				profilerHost = "127.0.0.1"
-			}
-			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", profilerHost, config.Monitoring.ProfilerPort), profilerMux); err != nil {
+			addr := monitoringListenAddr(config.Monitoring.ProfilerHost, config.Monitoring.ProfilerPort)
+			logger.ActivityLog("profiler_server_configured", logrus.LogInfo{"addr": addr})
+			if err := http.ListenAndServe(addr, profilerMux); err != nil {
 				logger.ErrorLog("profiler_listen_error", err, nil)
 			}
 		}()
