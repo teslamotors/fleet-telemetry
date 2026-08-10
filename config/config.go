@@ -100,6 +100,11 @@ type Config struct {
 	// when vehicle configuration has prefer_typed set to true, enum fields will have a prefix
 	TransmitDecodedRecords bool `json:"transmit_decoded_records,omitempty"`
 
+	// ResyncOnConnect when true asks each vehicle for a full field true-up when its
+	// WebSocket connects. Prefer the application-controlled POST /resync API for
+	// outages; enabling this on every reconnect can be costly at fleet scale.
+	ResyncOnConnect bool `json:"resync_on_connect,omitempty"`
+
 	VinsSignalTrackingEnabled []string `json:"vins_signal_tracking_enabled"`
 
 	// MetricCollector collects metrics for the application
