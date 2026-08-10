@@ -1,0 +1,8 @@
+{
+  "response": {
+    "updated_vehicles": 0,
+    "skipped_vehicles": {
+      "max_configs": ["VINDEMO0000000001"]
+    }
+  }
+}

@@ -34,8 +34,16 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 9. Pair the application's virtual key to the vehicle(s). See documentation here: https://developer.tesla.com/docs/fleet-api/virtual-keys/developer-guide.
 10. Configure and run the [vehicle-command proxy](https://github.com/teslamotors/vehicle-command#installation-and-configuration) with the application private key.
 11. Configure vehicle(s) with the [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create) endpoint.
-12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
+    - Inspect `skipped_vehicles` in the CREATE response. A `max_configs` entry means the vehicle already has the maximum number of telemetry apps and your config was not added.
+    - Do **not** treat `updated_vehicles >= 1` alone as success. Vehicles at the app limit have been observed to return an update count while the config was never applied ([#294](https://github.com/teslamotors/fleet-telemetry/issues/294)).
+12. Confirm the configuration was actually adopted with [fleet_telemetry_config get](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get):
+    - Require `synced` to be `true` **and** `config` to be non-null for your application.
+    - If `limit_reached` is `true`, or `synced` is `true` with `config: null`, the vehicle rejected or never applied your config (usually the multi-app telemetry limit). Free a slot by removing another app's telemetry config / virtual key, then CREATE again — a previously rejected config is not applied automatically.
+    - Helper: `./tools/check_fleet_telemetry_config.sh get get_response.json` (and optionally `create` for the CREATE response).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
+
+### Multiple applications on one vehicle
+Vehicles support a small number of concurrent Fleet Telemetry configurations (Fleet API documents this limit on the config create/get endpoints; historically 3–4 apps depending on platform). When the limit is hit, CREATE may look successful while GET returns `synced: true` with `config: null`, so streaming never starts for the rejected app. Always validate with GET (or `check_fleet_telemetry_config.sh`) before assuming the vehicle will connect.
 
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).

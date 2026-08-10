@@ -1,0 +1,10 @@
+{
+  "response": {
+    "synced": true,
+    "config": {
+      "hostname": "telemetry.example.com",
+      "port": 443
+    },
+    "limit_reached": false
+  }
+}
