@@ -152,6 +152,11 @@ func (sm *SocketManager) ListenToWriteChannel() SocketMessage {
 	return msg
 }
 
+// Send enqueues a binary/text frame to the vehicle on this socket.
+func (sm *SocketManager) Send(msgType int, msg []byte) {
+	sm.writeChan <- SocketMessage{MsgType: msgType, Msg: msg}
+}
+
 // Close shuts down a socket connection for a single client and log metrics
 func (sm *SocketManager) Close() {
 	if err := sm.Ws.Close(); err != nil {

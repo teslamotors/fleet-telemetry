@@ -197,6 +197,11 @@ func (s *Server) registerSocket(sm *SocketManager, serializer *telemetry.BinaryS
 		s.logger.ErrorLog("connectivity_registeration_error", err, logrus.LogInfo{"deviceID": sm.requestIdentity.DeviceID, "event": event})
 	}
 
+	if sm.config != nil && sm.config.ResyncOnConnect {
+		if _, err := s.RequestVehicleResync(sm.requestIdentity.DeviceID, nil); err != nil {
+			s.logger.ErrorLog("connectivity_resync_on_connect_error", err, logrus.LogInfo{"deviceID": sm.requestIdentity.DeviceID})
+		}
+	}
 }
 
 func (s *Server) deregisterSocket(sm *SocketManager, serializer *telemetry.BinarySerializer) {

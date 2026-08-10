@@ -56,9 +56,6 @@ func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logg
 
 	airbrakeHandler := airbrake.NewAirbrakeHandler(airbrakeNotifier)
 
-	if config.StatusPort > 0 {
-		monitoring.StartStatusServer(config, logger, airbrakeHandler)
-	}
 	if config.Monitoring != nil {
 		monitoring.StartServerMetrics(config, logger, registry)
 	}
@@ -67,9 +64,13 @@ func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logg
 	if err != nil {
 		return err
 	}
-	server, _, err := streaming.InitServer(config, airbrakeHandler, producerRules, logger, registry)
+	server, socketServer, err := streaming.InitServer(config, airbrakeHandler, producerRules, logger, registry)
 	if err != nil {
 		return err
+	}
+
+	if config.StatusPort > 0 {
+		monitoring.StartStatusServer(config, logger, airbrakeHandler, socketServer)
 	}
 
 	if server.TLSConfig, err = config.ExtractServiceTLSConfig(logger); err != nil {

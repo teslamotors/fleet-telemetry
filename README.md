@@ -52,11 +52,13 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
 {
   "host": string - hostname,
   "port": int - port,
+  "status_port": int - plain HTTP port for /status and POST /resync (see Recovering vehicle state after an outage),
   "log_level": string - trace, debug, info, warn, error,
   "json_log_enable": bool,
   "namespace": string - kafka topic prefix,
   "reliable_ack": bool - for use with reliable datastores, recommend setting to true with kafka,
   "transmit_decoded_records": bool - if true, transmit JSON to dispatchers instead of proto.
+  "resync_on_connect": bool - if true, request a full field true-up whenever a vehicle connects (costly at scale; prefer POST /resync),
   "monitoring": {
     "prometheus_metrics_port": int,
     "profiler_port": int,
@@ -182,6 +184,25 @@ Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry s
 
 ## Reliable Acks
 Fleet Telemetry sends ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To tie acks to a datasource, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`, `redis`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+
+## Recovering vehicle state after an outage
+Vehicles send fields on change. If your backend is down or loses stored state, you can miss updates even though the vehicle remained online.
+
+**Short disconnects (vehicle ↔ fleet-telemetry):** The vehicle buffers up to ~5000 messages and delivers them on reconnect. Prefer `reliable_ack_sources` on the server and `delivery_policy: "latest"` on the vehicle config so un-acked data is resent (payloads may set `is_resend=true`). Do **not** delete/recreate `fleet_telemetry_config` for every vehicle to force a dump — that is expensive and discouraged.
+
+**Backend outage / lost state (application controlled):** When you need a true-up for specific VINs, call the status server:
+
+```bash
+curl -X POST "http://localhost:${STATUS_PORT}/resync" \
+  -H 'Content-Type: application/json' \
+  -d '{"vin":"VINHERE","fields":["Gear","ChargeState"]}'
+```
+
+Omit `fields` (or pass `[]`) to request all configured fields. The server forwards a WebSocket control message (`topic=resync`) on each active socket for that VIN. Requires `status_port` to be configured. The vehicle must be currently connected; otherwise the API returns HTTP 409.
+
+Optional server config `resync_on_connect: true` automatically requests a full true-up whenever a vehicle socket connects. Prefer the `/resync` API for rare outages — enabling resync on every reconnect can be costly at fleet scale.
+
+> Note: vehicle firmware must honor the `resync` control message for fields to be re-published. This server-side API is the application-controlled path discussed in [#246](https://github.com/teslamotors/fleet-telemetry/issues/246).
 
 ## Detecting Vehicle Connectivity Changes
 On the vehicle, Fleet Telemetry client behave similarly to how the connectivity engine for vehicle commands. Therefore we can use Fleet Telemetry connectivity event to assume when a vehicle is online. Note that it is a proxy, but if configured properly Fleet Telemetry connectivity time should match vehicle connectivity state in 99%+. To enable connectivity events simply add the `connectivity` records in the list of events in [server_config.json](./examples/server_config.json) file:
