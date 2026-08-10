@@ -13,11 +13,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/teslamotors/fleet-telemetry/config"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/messages"
 	"github.com/teslamotors/fleet-telemetry/metrics/adapter/noop"
+	"github.com/teslamotors/fleet-telemetry/protos"
 	"github.com/teslamotors/fleet-telemetry/server/airbrake"
 	"github.com/teslamotors/fleet-telemetry/server/streaming"
 	"github.com/teslamotors/fleet-telemetry/telemetry"
@@ -193,4 +195,73 @@ var _ = Describe("Socket handler test", func() {
 		Eventually(spy.captured).Should(Receive(&record))
 		Expect(record.Vin).To(Equal("device-1"))
 	})
+
+	It("emits VIN-level connectivity events across overlapping sockets (#244)", func() {
+		logger, _ := logrus.NoOpLogger()
+		spy := &spyProducer{captured: make(chan *telemetry.Record, 8)}
+
+		conf := &config.Config{
+			RateLimit: &config.RateLimit{
+				MessageLimit:              100,
+				MessageIntervalTimeSecond: 1 * time.Second,
+			},
+			MetricCollector: noop.NewCollector(),
+		}
+
+		registry := streaming.NewSocketRegistry()
+		producerRules = map[string][]telemetry.Producer{"connectivity": {spy}}
+		_, s, err := streaming.InitServer(conf, airbrake.NewAirbrakeHandler(nil), producerRules, logger, registry)
+		Expect(err).NotTo(HaveOccurred())
+
+		cert := makeCert("device-1", "TeslaMotors")
+		tlsState := &tls.ConnectionState{
+			PeerCertificates: []*x509.Certificate{cert},
+			VerifiedChains:   [][]*x509.Certificate{{cert}},
+		}
+		srv := httptest.NewServer(withTLSState(http.HandlerFunc(s.ServeBinaryWs(conf)), tlsState))
+		defer srv.Close()
+		u, _ := url.Parse(srv.URL)
+		u.Scheme = "ws"
+
+		dialer := &websocket.Dialer{HandshakeTimeout: 1 * time.Second}
+
+		// Two concurrent sockets for the same VIN (wifi + cellular).
+		wifiHeaders := http.Header{}
+		wifiHeaders.Set("X-TXID", "11111111-1111-1111-1111-111111111111")
+		wifiHeaders.Set("X-Network-Interface", "wifi")
+		wifiConn, _, err := dialer.Dial(u.String(), wifiHeaders)
+		Expect(err).NotTo(HaveOccurred())
+
+		var connected *telemetry.Record
+		Eventually(spy.captured).Should(Receive(&connected))
+		Expect(connectivityStatus(connected)).To(Equal(protos.ConnectivityEvent_CONNECTED))
+		Expect(connected.Vin).To(Equal("device-1"))
+
+		cellularHeaders := http.Header{}
+		cellularHeaders.Set("X-TXID", "22222222-2222-2222-2222-222222222222")
+		cellularHeaders.Set("X-Network-Interface", "cellular")
+		cellularConn, _, err := dialer.Dial(u.String(), cellularHeaders)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Second socket must not publish another CONNECTED (or any event).
+		Consistently(spy.captured, 200*time.Millisecond).ShouldNot(Receive())
+
+		// Closing wifi alone previously published DISCONNECTED while cellular
+		// was still online — the unreliable signal reported in #244.
+		Expect(wifiConn.Close()).To(Succeed())
+		Consistently(spy.captured, 200*time.Millisecond).ShouldNot(Receive())
+
+		Expect(cellularConn.Close()).To(Succeed())
+		var disconnected *telemetry.Record
+		Eventually(spy.captured).Should(Receive(&disconnected))
+		Expect(connectivityStatus(disconnected)).To(Equal(protos.ConnectivityEvent_DISCONNECTED))
+		Expect(disconnected.Vin).To(Equal("device-1"))
+		Consistently(spy.captured, 200*time.Millisecond).ShouldNot(Receive())
+	})
 })
+
+func connectivityStatus(record *telemetry.Record) protos.ConnectivityEvent {
+	payload := &protos.VehicleConnectivity{}
+	Expect(proto.Unmarshal(record.Payload(), payload)).To(Succeed())
+	return payload.GetStatus()
+}

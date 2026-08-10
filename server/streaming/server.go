@@ -191,7 +191,12 @@ func (s *Server) dispatchConnectivityEvent(sm *SocketManager, serializer *teleme
 }
 
 func (s *Server) registerSocket(sm *SocketManager, serializer *telemetry.BinarySerializer) {
-	s.registry.RegisterSocket(sm)
+	// Connectivity events are VIN-level online/offline signals. Vehicles may
+	// keep multiple concurrent sockets (e.g. wifi + cellular, or overlapping
+	// reconnects); only the first active socket should emit CONNECTED.
+	if !s.registry.RegisterSocket(sm) {
+		return
+	}
 	event := protos.ConnectivityEvent_CONNECTED
 	if err := s.dispatchConnectivityEvent(sm, serializer, event); err != nil {
 		s.logger.ErrorLog("connectivity_registeration_error", err, logrus.LogInfo{"deviceID": sm.requestIdentity.DeviceID, "event": event})
@@ -200,7 +205,12 @@ func (s *Server) registerSocket(sm *SocketManager, serializer *telemetry.BinaryS
 }
 
 func (s *Server) deregisterSocket(sm *SocketManager, serializer *telemetry.BinarySerializer) {
-	s.registry.DeregisterSocket(sm)
+	// Only emit DISCONNECTED when the last socket for the VIN closes. Emitting
+	// per-socket disconnects made consumers believe the vehicle was offline
+	// while another socket was still streaming data (see #244).
+	if !s.registry.DeregisterSocket(sm) {
+		return
+	}
 	event := protos.ConnectivityEvent_DISCONNECTED
 	if err := s.dispatchConnectivityEvent(sm, serializer, event); err != nil {
 		s.logger.ErrorLog("connectivity_deregisteration_error", err, logrus.LogInfo{"deviceID": sm.requestIdentity.DeviceID, "event": event})
