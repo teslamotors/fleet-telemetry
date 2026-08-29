@@ -63,6 +63,7 @@ type Producer struct {
 	namespace          string
 	ctx                context.Context
 	sock               *zmq4.Socket
+	sockMutex          sync.Mutex
 	logger             *logrus.Logger
 	airbrakeHandler    *airbrake.Handler
 	ackChan            chan (*telemetry.Record)
@@ -74,7 +75,7 @@ func (p *Producer) Produce(rec *telemetry.Record) {
 	if p.ctx.Err() != nil {
 		return
 	}
-	nBytes, err := p.sock.SendMessage(telemetry.BuildTopicName(p.namespace, rec.TxType), rec.Payload())
+	nBytes, err := p.sendMessage(rec)
 	if err != nil {
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
 		p.ReportError("zmq_dispatch_error", err, nil)
@@ -85,6 +86,19 @@ func (p *Producer) Produce(rec *telemetry.Record) {
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
 }
 
+// sendMessage publishes to the socket under the socket mutex: zmq sockets are
+// not thread safe, and every vehicle connection produces from its own
+// goroutine. Concurrent unsynchronized sends corrupt libzmq internal state and
+// crash the process.
+func (p *Producer) sendMessage(rec *telemetry.Record) (int, error) {
+	p.sockMutex.Lock()
+	defer p.sockMutex.Unlock()
+	if p.sock == nil {
+		return 0, zmq4.ErrorSocketClosed
+	}
+	return p.sock.SendMessage(telemetry.BuildTopicName(p.namespace, rec.TxType), rec.Payload())
+}
+
 // ReportError to airbrake and logger
 func (p *Producer) ReportError(message string, err error, logInfo logrus.LogInfo) {
 	p.airbrakeHandler.ReportLogMessage(logrus.ERROR, message, err, logInfo)
@@ -93,6 +107,8 @@ func (p *Producer) ReportError(message string, err error, logInfo logrus.LogInfo
 
 // Close the underlying socket.
 func (p *Producer) Close() error {
+	p.sockMutex.Lock()
+	defer p.sockMutex.Unlock()
 	if p.sock != nil {
 		if err := p.sock.Close(); err != nil {
 			return err
