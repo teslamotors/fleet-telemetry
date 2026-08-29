@@ -36,6 +36,13 @@ enum Field {
   NumBrickVoltageMin = 26;
   BrickVoltageMin = 27;
   NumModuleTempMax = 28;
+
+  // NOTE:
+  // Tesla Fleet Telemetry official documentation lists ModuleTempMax and ModuleTempMin as integers:
+  // https://developer.tesla.com/docs/fleet-api/fleet-telemetry/available-data#vehicle-data
+  //
+  // However, actual telemetry reports these values as double (fractional temperatures).
+  // Developers should expect floating-point values here.   
   ModuleTempMax = 29;
   NumModuleTempMin = 30;
   ModuleTempMin = 31;
