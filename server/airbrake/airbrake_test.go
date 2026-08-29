@@ -37,7 +37,7 @@ var _ = Describe("AirbrakeMiddleware", func() {
 			Expect(responseBody).To(Equal([]byte(body)))
 		},
 		Entry("404", http.StatusNotFound, "not found"),
-		Entry("400", http.StatusInternalServerError, "bad error"),
+		Entry("500", http.StatusInternalServerError, "bad error"),
 		Entry("200", http.StatusOK, "ok"),
 	)
 

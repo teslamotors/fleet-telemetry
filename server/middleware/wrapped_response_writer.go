@@ -49,6 +49,22 @@ func (w *WrappedResponseWriter) Header() http.Header {
 	return w.ResponseWriter.Header()
 }
 
+// WriteHeader captures the status code and passes through to the response writer
+func (w *WrappedResponseWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+// Write captures the response body and size and passes through to the response writer
+func (w *WrappedResponseWriter) Write(b []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(b)
+	w.size += n
+	chunk := make([]byte, n)
+	copy(chunk, b[:n])
+	w.body = append(w.body, chunk)
+	return n, err
+}
+
 // ShouldReportOnAirbrake returns true if response code is 5xx
 func (w *WrappedResponseWriter) ShouldReportOnAirbrake() bool {
 	return w.status >= 500 && w.status <= 599
