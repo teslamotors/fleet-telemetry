@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/x509"
 	"io"
 	"os"
 
@@ -92,7 +93,9 @@ var _ = Describe("Test full application config", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(tls).NotTo(BeNil())
 			Expect(tls.ClientCAs).NotTo(BeNil())
-			Expect(tls.ClientCAs.Subjects()).To(HaveLen(14)) //nolint:staticcheck
+			expected := x509.NewCertPool()
+			Expect(expected.AppendCertsFromPEM(defaultProdCA)).To(BeTrue())
+			Expect(tls.ClientCAs.Equal(expected)).To(BeTrue())
 		})
 
 		It("uses eng CA", func() {
@@ -103,7 +106,21 @@ var _ = Describe("Test full application config", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(tls).NotTo(BeNil())
 			Expect(tls.ClientCAs).NotTo(BeNil())
-			Expect(tls.ClientCAs.Subjects()).To(HaveLen(8)) //nolint:staticcheck
+			expected := x509.NewCertPool()
+			Expect(expected.AppendCertsFromPEM(defaultEngCA)).To(BeTrue())
+			Expect(tls.ClientCAs.Equal(expected)).To(BeTrue())
+		})
+
+		It("appends a custom CA to the default pool", func() {
+			config.TLS.CAFile = "files/eng_ca.crt"
+
+			tls, err := config.ExtractServiceTLSConfig(log)
+			Expect(err).NotTo(HaveOccurred())
+
+			expected := x509.NewCertPool()
+			Expect(expected.AppendCertsFromPEM(defaultProdCA)).To(BeTrue())
+			Expect(expected.AppendCertsFromPEM(defaultEngCA)).To(BeTrue())
+			Expect(tls.ClientCAs.Equal(expected)).To(BeTrue())
 		})
 	})
 
