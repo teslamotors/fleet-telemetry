@@ -31,11 +31,28 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
       - `port`: The port the fleet-telemetry server -- Default 443.
       - `ca`: The full certificate chain used to generate the server's TLS certificate.
     - Run `./check_server_cert.sh validate_server.json`
-9. Pair the application's virtual key to the vehicle(s). See documentation here: https://developer.tesla.com/docs/fleet-api/virtual-keys/developer-guide.
+9. Authorize the vehicle for streaming (depends on vehicle generation):
+   - **Most vehicles:** Pair the application's virtual key. See https://developer.tesla.com/docs/fleet-api/virtual-keys/developer-guide.
+   - **Legacy Model S / Model X (Intel Atom car computer):** These vehicles do **not** use Virtual Keys for Fleet Telemetry. A user with access to the vehicle must enable **Controls → Safety → Allow Third-Party App Data Streaming** on the vehicle touchscreen. Firmware **2025.20 or later** is required ([announcement](https://developer.tesla.com/docs/fleet-api/announcements)). Pre-2018 MCU1 Model S/X are not supported.
 10. Configure and run the [vehicle-command proxy](https://github.com/teslamotors/vehicle-command#installation-and-configuration) with the application private key.
 11. Configure vehicle(s) with the [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create) endpoint.
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
+
+### Troubleshooting: config accepted but no data streams
+
+`fleet_telemetry_config` returning `updated_vehicles: 1` only means the vehicle accepted the configuration. It does **not** guarantee the vehicle will open a WebSocket and stream. When a small subset of otherwise-working fleet vehicles stay silent:
+
+1. **Legacy Model S/X Intel Atom (common cause of [#537](https://github.com/teslamotors/fleet-telemetry/issues/537)):**
+   - Confirm firmware is **2025.20+** and `fleet_status` reports a non-null `fleet_telemetry_version`.
+   - Check `fleet_status.safety_screen_streaming_toggle_enabled`. It must be `true`. If `false` or missing, enable **Allow Third-Party App Data Streaming** under **Controls → Safety** in the car, then wait for the vehicle to reconnect.
+   - Do not expect Virtual Key pairing to unlock streaming on these vehicles; the Safety toggle replaces that step.
+2. **Modern vehicles:** Confirm the application public key is present on the vehicle via [fleet_status](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-status). Key state on that endpoint may lag.
+3. **Server / TLS:** Re-run `check_server_cert.sh` so the hostname and CA in the vehicle config match the hosted server.
+4. **Backend diagnostics:** Inspect [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) for the VIN while the vehicle is awake.
+5. **Unsupported hardware:** Pre-2018 Model S/X (MCU1) cannot use Fleet Telemetry (`unsupported_hardware`).
+
+Official vehicle prerequisites are documented in the [Fleet Telemetry overview](https://developer.tesla.com/docs/fleet-api/fleet-telemetry).
 
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
