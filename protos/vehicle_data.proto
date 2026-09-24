@@ -300,6 +300,7 @@ enum Field {
 
   Cabin12vPortKeepOn = 270; // Semi-truck only
   Cabin48vPortKeepOn = 271; // Semi-truck only
+  HvacCompressorRpm = 272; // HVAC compressor speed in RPM (see #524)
 }
 
 // ChargingState is deprecated and not used
