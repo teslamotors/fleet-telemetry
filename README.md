@@ -37,6 +37,18 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
+### Troubleshooting: vehicle command errors (e.g. `navigation_request` 503)
+
+Fleet API **vehicle commands** such as `POST /api/1/vehicles/{tag}/command/navigation_request` are **not** implemented by this repository. This server only terminates Fleet Telemetry WebSocket streams. Command failures belong to Fleet API / the [vehicle-command](https://github.com/teslamotors/vehicle-command) proxy stack.
+
+Example from [#435](https://github.com/teslamotors/fleet-telemetry/issues/435) (China `developer.tesla.cn`): HTTP **503** with an error referencing `address-sanitizer-api…tesla.cn` / `sanitize_address` **operation_timedout**. That is a **regional Fleet API backend** dependency timing out while validating a navigation address — not a missing feature or bug in open-source fleet-telemetry.
+
+What to do:
+
+1. File a **Support Inquiry** from the [developer dashboard](https://developer.tesla.com/dashboard) (or the China developer portal for CN apps). Include region, `txid`, UTC time, and a **redacted** request (no full address/PII if avoidable).
+2. For proxy/signing issues, check [teslamotors/vehicle-command](https://github.com/teslamotors/vehicle-command) — still not this repo unless the failure is WebSocket telemetry ingest.
+3. Do not open fleet-telemetry PRs that “fix” command 503s by calling third-party sanitizer URLs or spoofing navigation payloads.
+
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
