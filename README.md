@@ -37,6 +37,29 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
+### Troubleshooting: dynamic config updates and “on-demand” field batches (#457)
+
+`fleet_telemetry_config` create/delete/get run on **Fleet API** (via the vehicle-command proxy), not inside this open-source WebSocket server. This process only accepts streams once a vehicle connects with a config Tesla has already delivered.
+
+**Config sync behavior (maintainer guidance from [#183](https://github.com/teslamotors/fleet-telemetry/issues/183)):**
+
+| Observation | Explanation |
+| --- | --- |
+| Create/delete sometimes “ignored” | Adoption is **async** (backend + vehicle connectivity). When the car is online, expect on the order of **~10–15 seconds**, not instantaneous. Offline cars wait until the next backend connection. |
+| Streaming new fields while `GET …/fleet_telemetry_config` still has `synced: false` | **Expected** for a short window: the vehicle can already be using the target config before the GET flag flips to `true`. |
+| Rapid create → delete → create loops fail | Configs are meant to be **mostly static**. High-frequency POSTs (e.g. many per minute) have correlated with flaky adoption; avoid using config churn as a session state machine. |
+| Rate limits | Fleet API has general [billing/rate limits](https://developer.tesla.com/docs/fleet-api/billing-and-limits). There is no documented “reconfigure every N seconds” product feature — treat reconfigure as rare. Also respect `max_configs` / per-vehicle application limits on create. |
+
+**Is there a one-time batch fetch for selected fields?**  
+No. Neither this server nor Fleet Telemetry exposes an async “give me these fields once” RPC. Prefer continuous streaming of **only** the fields you need ([overview](https://developer.tesla.com/docs/fleet-api/fleet-telemetry)): change + `interval_seconds` already suppresses unchanged values. For charge/drive **session boundaries** without constant intermediates:
+
+1. Keep a **stable** config; detect start/end from sparse signals (`Gear`, `DetailedChargeState`, `ACChargingPower`/`DCChargingPower`, plus `connectivity` records).
+2. Use larger `interval_seconds` (and `minimum_delta` where applicable) for noisy continuous fields instead of deleting the config when idle.
+3. Use `resend_interval_seconds` only if you need periodic heartbeats — it **increases** traffic.
+4. Avoid polling `vehicle_data` for the same purpose; Fleet Telemetry exists so you only pay for configured, on-change fields.
+
+Escalate persistent sync bugs (with redacted VIN, firmware, timestamps, create/get payloads) via [Support Inquiry](https://developer.tesla.com/dashboard) — not by inventing server-side config APIs here.
+
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
