@@ -431,6 +431,10 @@ enum BuckleStatus {
     BuckleStatusUnlatched = 1;
     BuckleStatusLatched = 2;
     BuckleStatusFaulted = 3;
+    // Observed on production PassengerSeatBelt streams (issue #527). Appears
+    // passenger-path-specific; likely not-equipped / no occupant-sensing hardware.
+    // Confirm official naming with Tesla if firmware docs differ.
+    BuckleStatusNotEquipped = 4;
 }
 
 enum CarTypeValue {

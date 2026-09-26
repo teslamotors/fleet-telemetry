@@ -182,6 +182,26 @@ var _ = Describe("Payload", func() {
 					"invalid": true,
 				},
 			),
+			Entry("BuckleStatusNotEquipped (wire value 4) with types excluded",
+				&protos.Datum{
+					Key:   protos.Field_PassengerSeatBelt,
+					Value: &protos.Value{Value: &protos.Value_BuckleStatusValue{BuckleStatusValue: protos.BuckleStatus_BuckleStatusNotEquipped}},
+				},
+				excludeTypes,
+				"PassengerSeatBelt",
+				"BuckleStatusNotEquipped",
+			),
+			Entry("BuckleStatusNotEquipped with types included",
+				&protos.Datum{
+					Key:   protos.Field_PassengerSeatBelt,
+					Value: &protos.Value{Value: &protos.Value_BuckleStatusValue{BuckleStatusValue: protos.BuckleStatus_BuckleStatusNotEquipped}},
+				},
+				includeTypes,
+				"PassengerSeatBelt",
+				map[string]interface{}{
+					"buckleStatus": "BuckleStatusNotEquipped",
+				},
+			),
 		)
 	})
 })
