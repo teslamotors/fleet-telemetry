@@ -133,10 +133,12 @@ type RateLimit struct {
 	// MessageLimit is a rate limiting of the number of messages per client
 	MessageLimit int `json:"message_limit,omitempty"`
 
-	// MessageInterval is the rate limit time interval
+	// MessageInterval is the rate limit time interval in seconds (JSON: message_interval_time).
+	// Loaded configs copy this into MessageIntervalTimeSecond during validation.
 	MessageInterval int `json:"message_interval_time,omitempty"`
 
-	// MessageIntervalTimeSecond is the rate limit time interval as a duration in second
+	// MessageIntervalTimeSecond is the rate limit window used by the socket limiter.
+	// Not set from JSON directly; populated from MessageInterval in validateRateLimit.
 	MessageIntervalTimeSecond time.Duration
 }
 
