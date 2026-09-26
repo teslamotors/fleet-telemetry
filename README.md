@@ -37,6 +37,22 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
+### Troubleshooting: redundant / unchanged metrics (issue #425)
+
+Vehicles already gate transmission **on change**, rate-limited by each field's `interval_seconds`. A field is pushed to the in-vehicle collector only after the interval has elapsed **and** the value has changed ([Fleet Telemetry overview](https://developer.tesla.com/docs/fleet-api/fleet-telemetry)). This open-source server is intentionally a thin ack + forward path: it does **not** maintain a VIN+field last-value cache before dispatching to Kafka/MQTT/etc.
+
+If you still see “unchanged” values reaching storage, prefer **vehicle config** (and consumer-side compaction) over a server-side Redis/memory dedupe:
+
+| Cause | What to do |
+| --- | --- |
+| Noisy numerics (temp, voltage, …) | Set per-field `minimum_delta` (requires typed values / current firmware) |
+| Intentional periodic refresh | `resend_interval_seconds` **forces** resends even when unchanged — raise it or remove it if you do not need heartbeats |
+| Companion fields | `include_fields` attaches listed fields whenever a parent publishes, **even if unchanged** |
+| Reliability retries | `delivery_policy: latest` + `Payload.is_resend` retransmit unacked fields as a true-up — dropping these in the server can hide data loss |
+| Too chatty overall | Increase `interval_seconds`; stream only fields you need (Tesla’s cost guidance) |
+
+A server VIN+datapoint cache is generally **not** recommended here: it fights intentional resends/`include_fields`, needs careful multi-replica consistency, and belongs downstream if you need last-value semantics (e.g. stream processor or datastore compaction). Tracked in [#425](https://github.com/teslamotors/fleet-telemetry/issues/425).
+
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
