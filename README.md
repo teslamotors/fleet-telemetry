@@ -37,6 +37,14 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
+### Troubleshooting: can't log in to developer.tesla.com
+
+Login, password reset, MFA, and dashboard access for [developer.tesla.com](https://developer.tesla.com) are **not** handled by this open-source server. Filing GitHub issues here cannot unlock or repair Tesla Developer accounts (see [#514](https://github.com/teslamotors/fleet-telemetry/issues/514)).
+
+1. Use the [developer dashboard](https://developer.tesla.com/dashboard) → **Support Inquiry** (preferred).
+2. For general Tesla account help, see [Tesla Support](https://www.tesla.com/support).
+3. Open a GitHub issue in this repo only for bugs or docs about **fleet-telemetry code** (WebSocket server, protobufs, datastores, config in this repository).
+
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 

@@ -29,7 +29,17 @@ A [pull request](https://docs.github.com/en/github/collaborating-with-issues-and
 
 
 #### :question: Support
-We are a small team working hard to keep up with the documentation demands of a continuously changing product. Unfortunately, we can't help with support questions in this repository. If you are experiencing a problem unrelated to the code hosted here please [contact Tesla Support directly](https://https://www.tesla.com/support). Any issues, discussions, or pull requests opened here requesting support will be given information about how to contact Tesla Support, then closed and locked.
+We are a small team working hard to keep up with the documentation demands of a continuously changing product. Unfortunately, we can't help with support questions in this repository.
+
+**Use the Tesla Developer [Support Inquiry](https://developer.tesla.com/dashboard)** (from the developer dashboard) for:
+
+- Cannot log in to [developer.tesla.com](https://developer.tesla.com) / dashboard access
+- Account, application registration, OAuth, or partner token problems
+- Fleet API eligibility / configure skips that are not bugs in this open-source server
+
+For general Tesla product support, see [Tesla Support](https://www.tesla.com/support).
+
+Any issues, discussions, or pull requests opened here requesting support will be given information about how to contact Tesla Support, then closed and locked.
 
 #### :earth_asia: Translations
 
@@ -43,7 +53,7 @@ This website is internationalized and available in multiple languages. The sourc
 
 If you spot a problem within this repository (code, documentation, style, etc.), [search if an issue already exists](https://docs.github.com/en/github/searching-for-information-on-github/searching-on-github/searching-issues-and-pull-requests#search-by-the-title-body-or-comments).
 
-Issues created here should only target the Fleet Telemetry project, if you have any issues with your vehicle please [contact Tesla Support directly](https://https://www.tesla.com/support).
+Issues created here should only target the Fleet Telemetry project. Developer portal login/account problems and other Fleet API account issues belong in a [Support Inquiry](https://developer.tesla.com/dashboard), not GitHub. If you have any issues with your vehicle please [contact Tesla Support directly](https://www.tesla.com/support).
 
 DO NOT: When creating or responding to a Github Issue DO NOT post any personal information, account information, vehicle information or anything that could identify you, your collaborators or your customers.
 
