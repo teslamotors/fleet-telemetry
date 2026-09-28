@@ -11,6 +11,12 @@ import (
 const (
 	// SemiModelLetter is the 4th character in VIN representing Tesla semi
 	SemiModelLetter = "T"
+
+	// UnknownFieldNamePrefix is prepended to the field number when a payload contains a
+	// field this build's protobuf definition does not know about. Vehicles can run
+	// firmware newer than the server, so the set of field numbers on the wire is not
+	// bounded by the Field enum this binary was compiled with.
+	UnknownFieldNamePrefix = "UnknownField_"
 )
 
 // PayloadToMap transforms a Payload into a human readable map for logging purposes
@@ -25,7 +31,17 @@ func PayloadToMap(payload *protos.Payload, includeTypes bool, vin string, logger
 			logger.ActivityLog("unknown_payload_data_type", logrus.LogInfo{"vin": payload.Vin})
 			continue
 		}
-		name := protos.Field_name[int32(datum.Key.Number())]
+		name, known := protos.Field_name[int32(datum.Key.Number())]
+		if !known {
+			// The vehicle is reporting a field number this build's protobuf definition
+			// does not have a name for, which happens whenever firmware starts emitting a
+			// field before the server is updated. Without a fallback the map lookup yields
+			// the empty string, so every unrecognized field in the payload lands on the
+			// same "" key and all but the last are silently discarded. Keying by number
+			// keeps each datum distinct and makes the gap visible to consumers.
+			name = fmt.Sprintf("%s%d", UnknownFieldNamePrefix, datum.Key.Number())
+			logger.ActivityLog("unknown_payload_field_number", logrus.LogInfo{"field_number": int32(datum.Key.Number()), "vin": payload.Vin})
+		}
 		value, ok := transformValue(datum.Value.Value, includeTypes, vin)
 		if !ok {
 			logger.ActivityLog("unknown_payload_value_data_type", logrus.LogInfo{"name": name, "vin": payload.Vin})
