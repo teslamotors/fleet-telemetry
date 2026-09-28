@@ -158,6 +158,24 @@ spec:
 
 Vehicles must be running firmware version 2023.20.6 or later.  Some older model S/X are not supported.
 
+### Field availability
+
+Not every signal exposed by the Fleet API `vehicle_data` endpoint is available as telemetry, and which fields a vehicle sends depends on the firmware it is running rather than on the server.
+
+* The fields a server can name are the members of the [`Field` enum](./protos/vehicle_data.proto). Fields added over time carry a comment recording the first firmware release that emits them, for example:
+
+  ```
+  // fields 260-269 are first available in firmware version 2026.32 (device client version 1.3.0)
+  ```
+
+  Use those comments to work out the minimum firmware for a field you depend on. A vehicle on older firmware will not send it even though the server understands it.
+
+* **Adding an entry to the `Field` enum does not make vehicles emit a signal.** Field numbers are allocated alongside firmware releases, so a signal that is not already in the enum cannot be enabled from this repository — it requires firmware support. Issues requesting new signals are tracked with the `firmware` label.
+
+* Choosing an unused number for a missing field is not a workaround. Numbers are allocated in order as firmware ships, so a locally chosen number will eventually be assigned to a different signal, and any consumer that adopted the local meaning will silently mislabel real data.
+
+If a signal you need is missing, please open an issue describing the signal and the use case instead of adding it to the proto.
+
 ## Personalized Backends/Dispatchers
 Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to  STDOUT logger.  Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L13-L26)::
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
