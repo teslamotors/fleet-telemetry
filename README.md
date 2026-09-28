@@ -158,6 +158,20 @@ spec:
 
 Vehicles must be running firmware version 2023.20.6 or later.  Some older model S/X are not supported.
 
+### Field availability and new field requests
+
+Which signals a vehicle emits depends on **vehicle firmware / device-client version**, not on this open-source server. Minimum firmware for groups of fields is documented as comments in [`protos/vehicle_data.proto`](./protos/vehicle_data.proto) (for example, fields 260–269 require firmware **2026.32** / device client **1.3.0**).
+
+**Do not invent unused `Field` enum numbers locally.** IDs are allocated by Tesla as firmware ships. A locally chosen number is later assigned to a different signal (e.g. field `260` became `GpsAccuracyMeters` in [#546](https://github.com/teslamotors/fleet-telemetry/pull/546)); consumers that adopted the local meaning then silently mislabel real data. Adding an enum entry here also does **not** make vehicles emit the signal or make Fleet API accept it in `fleet_telemetry_config` until Tesla whitelists it.
+
+To request a new streamable field (example: Calculated Ah Capacity / CAC in [#429](https://github.com/teslamotors/fleet-telemetry/issues/429)):
+
+1. Open a GitHub issue describing the signals (names, units, CAN/BMS source if known).
+2. Wait for Tesla maintainers to assign official Field IDs and firmware availability.
+3. After IDs are agreed, a PR can add the enum values, regenerate Go/Python/Ruby bindings, and note the minimum firmware.
+
+**Pending request — CAC (#429):** `CACmin`, `CACmax`, `BrickCACmin`, `BrickCACmax` (Calculated Ah Capacity from the BMS; visible in tools such as ScanMyTesla). Not in the published `Field` enum yet. Until official IDs ship, related capacity-adjacent fields that **are** published include `NominalFullPackEnergyKwh` (263) and `BrickSocMinPercent` (262) on firmware that supports them — they are not substitutes for CAC Ah.
+
 ## Personalized Backends/Dispatchers
 Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry servers. They can be of any type, from distributed message queues to  STDOUT logger.  Here is a list of the currently supported [dispatchers](./telemetry/producer.go#L13-L26)::
 * Kafka (preferred): Configure with the config.json file.  See implementation here: [config/config.go](./config/config.go)
