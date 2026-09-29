@@ -31,11 +31,32 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
       - `port`: The port the fleet-telemetry server -- Default 443.
       - `ca`: The full certificate chain used to generate the server's TLS certificate.
     - Run `./check_server_cert.sh validate_server.json`
-9. Pair the application's virtual key to the vehicle(s). See documentation here: https://developer.tesla.com/docs/fleet-api/virtual-keys/developer-guide.
+9. Authorize the vehicle for streaming (depends on vehicle generation):
+   - **Most vehicles:** Pair the application's virtual key. See https://developer.tesla.com/docs/fleet-api/virtual-keys/developer-guide.
+   - **Legacy Model S / Model X (Intel Atom):** These vehicles do **not** use Virtual Keys for Fleet Telemetry. Enable **Controls → Safety → Allow Third-Party App Data Streaming** on the vehicle. Firmware **2025.20+** is required ([announcement](https://developer.tesla.com/docs/fleet-api/announcements)). Confirm with `fleet_status.safety_screen_streaming_toggle_enabled`. Pre-2018 MCU1 vehicles are not supported.
 10. Configure and run the [vehicle-command proxy](https://github.com/teslamotors/vehicle-command#installation-and-configuration) with the application private key.
-11. Configure vehicle(s) with the [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create) endpoint.
+11. Configure vehicle(s) with the [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create) endpoint (via the vehicle-command proxy).
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
+
+### Troubleshooting: `unsupported_firmware` despite `fleet_telemetry_version`
+
+`fleet_status.fleet_telemetry_version` means the vehicle reports a Fleet Telemetry **client** version. It is **not** a guarantee that `POST /api/1/vehicles/fleet_telemetry_config` will accept the VIN. Configuration eligibility is enforced by Fleet API when you create a config; skips are returned under `skipped_vehicles` ([docs](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-create)).
+
+Documented `unsupported_firmware` reasons include:
+
+| How you configure | Minimum firmware |
+| --- | --- |
+| Vehicle-command HTTP proxy (recommended) | `2024.26`+ |
+| Legacy direct / CSR-style configure | `2023.20`+ (direct) |
+| Intel Atom Model S / Model X | `2025.20`+ |
+
+Also check:
+
+1. **Call path:** Prefer the [vehicle-command proxy](https://github.com/teslamotors/vehicle-command) so the config is signed correctly. Mis-routed regional base URLs or unsigned payloads can fail in surprising ways.
+2. **Legacy Intel Atom vs Virtual Key:** `key_paired: false` / empty `key_paired_vins` is **expected** for these vehicles. That case should surface as `missing_key` for modern VK-required cars, **not** as `unsupported_firmware`. If Safety streaming is on, firmware is `2025.20+`, and you still get only `unsupported_firmware`, treat it as **backend eligibility**, not a missing toggle.
+3. **Do not trust client fields alone:** There is currently **no** `fleet_status` field documented as “config will succeed.” The authoritative signal is a successful configure response (`updated_vehicles` / non-null config), not `fleet_telemetry_version` alone. This mismatch is tracked in [#510](https://github.com/teslamotors/fleet-telemetry/issues/510).
+4. **Regional backends:** Fleet Telemetry configure has previously had China-region backend defects (see [#132](https://github.com/teslamotors/fleet-telemetry/issues/132)). If the vehicle meets published prerequisites and still skips with `unsupported_firmware`, open a [Support Inquiry](https://developer.tesla.com/dashboard) with redacted VIN, region, firmware, `fleet_status` JSON, and the configure request/response — Tesla maintainers must adjust Fleet API eligibility. This open-source server cannot override `skipped_vehicles`.
 
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
