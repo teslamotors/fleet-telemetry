@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus/hooks/test"
 
@@ -71,6 +72,30 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 func validateConfig(config *Config) error {
 	if len(config.VinsToTrack()) > maxVinsToTrack {
 		return fmt.Errorf("set the value of `vins_signal_tracking_enabled` less than %d unique vins", maxVinsToTrack)
+	}
+	if err := validateRateLimit(config.RateLimit); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateRateLimit maps message_interval_time onto MessageIntervalTimeSecond and
+// rejects enabled limiters that cannot trip (zero limit or zero interval). See #545.
+func validateRateLimit(rateLimit *RateLimit) error {
+	if rateLimit == nil {
+		return nil
+	}
+	if rateLimit.MessageInterval > 0 && rateLimit.MessageIntervalTimeSecond == 0 {
+		rateLimit.MessageIntervalTimeSecond = time.Duration(rateLimit.MessageInterval) * time.Second
+	}
+	if !rateLimit.Enabled {
+		return nil
+	}
+	if rateLimit.MessageLimit <= 0 {
+		return fmt.Errorf("rate_limit: message_limit must be greater than 0")
+	}
+	if rateLimit.MessageIntervalTimeSecond <= 0 {
+		return fmt.Errorf("rate_limit: message_interval_time must be greater than 0")
 	}
 	return nil
 }

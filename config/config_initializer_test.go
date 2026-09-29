@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
@@ -22,7 +23,7 @@ var _ = Describe("Test application config initialization", func() {
 			StatusPort:         8080,
 			Namespace:          "tesla_telemetry",
 			TLS:                &TLS{CAFile: "tesla.ca", ServerCert: "your_own_cert.crt", ServerKey: "your_own_key.key"},
-			RateLimit:          &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30},
+			RateLimit:          &RateLimit{Enabled: true, MessageLimit: 1000, MessageInterval: 30, MessageIntervalTimeSecond: 30 * time.Second},
 			ReliableAckSources: map[string]telemetry.Dispatcher{"V": telemetry.Kafka},
 			Kafka: &confluent.ConfigMap{
 				"bootstrap.servers":            "some.broker1:9093,some.broker1:9093",
@@ -78,6 +79,25 @@ var _ = Describe("Test application config initialization", func() {
 	It("returns an error if config is not appropriate", func() {
 		_, err := loadTestApplicationConfig(BadTopicConfig)
 		Expect(err).To(MatchError("invalid character '}' looking for beginning of object key string"))
+	})
+
+	It("returns an error if rate limit message_limit is not greater than 0", func() {
+		badRateLimitConfig := `{"host":"127.0.0.1","port":443,"namespace":"test","rate_limit":{"enabled":true,"message_limit":0,"message_interval_time":30}}`
+		_, err := loadTestApplicationConfig(badRateLimitConfig)
+		Expect(err).To(MatchError("rate_limit: message_limit must be greater than 0"))
+	})
+
+	It("returns an error if rate limit message_interval_time is not greater than 0", func() {
+		badRateLimitConfig := `{"host":"127.0.0.1","port":443,"namespace":"test","rate_limit":{"enabled":true,"message_limit":100,"message_interval_time":0}}`
+		_, err := loadTestApplicationConfig(badRateLimitConfig)
+		Expect(err).To(MatchError("rate_limit: message_interval_time must be greater than 0"))
+	})
+
+	It("populates MessageIntervalTimeSecond from message_interval_time", func() {
+		cfg := `{"host":"127.0.0.1","port":443,"namespace":"test","rate_limit":{"enabled":true,"message_limit":100,"message_interval_time":30},"records":{"V":["logger"]}}`
+		loadedConfig, err := loadTestApplicationConfig(cfg)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(loadedConfig.RateLimit.MessageIntervalTimeSecond).To(Equal(30 * time.Second))
 	})
 })
 

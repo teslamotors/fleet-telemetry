@@ -92,8 +92,9 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
     "pool": { "pool_size": int, "min_idle_conns": int, "conn_max_lifetime": int } // optional
   },
   "rate_limit": {
-    "enabled": bool,
-    "message_limit": int - ex.: 1000
+    "enabled": bool - when true, drops exceeding messages; when false/absent, still tracks a default 100/60s window for metrics/logs only,
+    "message_limit": int - max messages per window per client (required > 0 when enabled),
+    "message_interval_time": int - window length in seconds (required > 0 when enabled; mapped to the socket limiter duration)
   },
   "records": { // list of records and their dispatchers, currently: alerts, errors, and V(vehicle data)
     "alerts": [
