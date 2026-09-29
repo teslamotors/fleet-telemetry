@@ -47,6 +47,11 @@ enum Field {
   ACChargingPower = 37;
   ChargeLimitSoc = 38;
   FastChargerPresent = 39;
+  // EstBatteryRange: historically estimated range given SOC and driving conditions.
+  // Observed not reported (absent / nil) on many vehicles from firmware ~2026.14.x
+  // onward — same upstream change affects charge_state.est_battery_range on the
+  // vehicle_data endpoint. Field ID retained for proto compatibility; this server
+  // cannot synthesize the value. Prefer RatedRange or IdealBatteryRange. See #459.
   EstBatteryRange = 40;
   IdealBatteryRange = 41;
   BatteryLevel = 42;

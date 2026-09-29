@@ -37,6 +37,17 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
+### Troubleshooting: `EstBatteryRange` not reported (firmware ~2026.14+)
+
+`EstBatteryRange` may no longer appear in Fleet Telemetry streams after vehicle software **~2026.14.x**. The same signal is often `nil` on the classic `vehicle_data` `charge_state.est_battery_range` path, so this is an **upstream vehicle/API change**, not a bug in this open-source ack/forward server ([#459](https://github.com/teslamotors/fleet-telemetry/issues/459)).
+
+What to do:
+
+1. Prefer **`RatedRange`** and/or **`IdealBatteryRange`** in `fleet_telemetry_config` (still populated in community reports after 2026.14).
+2. Treat missing `EstBatteryRange` as unavailable — do not coerce to `0`.
+3. Keep the proto field ID (`40`) for compatibility with older firmwares that still emit it; configuring it on 2026.14+ vehicles is harmless but may yield no observations.
+4. Official [Available Data](https://developer.tesla.com/docs/fleet-api/fleet-telemetry/available-data) may still list the field until Tesla updates docs; this repository notes the observed gap next to the enum in `protos/vehicle_data.proto`.
+
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
