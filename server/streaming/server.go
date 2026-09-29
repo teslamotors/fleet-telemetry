@@ -3,8 +3,13 @@ package streaming
 import (
 	"context"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -127,9 +132,18 @@ func (s *Server) Status() func(w http.ResponseWriter, r *http.Request) {
 // ServeBinaryWs serves a http query and upgrades it to a websocket -- only serves binary data coming from the ws
 func (s *Server) ServeBinaryWs(config *config.Config) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// A client certificate must never reach a server that is configured to trust a
+		// proxy header instead, because the two identities can disagree. Reject before
+		// upgrading so the operator sees an HTTP error rather than a dropped websocket.
+		if err := rejectClientCertWithPassThrough(r, config); err != nil {
+			s.logger.ErrorLog("tls_pass_through_client_cert_rejected", err, nil)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		if ws := s.promoteToWebsocket(w, r); ws != nil {
 			ctx := context.WithValue(context.Background(), SocketContext, map[string]interface{}{"request": r})
-			requestIdentity, err := extractIdentityFromConnection(r)
+			requestIdentity, err := extractIdentity(r, config)
 			if err != nil {
 				s.logger.ErrorLog("extract_sender_id_err", err, nil)
 				_ = ws.Close()
@@ -220,8 +234,30 @@ func (s *Server) promoteToWebsocket(w http.ResponseWriter, r *http.Request) *web
 	return ws
 }
 
-func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity, error) {
-	cert, err := extractCertFromHeaders(r)
+// ErrClientCertWithPassThrough is returned when a request carries a TLS client certificate
+// while the server is configured to read the certificate from a proxy header instead.
+var ErrClientCertWithPassThrough = errors.New("received a TLS client certificate while tls_pass_through is enabled: refusing the connection because the proxy header and the TLS certificate could identify different vehicles. Either remove tls_pass_through from the server configuration, or stop presenting client certificates to this listener")
+
+// rejectClientCertWithPassThrough enforces that header-based identity and TLS client
+// certificates are never used together.
+func rejectClientCertWithPassThrough(r *http.Request, conf *config.Config) error {
+	if conf.TLSPassThrough == nil {
+		return nil
+	}
+	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+		return ErrClientCertWithPassThrough
+	}
+	return nil
+}
+
+func extractIdentity(r *http.Request, conf *config.Config) (*telemetry.RequestIdentity, error) {
+	var cert *x509.Certificate
+	var err error
+	if conf.TLSPassThrough != nil {
+		cert, err = extractCertFromProxyHeader(r, *conf.TLSPassThrough)
+	} else {
+		cert, err = extractCertFromTLS(r)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +273,9 @@ func extractIdentityFromConnection(r *http.Request) (*telemetry.RequestIdentity,
 	}, nil
 }
 
-func extractCertFromHeaders(r *http.Request) (*x509.Certificate, error) {
+// extractCertFromTLS returns the verified leaf certificate from the TLS connection. This is
+// the default, and the only path where this server verifies the certificate itself.
+func extractCertFromTLS(r *http.Request) (*x509.Certificate, error) {
 	if r.TLS == nil {
 		return nil, fmt.Errorf("missing_tls_state")
 	}
@@ -245,6 +283,71 @@ func extractCertFromHeaders(r *http.Request) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("missing_verified_client_certificate")
 	}
 	return r.TLS.VerifiedChains[0][0], nil
+}
+
+// extractCertFromProxyHeader returns the client certificate a trusted proxy forwarded.
+//
+// Unlike extractCertFromTLS, nothing here verifies the certificate: the proxy is trusted to
+// have completed and validated the mTLS handshake. Anything able to reach this listener
+// directly can therefore assert any identity, which is why the feature is off by default and
+// the server must not be exposed outside the trusted network.
+func extractCertFromProxyHeader(r *http.Request, mode config.TLSPassThrough) (*x509.Certificate, error) {
+	switch mode {
+	case config.RFC9440:
+		return extractCertRFC9440(r)
+	case config.AWSApplicationLoadBalancer:
+		return extractCertAWSALB(r)
+	default:
+		return nil, fmt.Errorf("unsupported tls_pass_through mode: %s", mode)
+	}
+}
+
+// extractCertRFC9440 reads the Client-Cert header defined by RFC 9440.
+//
+// Two details matter. The client's own certificate is carried in Client-Cert;
+// Client-Cert-Chain carries the rest of the chain and explicitly excludes the end-entity
+// certificate, so reading it would identify the issuing CA rather than the vehicle. The
+// value is an RFC 8941 Byte Sequence: base64 of the DER certificate, delimited by colons,
+// not PEM.
+func extractCertRFC9440(r *http.Request) (*x509.Certificate, error) {
+	raw := strings.TrimSpace(r.Header.Get("Client-Cert"))
+	if raw == "" {
+		return nil, fmt.Errorf("missing_certificate_header: Client-Cert")
+	}
+	// Tolerate a proxy that omits the Byte Sequence delimiters.
+	encoded := strings.TrimSuffix(strings.TrimPrefix(raw, ":"), ":")
+	der, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to base64 decode Client-Cert header: %w", err)
+	}
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate from Client-Cert header: %w", err)
+	}
+	return cert, nil
+}
+
+// extractCertAWSALB reads the X-Amzn-Mtls-Clientcert header set by an AWS Application Load
+// Balancer in mutual TLS passthrough mode. The value is the URL-encoded PEM of the whole
+// chain, ordered leaf first, so the first block is the vehicle's certificate.
+func extractCertAWSALB(r *http.Request) (*x509.Certificate, error) {
+	raw := r.Header.Get("X-Amzn-Mtls-Clientcert")
+	if raw == "" {
+		return nil, fmt.Errorf("missing_certificate_header: X-Amzn-Mtls-Clientcert")
+	}
+	decoded, err := url.QueryUnescape(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to url decode X-Amzn-Mtls-Clientcert header: %w", err)
+	}
+	block, _ := pem.Decode([]byte(decoded))
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse PEM block from X-Amzn-Mtls-Clientcert header")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate from X-Amzn-Mtls-Clientcert header: %w", err)
+	}
+	return cert, nil
 }
 
 func registerServerMetricsOnce(metricsCollector metrics.MetricCollector) {

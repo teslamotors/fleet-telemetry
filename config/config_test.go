@@ -223,6 +223,36 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
+	Context("configure tls_pass_through", func() {
+		It("is disabled by default", func() {
+			config, err := loadTestApplicationConfig(TestSmallConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.TLSPassThrough).To(BeNil())
+		})
+
+		It("parses a supported proxy format", func() {
+			config, err := loadTestApplicationConfig(TestTLSPassThroughConfig)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.TLSPassThrough).NotTo(BeNil())
+			Expect(*config.TLSPassThrough).To(Equal(RFC9440))
+		})
+
+		It("rejects an unsupported value rather than silently disabling identity extraction", func() {
+			_, err := loadTestApplicationConfig(TestInvalidTLSPassThroughConfig)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("not_a_supported_proxy"))
+		})
+
+		It("validates the supported values", func() {
+			valid := RFC9440
+			Expect(valid.IsValid()).To(BeTrue())
+			alb := AWSApplicationLoadBalancer
+			Expect(alb.IsValid()).To(BeTrue())
+			invalid := TLSPassThrough("nginx")
+			Expect(invalid.IsValid()).To(BeFalse())
+		})
+	})
+
 	Context("configure redis", func() {
 		AfterEach(func() {
 			_ = os.Unsetenv("REDIS_PASSWORD")

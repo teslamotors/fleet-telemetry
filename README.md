@@ -91,6 +91,8 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
     "tls": { "ca_file": string, "server_cert": string, "server_key": string }, // optional
     "pool": { "pool_size": int, "min_idle_conns": int, "conn_max_lifetime": int } // optional
   },
+  "tls_pass_through": string - optional; "rfc9440" or "aws_alb". Only set this when a
+      trusted proxy terminates mTLS on your behalf. See "Running behind a trusted proxy".,
   "rate_limit": {
     "enabled": bool,
     "message_limit": int - ex.: 1000
@@ -279,6 +281,33 @@ docker buildx inspect --bootstrap
 docker buildx build --no-cache --progress=plain --platform linux/amd64 -t <name:tag>(e.x.: fleet-telemetry:local.1.1) -f Dockerfile . --load
 container_id=$(docker create fleet-telemetry:local.1.1) docker cp $container_id:/fleet-telemetry /tmp/fleet-telemetry
 ```
+
+## Running behind a trusted proxy
+
+By default the telemetry server terminates mTLS itself and identifies each vehicle from the verified client certificate on the TLS connection. Some deployments instead terminate mTLS at a reverse proxy or load balancer, which leaves the server with no client certificate to inspect.
+
+Setting `tls_pass_through` makes the server take the vehicle's certificate from a request header that the proxy adds. Two formats are supported:
+
+| Value | Header | Notes |
+| --- | --- | --- |
+| `rfc9440` | `Client-Cert` | [RFC 9440](https://datatracker.ietf.org/doc/rfc9440/). The value is the DER certificate, base64 encoded and delimited with colons. Note that this is the `Client-Cert` header, not `Client-Cert-Chain`, which carries the rest of the chain and deliberately excludes the vehicle's own certificate. |
+| `aws_alb` | `X-Amzn-Mtls-Clientcert` | [AWS Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/mutual-authentication.html) in mutual TLS **passthrough** mode. The value is the URL-encoded PEM chain, ordered leaf first. |
+
+```json
+{
+  "tls_pass_through": "rfc9440"
+}
+```
+
+### Security considerations
+
+**This moves vehicle authentication out of the telemetry server and into your proxy.** Read this before enabling it.
+
+* **It is disabled unless you set it.** With `tls_pass_through` unset the server ignores these headers completely, so a client cannot assert an identity by adding one.
+* **The server no longer verifies anything.** On the default path the certificate is taken from `VerifiedChains`, meaning Go has already validated it against the configured CA. When reading from a header there is no chain to verify; the proxy is trusted to have completed and validated the mTLS handshake.
+* **Anything that can reach the listener can claim to be any vehicle.** When this setting is on, the server listens for plain HTTP and believes the header. The listener must not be reachable from outside the trusted network, and your proxy must overwrite these headers on every inbound request rather than passing through a client-supplied value.
+* **The `tls` block is ignored** while `tls_pass_through` is set, and the server logs that at startup.
+* **Client certificates and pass-through are never combined.** If a request somehow arrives with a TLS client certificate while this setting is on, the connection is rejected with `400 Bad Request` before the websocket is upgraded, because the header and the certificate could identify different vehicles. The fix is to remove `tls_pass_through` from the configuration, not to change the proxy.
 
 ## Security and Privacy considerations
 

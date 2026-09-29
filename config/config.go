@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed" //Used for default CAs
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -51,6 +52,13 @@ type Config struct {
 
 	// TLS contains certificates & CA info for the webserver
 	TLS *TLS `json:"tls,omitempty"`
+
+	// TLSPassThrough configures the server to take the vehicle's client certificate from a
+	// request header set by a trusted reverse proxy that already terminated mTLS, instead of
+	// from the TLS connection. It is nil (disabled) unless explicitly configured, and when
+	// set the server listens for plain HTTP. See "Running behind a trusted proxy" in the
+	// README before enabling it.
+	TLSPassThrough *TLSPassThrough `json:"tls_pass_through,omitempty"`
 
 	// UseDefaultEngCA overrides default CA to eng
 	UseDefaultEngCA bool `json:"use_default_eng_ca"`
@@ -285,6 +293,41 @@ func (t *TLS) ClientTLSConfig() (*tls.Config, error) {
 	}
 
 	return tlsConfig, nil
+}
+
+// TLSPassThrough identifies which proxy's client-certificate header format to parse.
+type TLSPassThrough string
+
+const (
+	// RFC9440 reads the Client-Cert header defined by RFC 9440.
+	RFC9440 TLSPassThrough = "rfc9440"
+	// AWSApplicationLoadBalancer reads the X-Amzn-Mtls-Clientcert header set by an AWS
+	// Application Load Balancer in mutual TLS passthrough mode.
+	AWSApplicationLoadBalancer TLSPassThrough = "aws_alb"
+)
+
+// IsValid reports whether the value names a supported proxy header format.
+func (t *TLSPassThrough) IsValid() bool {
+	switch *t {
+	case RFC9440, AWSApplicationLoadBalancer:
+		return true
+	default:
+		return false
+	}
+}
+
+// UnmarshalJSON rejects unsupported values so a typo fails at startup rather than leaving
+// the server unable to identify any vehicle.
+func (t *TLSPassThrough) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*t = TLSPassThrough(value)
+	if !t.IsValid() {
+		return fmt.Errorf("invalid tls_pass_through value %q, expected one of %q or %q", value, RFC9440, AWSApplicationLoadBalancer)
+	}
+	return nil
 }
 
 // AirbrakeTLSConfig return the TLS config needed for connecting with airbrake server

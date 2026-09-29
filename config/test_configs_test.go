@@ -86,6 +86,40 @@ const BadVinsConfig = `
 	}
 }
 `
+const TestTLSPassThroughConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"kafka": {
+		"bootstrap.servers": "some.broker1:9093",
+		"queue.buffering.max.messages": 1000000
+	},
+	"records": {
+		"V": ["kafka"]
+	},
+	"tls_pass_through": "rfc9440"
+}
+`
+
+const TestInvalidTLSPassThroughConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"kafka": {
+		"bootstrap.servers": "some.broker1:9093",
+		"queue.buffering.max.messages": 1000000
+	},
+	"records": {
+		"V": ["kafka"]
+	},
+	"tls_pass_through": "not_a_supported_proxy"
+}
+`
+
 const TestBadReliableAckConfig = `
 {
 	"host": "127.0.0.1",

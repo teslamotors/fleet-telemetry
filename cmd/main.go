@@ -72,11 +72,26 @@ func startServer(config *config.Config, airbrakeNotifier *gobrake.Notifier, logg
 		return err
 	}
 
-	if server.TLSConfig, err = config.ExtractServiceTLSConfig(logger); err != nil {
-		return err
+	if config.TLSPassThrough != nil {
+		// mTLS is terminated by a trusted proxy, so this listener serves plain HTTP and
+		// takes the vehicle's identity from a request header. Anything that can reach it
+		// directly can assert any identity, so say so loudly at startup.
+		logger.ActivityLog("tls_pass_through_enabled", logrus.LogInfo{
+			"mode":    string(*config.TLSPassThrough),
+			"warning": "mTLS is disabled on this listener and vehicle identity is taken from a proxy header; the listener must not be reachable outside the trusted network",
+		})
+		if config.TLS != nil {
+			logger.ActivityLog("tls_config_ignored", logrus.LogInfo{
+				"reason": "tls_pass_through is set, so the tls block is not used",
+			})
+		}
+		err = server.ListenAndServe()
+	} else {
+		if server.TLSConfig, err = config.ExtractServiceTLSConfig(logger); err != nil {
+			return err
+		}
+		err = server.ListenAndServeTLS(config.TLS.ServerCert, config.TLS.ServerKey)
 	}
-
-	err = server.ListenAndServeTLS(config.TLS.ServerCert, config.TLS.ServerKey)
 	for dispatcher, producer := range dispatchers {
 		logger.ActivityLog("attempting_to_close", logrus.LogInfo{"dispatcher": dispatcher})
 		// We don't care if this fails. If it does, we'll just continue on.
