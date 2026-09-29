@@ -37,6 +37,30 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
+### Troubleshooting: why do I see `invalid: true`?
+
+Seeing many fields with `invalid: true` (for example `VehicleSpeed`, `Gear`, `TimeToFullCharge`, `FastChargerType`) is **expected vehicle behavior**, not a fleet-telemetry server bug. The vehicle sets the protobuf `Value` oneof to `invalid` when a signal cannot currently be measured accurately. Official guidance is in Tesla's [Available Data](https://developer.tesla.com/docs/fleet-api/fleet-telemetry/available-data) docs.
+
+Typical cases (tracked in [#451](https://github.com/teslamotors/fleet-telemetry/issues/451) / [#207](https://github.com/teslamotors/fleet-telemetry/issues/207)):
+
+| Field | Often `invalid` when… | Becomes valid when… |
+| --- | --- | --- |
+| `VehicleSpeed` / `Gear` | Parked / not driving | Driving |
+| `TimeToFullCharge` | Not actively charging to a limit | Charging with an estimable remaining time |
+| `FastChargerType` | Not connected to a DC fast charger | On a compatible fast charger |
+
+How this server surfaces it:
+
+- Logger / JSON with types (`logger.verbose`): `{ "invalid": true }`
+- Logger without types: `"<invalid>"`
+- MQTT decoded payloads: JSON `null` for that field topic
+
+Consumer tips:
+
+1. Keep consumer protos current (`protos/vehicle_data.proto` includes `bool invalid = 10`). Older schemas may look like empty `{ "key": "VehicleSpeed" }` objects.
+2. Treat `invalid` as “unavailable,” not zero. Prefer clearing or retaining last-known state over substituting `0`.
+3. Do not expect this open-source server to drop invalid fields; it forwards what the vehicle sends so consumers can detect when a reading is no longer trustworthy.
+
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
