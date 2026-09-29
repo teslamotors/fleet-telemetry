@@ -37,11 +37,28 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
+### Troubleshooting: car on Wi‑Fi cannot reach a `192.168.x.x` telemetry host (#423)
+
+Official Fleet Telemetry requires a server **exposed on the public internet** with a public [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) in `fleet_telemetry_config` ([overview](https://developer.tesla.com/docs/fleet-api/fleet-telemetry)). The vehicle dials that hostname itself.
+
+If home Wi‑Fi DNS (split-horizon / “DNS overwrite”) returns a **private RFC1918** address such as `192.168.0.100`, the vehicle often fails with `cloud_manager_error` / `dial tcp 192.168.x.x:443: i/o timeout` while **LTE still works** (public resolution). That failure is on the **vehicle connection path**, not a missing allow-list in this open-source server. Similar in-car browser limits on private IPs are consistent with treating LAN destinations as unsupported. Tracked in [#423](https://github.com/teslamotors/fleet-telemetry/issues/423).
+
+**Do (supported patterns):**
+
+1. Keep the configured hostname resolving to a **public** IP for the car (including when it is on your LAN).
+2. Prefer **NAT hairpin / loopback** (or equivalent routing) so LAN clients reach the public IP and land on your server — see related discussion in [#297](https://github.com/teslamotors/fleet-telemetry/issues/297).
+3. Validate cert/hostname with [check_server_cert.sh](./tools/check_server_cert.sh) against the **public** name.
+
+**Don't:**
+
+- Point vehicle DNS at `10.0.0.0/8`, `172.16.0.0/12`, or `192.168.0.0/16` and expect Fleet Telemetry to work.
+- Expect a PR in this repo to “enable private IPs” — the dial happens in vehicle firmware / cloud manager.
+
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
 ### Install steps
-1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name). This will be used in the server and client (vehicle) configuration.
+1. Allocate and assign a [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) that resolves to a **public** address for the vehicle (including when the car is on your home Wi‑Fi). This will be used in the server and client (vehicle) configuration. Do not rely on split-DNS that returns RFC1918 (`192.168.x.x`) to the car — see [troubleshooting](#troubleshooting-car-on-wi-fi-cannot-reach-a-192168xx-telemetry-host-423).
 
 2. Design a simple hosting architecture. We recommend: Firewall/Loadbalancer -> Fleet Telemetry -> Kafka.
 
