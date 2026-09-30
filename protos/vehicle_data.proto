@@ -107,7 +107,7 @@ enum Field {
   SemitruckPassengerSeatFoldPosition = 97;  // Semi-truck only
   LateralAcceleration = 98;
   LongitudinalAcceleration = 99;
-  Deprecated_2 = 100;
+  CruiseState = 100;
   CruiseSetSpeed = 101;
   LifetimeEnergyUsed = 102;
   LifetimeEnergyUsedDrive = 103; // Semi-truck only
@@ -169,7 +169,7 @@ enum Field {
   ServiceMode = 159;
   BMSState = 160;
   GuestModeMobileAccessState = 161;
-  Deprecated_1 = 162;
+  AutopilotState = 162;
   DestinationName = 163; // Requires firmware version 2024.26 or later
   DiInverterTR = 164;
   DiInverterTF = 165;
@@ -300,6 +300,13 @@ enum Field {
 
   Cabin12vPortKeepOn = 270; // Semi-truck only
   Cabin48vPortKeepOn = 271; // Semi-truck only
+
+  AccessoryRail = 272;
+  PowerTransferStatus = 273;
+  AutomaticEmergencyBrakingState = 274;
+  RollingResistanceCoefficient = 275;
+  LifetimeDcChargeEnergyKwh = 277;
+  SemiVehicleMassKg = 278; // Semi-truck only
 }
 
 // ChargingState is deprecated and not used
@@ -441,6 +448,8 @@ enum CarTypeValue {
     CarTypeModelY = 4;
     CarTypeSemiTruck = 5;
     CarTypeCybertruck = 6;
+    CarTypeSemiTruckV2 = 7;
+    CarTypeCybercab = 8;
 }
 
 enum ChargePortValue {
@@ -679,6 +688,46 @@ enum CabinPortKeepOnState {
   CabinPortKeepOnStateOn = 2;
 }
 
+enum CruiseStateValue {
+  CruiseStateUnknown = 0;
+  CruiseStateOff = 1;
+  CruiseStateStandby = 2;
+  CruiseStateOn = 3;
+  CruiseStateStandstill = 4;
+  CruiseStateOverride = 5;
+  CruiseStateFault = 6;
+  CruiseStatePreFault = 7;
+  CruiseStatePreCancel = 8;
+}
+
+enum AutopilotStateValue {
+  AutopilotStateUnknown = 0;
+  AutopilotStateDisabled = 1;
+  AutopilotStateUnavailable = 2;
+  AutopilotStateAvailable = 3;
+  AutopilotStateActive = 4;
+  AutopilotStateActiveRestricted = 5;
+  AutopilotStateActiveNav = 6;
+  AutopilotStateActiveFsd = 7;
+  AutopilotStateAborting = 8;
+  AutopilotStateAborted = 9;
+  AutopilotStateFault = 10;
+  AutopilotStateSna = 11;
+}
+
+enum PowerTransferStatusValue {
+  PowerTransferStatusUnknown = 0;
+  PowerTransferStatusStandby = 1;
+  PowerTransferStatusFaulted = 2;
+  PowerTransferStatusEmergencyShutdown = 3;
+  PowerTransferStatusExtEvseTestAllowed = 4;
+  PowerTransferStatusExtPrechargeAllowed = 5;
+  PowerTransferStatusChargeEnabling = 6;
+  PowerTransferStatusChargeEnabled = 7;
+  PowerTransferStatusGracefulShutdown = 8;
+  PowerTransferStatusBlocked = 9;
+}
+
 enum TurnSignalState {
   TurnSignalStateUnknown = 0;
   TurnSignalStateOff = 1;
@@ -738,6 +787,7 @@ message Value {
     CarTypeValue car_type_value = 17;
     ChargePortValue charge_port_value = 18;
     ChargePortLatchValue charge_port_latch_value = 19;
+    CruiseStateValue cruise_state_value = 20;
     Doors door_value = 21;
     DriveInverterState drive_inverter_state_value = 22;
     HvilStatus hvil_status_value = 23;
@@ -773,6 +823,8 @@ message Value {
     MediaStatus media_status_value = 53;
     SunroofInstalledState sunroof_installed_state_value = 54;
     CabinPortKeepOnState cabin_port_keep_on_value = 55;
+    PowerTransferStatusValue power_transfer_status_value = 57;
+    AutopilotStateValue autopilot_state_value = 58;
   }
 }
 
