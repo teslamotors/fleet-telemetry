@@ -75,6 +75,17 @@ var _ = Describe("Test application config initialization", func() {
 		Expect(loadedConfig).To(Equal(expectedConfig))
 	})
 
+	It("loads mqtt config properly", func() {
+		loadedConfig, err := loadTestApplicationConfig(TestMQTTConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(loadedConfig.MQTT).NotTo(BeNil())
+		Expect(loadedConfig.MQTT.Broker).To(Equal("my-server.emqxsl.com:8883"))
+		Expect(loadedConfig.MQTT.TLS).NotTo(BeNil())
+		Expect(loadedConfig.MQTT.TLS.Enabled).To(BeTrue())
+		Expect(loadedConfig.MQTT.TLS.CAFile).To(Equal("/etc/mqtt-certs/emqxsl-ca.crt"))
+	})
+
 	It("returns an error if config is not appropriate", func() {
 		_, err := loadTestApplicationConfig(BadTopicConfig)
 		Expect(err).To(MatchError("invalid character '}' looking for beginning of object key string"))
