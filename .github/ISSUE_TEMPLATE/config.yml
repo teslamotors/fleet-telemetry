@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Developer Dashboard
+  - name: Tesla Developer Support Inquiry
     url: https://developer.tesla.com/dashboard
-    about: To submit general support requests
+    about: Account, Fleet API, vehicle commands (navigation_request, etc.), and regional backend errors — not for this repo’s WebSocket server code.
+  - name: vehicle-command (signed commands proxy)
+    url: https://github.com/teslamotors/vehicle-command
+    about: Issues with signing/proxying Fleet API vehicle commands
+  - name: Fleet API documentation
+    url: https://developer.tesla.com/docs/fleet-api
+    about: Official Fleet API / Fleet Telemetry docs
