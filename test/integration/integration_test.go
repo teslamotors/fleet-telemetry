@@ -42,6 +42,11 @@ const (
 
 	kinesisStreamName             = "test_V"
 	kinesisConnectivityStreamName = "test_connectivity"
+
+	// SQS and SNS share the LocalStack gateway with Kinesis.
+	sqsQueueName  = "test_V_sqs"
+	snsTopicName  = "test_V_sns"
+	snsRelayQueue = "test_V_sns_relay"
 )
 
 var expectedLocation = &protos.LocationValue{Latitude: -37.412374, Longitude: 122.145867}
@@ -60,6 +65,8 @@ var _ = Describe("Test messages", Ordered, func() {
 		connection      *websocket.Conn
 		pubsubConsumer  *TestConsumer
 		kinesisConsumer *TestKinesisConsumer
+		sqsConsumer     *TestSQSConsumer
+		snsConsumer     *TestSNSConsumer
 		kafkaConsumer   *kafka.Consumer
 		zmqConsumer     *TestZMQConsumer
 		mqttConsumer    *TestMQTTConsumer
@@ -81,6 +88,18 @@ var _ = Describe("Test messages", Ordered, func() {
 
 		kinesisConsumer, err = NewTestKinesisConsumer(kinesisHost, []string{kinesisStreamName, kinesisConnectivityStreamName})
 		Expect(err).NotTo(HaveOccurred())
+
+		// The dispatchers resolve queues and topics lazily, so creating them here, after
+		// the server has started, is enough.
+		sqsConsumer, err = NewTestSQSConsumer(kinesisHost, []string{sqsQueueName, snsRelayQueue})
+		Expect(err).NotTo(HaveOccurred())
+
+		snsConsumer, err = NewTestSNSConsumer(kinesisHost, []string{snsTopicName})
+		Expect(err).NotTo(HaveOccurred())
+
+		relayARN, err := sqsConsumer.QueueARN(snsRelayQueue)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(snsConsumer.SubscribeQueue(snsTopicName, relayARN)).To(Succeed())
 
 		setEnv("PUBSUB_EMULATOR_HOST", pubsubHost)
 		pubsubConsumer, err = NewTestPubsubConsumer(projectID, []string{vehicleTopic, vehicleConnectivityTopic}, logger)
@@ -199,6 +218,37 @@ var _ = Describe("Test messages", Ordered, func() {
 				return err
 			}, time.Second*5, time.Millisecond*100).Should(BeNil())
 			VerifyMessageBody(record.Data, vehicleName)
+		})
+
+		It("reads vehicle data from aws sqs", func() {
+			var err error
+			for i := 1; i <= 4; i++ {
+				err = connection.WriteMessage(websocket.BinaryMessage, payload)
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			var body []byte
+			Eventually(func() error {
+				body, err = sqsConsumer.FetchFirstQueueMessage(sqsQueueName)
+				return err
+			}, time.Second*10, time.Millisecond*200).Should(BeNil())
+			VerifyMessageBody(body, vehicleName)
+		})
+
+		It("reads vehicle data from aws sns", func() {
+			var err error
+			for i := 1; i <= 4; i++ {
+				err = connection.WriteMessage(websocket.BinaryMessage, payload)
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			// Delivered through the SQS queue subscribed to the topic.
+			var body []byte
+			Eventually(func() error {
+				body, err = sqsConsumer.FetchFirstQueueMessage(snsRelayQueue)
+				return err
+			}, time.Second*10, time.Millisecond*200).Should(BeNil())
+			VerifyMessageBody(body, vehicleName)
 		})
 
 		It("reads vehicle data from MQTT broker", func() {

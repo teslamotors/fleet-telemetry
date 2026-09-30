@@ -81,6 +81,20 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
       "V": "custom_stream_name"
     }
   },
+  "sqs": {
+    "max_retries": 3,
+    "override_host": string - optional; useful for LocalStack or VPC endpoints,
+    "queues": { // queue NAMES, not URLs; the URL is looked up on first use
+      "V": "custom_queue_name"
+    }
+  },
+  "sns": {
+    "max_retries": 3,
+    "override_host": string - optional,
+    "topics": { // full topic ARNs; there is no namespace fallback
+      "V": "arn:aws:sns:us-west-2:000000000000:custom_topic_name"
+    }
+  },
   "redis": { // Redis pub/sub config
     "addrs": ["redis:6379"], // one or more addresses (cluster/sentinel supported)
     "username": string - optional,
@@ -176,12 +190,22 @@ Dispatchers handle vehicle data processing upon its arrival at Fleet Telemetry s
   * If `publish_vin_topics` is enabled, the payload is additionally published to the VIN channel \*namespace\*`_`\*topic\*`_{`\*vin\*`}` (e.g. `tesla_V_{<vin>}`). Member channels and the VIN channel both receive the record.
   * At least one of `subscriber_set_prefix` or `publish_vin_topics` must be configured — otherwise no records could ever be published and the server fails to start.
   * Supports TLS via the `tls` block and connection-pool tuning via the `pool` block.
+* SQS: Publishes each record to an AWS SQS queue. Configure with standard [AWS env variables and config files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html), the same as Kinesis. See implementation here: [datastore/sqs/sqs.go](./datastore/sqs/sqs.go)
+  * By default, queue names will be \*configured namespace\*_\*topic_name\* ex.: `tesla_V`, `tesla_alerts`, etc
+  * Configure queue names directly by setting `"sqs": { "queues": { *topic_name*: queue_name } }`. These are queue **names**, not URLs; the URL is resolved on first use and cached
+  * Override queue names with env variables: SQS_QUEUE_\*uppercase topic\* ex.: `SQS_QUEUE_V`
+* SNS: Publishes each record to an AWS SNS topic, for fan-out to multiple subscribers. See implementation here: [datastore/sns/sns.go](./datastore/sns/sns.go)
+  * Topics are addressed by full ARN, which cannot be derived from a record name, so every dispatched record type must be listed in `"sns": { "topics": { *topic_name*: topic_arn } }`
+  * Override topic ARNs with env variables: SNS_TOPIC_\*uppercase topic\* ex.: `SNS_TOPIC_V`
+  * Subscribers can filter on the `record_type`, `vin` and `txid` message attributes without decoding the body
 * Logger: This is a simple STDOUT logger that serializes the protos to json.
+
+>NOTE on SQS and SNS payloads: both services require message bodies to be valid UTF-8 text, so the record is **base64 encoded** before being sent. Consumers must base64 decode before parsing the protobuf (or the JSON, when `transmit_decoded_records` is set). Both services also cap a message at 256KiB while a vehicle record may be up to 1MB, and base64 adds roughly a third; records that do not fit are dropped rather than sent, and are counted by the `sqs_message_too_large_total` and `sns_message_too_large_total` metrics.
 
 >NOTE: To add a new dispatcher, please provide integration tests and updated documentation. To serialize dispatcher data as json instead of protobufs, add a config `transmit_decoded_records` and set value to `true` as shown [here](config/test_configs_test.go#L186)
 
 ## Reliable Acks
-Fleet Telemetry sends ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To tie acks to a datasource, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`, `redis`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
+Fleet Telemetry sends ack messages back to the vehicle. This is useful for applications that need to ensure the data was received and processed. To tie acks to a datasource, set `reliable_ack_sources` to one of configured dispatchers (`kafka`,`kinesis`,`pubsub`,`zmq`, `mqtt`, `redis`, `sqs`, `sns`) in the config file. Reliable acks can only be set to one dispatcher per recordType. See [here](./test/integration/config.json#L8) for sample config.
 
 ## Detecting Vehicle Connectivity Changes
 On the vehicle, Fleet Telemetry client behave similarly to how the connectivity engine for vehicle commands. Therefore we can use Fleet Telemetry connectivity event to assume when a vehicle is online. Note that it is a proxy, but if configured properly Fleet Telemetry connectivity time should match vehicle connectivity state in 99%+. To enable connectivity events simply add the `connectivity` records in the list of events in [server_config.json](./examples/server_config.json) file:

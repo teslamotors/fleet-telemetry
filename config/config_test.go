@@ -223,6 +223,75 @@ var _ = Describe("Test full application config", func() {
 		})
 	})
 
+	Context("configure sqs", func() {
+		AfterEach(func() {
+			_ = os.Unsetenv("SQS_QUEUE_ERRORS")
+		})
+
+		It("returns an error if sqs is not configured", func() {
+			log, _ := logrus.NoOpLogger()
+			config.Records = map[string][]telemetry.Dispatcher{"V": {"sqs"}}
+
+			_, producers, err := config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log, true)
+			Expect(err).To(MatchError("expected SQS to be configured"))
+			Expect(producers).To(BeNil())
+		})
+
+		It("maps record types to queue names, preferring env vars then falling back to the namespace", func() {
+			config.SQS = &SQS{Queues: map[string]string{"V": "myqueue_V", "errors": "myqueue_errors"}}
+			err := os.Setenv("SQS_QUEUE_ERRORS", "test_errors")
+			Expect(err).NotTo(HaveOccurred())
+
+			queueMapping := config.CreateSQSQueueMapping([]string{"V", "errors", "alerts"})
+			Expect(queueMapping).To(Equal(map[string]string{
+				"V":      "myqueue_V",
+				"errors": "test_errors",
+				"alerts": "tesla_telemetry_alerts",
+			}))
+		})
+	})
+
+	Context("configure sns", func() {
+		AfterEach(func() {
+			_ = os.Unsetenv("SNS_TOPIC_ERRORS")
+		})
+
+		It("returns an error if sns is not configured", func() {
+			log, _ := logrus.NoOpLogger()
+			config.Records = map[string][]telemetry.Dispatcher{"V": {"sns"}}
+
+			_, producers, err := config.ConfigureProducers(airbrake.NewAirbrakeHandler(nil), log, true)
+			Expect(err).To(MatchError("expected SNS to be configured"))
+			Expect(producers).To(BeNil())
+		})
+
+		It("maps record types to topic ARNs, preferring env vars", func() {
+			config.SNS = &SNS{Topics: map[string]string{
+				"V":      "arn:aws:sns:us-east-1:1234567890:V",
+				"errors": "arn:aws:sns:us-east-1:1234567890:errors",
+			}}
+			err := os.Setenv("SNS_TOPIC_ERRORS", "arn:aws:sns:us-east-1:1234567890:env_errors")
+			Expect(err).NotTo(HaveOccurred())
+
+			topicMapping, err := config.CreateSNSTopicMapping([]string{"V", "errors"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(topicMapping).To(Equal(map[string]string{
+				"V":      "arn:aws:sns:us-east-1:1234567890:V",
+				"errors": "arn:aws:sns:us-east-1:1234567890:env_errors",
+			}))
+		})
+
+		It("errors instead of guessing when a topic ARN is missing", func() {
+			// Unlike queues and streams there is no namespace fallback, because an ARN
+			// cannot be derived from a record name.
+			config.SNS = &SNS{Topics: map[string]string{"V": "arn:aws:sns:us-east-1:1234567890:V"}}
+
+			topicMapping, err := config.CreateSNSTopicMapping([]string{"V", "alerts"})
+			Expect(err).To(MatchError("sns topic arn not configured for record type: alerts"))
+			Expect(topicMapping).To(BeNil())
+		})
+	})
+
 	Context("configure redis", func() {
 		AfterEach(func() {
 			_ = os.Unsetenv("REDIS_PASSWORD")

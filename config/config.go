@@ -27,6 +27,8 @@ import (
 	"github.com/teslamotors/fleet-telemetry/datastore/mqtt"
 	redisdatastore "github.com/teslamotors/fleet-telemetry/datastore/redis"
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
+	"github.com/teslamotors/fleet-telemetry/datastore/sns"
+	"github.com/teslamotors/fleet-telemetry/datastore/sqs"
 	"github.com/teslamotors/fleet-telemetry/datastore/zmq"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
@@ -77,6 +79,12 @@ type Config struct {
 
 	// Redis configures a Redis pub/sub producer
 	Redis *Redis `json:"redis,omitempty"`
+
+	// SQS is a configuration for AWS SQS
+	SQS *SQS `json:"sqs,omitempty"`
+
+	// SNS is a configuration for AWS SNS
+	SNS *SNS `json:"sns,omitempty"`
 
 	// Namespace defines a prefix for the kafka/pubsub topic
 	Namespace string `json:"namespace,omitempty"`
@@ -153,6 +161,24 @@ type Kinesis struct {
 	MaxRetries   *int              `json:"max_retries,omitempty"`
 	OverrideHost string            `json:"override_host"`
 	Streams      map[string]string `json:"streams,omitempty"`
+}
+
+// SQS is a configuration for aws SQS.
+type SQS struct {
+	MaxRetries   *int   `json:"max_retries,omitempty"`
+	OverrideHost string `json:"override_host"`
+	// Queues maps a record type to an SQS queue name. Names, not URLs: the URL is
+	// resolved at startup, which also verifies the queue exists and is reachable.
+	Queues map[string]string `json:"queues,omitempty"`
+}
+
+// SNS is a configuration for aws SNS.
+type SNS struct {
+	MaxRetries   *int   `json:"max_retries,omitempty"`
+	OverrideHost string `json:"override_host"`
+	// Topics maps a record type to a fully qualified SNS topic ARN. ARNs cannot be
+	// derived from the namespace, so every dispatched record type must appear here.
+	Topics map[string]string `json:"topics,omitempty"`
 }
 
 // Redis is a configuration for the Redis pub/sub producer.
@@ -459,6 +485,40 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 		producers[telemetry.Redis] = redisProducer
 	}
 
+	if recordNames, ok := requiredDispatchers[telemetry.SQS]; ok {
+		if c.SQS == nil {
+			return nil, nil, errors.New("expected SQS to be configured")
+		}
+		maxRetries := 1
+		if c.SQS.MaxRetries != nil {
+			maxRetries = *c.SQS.MaxRetries
+		}
+		sqsProducer, err := sqs.NewProducer(maxRetries, c.CreateSQSQueueMapping(recordNames), c.SQS.OverrideHost, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.SQS], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.SQS] = sqsProducer
+	}
+
+	if recordNames, ok := requiredDispatchers[telemetry.SNS]; ok {
+		if c.SNS == nil {
+			return nil, nil, errors.New("expected SNS to be configured")
+		}
+		maxRetries := 1
+		if c.SNS.MaxRetries != nil {
+			maxRetries = *c.SNS.MaxRetries
+		}
+		topicMapping, err := c.CreateSNSTopicMapping(recordNames)
+		if err != nil {
+			return nil, nil, err
+		}
+		snsProducer, err := sns.NewProducer(maxRetries, topicMapping, c.SNS.OverrideHost, c.prometheusEnabled(), c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.SNS], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.SNS] = snsProducer
+	}
+
 	dispatchProducerRules := make(map[string][]telemetry.Producer)
 	for recordName, dispatchRules := range c.Records {
 		var dispatchFuncs []telemetry.Producer
@@ -558,6 +618,45 @@ func (c *Config) CreateKinesisStreamMapping(recordNames []string) map[string]str
 		}
 	}
 	return streamMapping
+}
+
+// CreateSQSQueueMapping uses the config, overrides with ENV variable names, and finally
+// falls back to namespace based names, mirroring CreateKinesisStreamMapping.
+func (c *Config) CreateSQSQueueMapping(recordNames []string) map[string]string {
+	queueMapping := make(map[string]string)
+	for _, recordName := range recordNames {
+		if c.SQS != nil {
+			queueMapping[recordName] = c.SQS.Queues[recordName]
+		}
+		envVarQueueName := os.Getenv(fmt.Sprintf("SQS_QUEUE_%s", strings.ToUpper(recordName)))
+		if envVarQueueName != "" {
+			queueMapping[recordName] = envVarQueueName
+		}
+		if queueMapping[recordName] == "" {
+			queueMapping[recordName] = telemetry.BuildTopicName(c.Namespace, recordName)
+		}
+	}
+	return queueMapping
+}
+
+// CreateSNSTopicMapping uses the config and overrides with ENV variable names. Unlike
+// queues and streams there is no namespace fallback, because an SNS topic is addressed by
+// a full ARN that cannot be derived from a name, so a missing entry is an error.
+func (c *Config) CreateSNSTopicMapping(recordNames []string) (map[string]string, error) {
+	topicMapping := make(map[string]string)
+	for _, recordName := range recordNames {
+		if c.SNS != nil {
+			topicMapping[recordName] = c.SNS.Topics[recordName]
+		}
+		envVarTopicARN := os.Getenv(fmt.Sprintf("SNS_TOPIC_%s", strings.ToUpper(recordName)))
+		if envVarTopicARN != "" {
+			topicMapping[recordName] = envVarTopicARN
+		}
+		if topicMapping[recordName] == "" {
+			return nil, fmt.Errorf("sns topic arn not configured for record type: %s", recordName)
+		}
+	}
+	return topicMapping, nil
 }
 
 // CreateAirbrakeNotifier intializes an airbrake notifier with standard configs

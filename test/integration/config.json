@@ -25,6 +25,20 @@
             "connectivity": "test_connectivity"
         }
     },
+    "sqs": {
+        "override_host": "http://kinesis:4566",
+        "max_retries": 3,
+        "queues": {
+            "V": "test_V_sqs"
+        }
+    },
+    "sns": {
+        "override_host": "http://kinesis:4566",
+        "max_retries": 3,
+        "topics": {
+            "V": "arn:aws:sns:us-west-2:000000000000:test_V_sns"
+        }
+    },
     "zmq": {
         "addr": "tcp://*:5284"
     },
@@ -65,7 +79,9 @@
             "logger",
             "mqtt",
             "zmq",
-            "redis"
+            "redis",
+            "sqs",
+            "sns"
         ],
         "connectivity": [
             "kafka",
