@@ -37,6 +37,21 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 12. Wait for `synced` to be true when getting [fleet_telemetry_config](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#fleet-telemetry-config-get).
 13. Vehicles will connect and stream data directly to the hosted fleet-telemetry server. To diagnose connection or streaming problems use the [fleet_telemetry_errors](https://developer.tesla.com/docs/fleet-api/endpoints/partner-endpoints#fleet-telemetry-errors) endpoint.
 
+### FAQ: Supercharger locations without waking the vehicle
+
+Fleet Telemetry streams **vehicle signals** (see `protos/vehicle_data.proto`). It does **not** publish a Supercharger site directory, live stall counts, or a replacement for [nearby_charging_sites](https://developer.tesla.com/docs/fleet-api/endpoints/vehicle-endpoints#nearby-charging-sites).
+
+`nearby_charging_sites` is a Fleet API vehicle endpoint: it uses the car's current position and requires the vehicle to be **online**. When the vehicle is asleep, the call fails (typically `408`) — that is expected API behavior, not a fleet-telemetry server bug. See issue [#515](https://github.com/teslamotors/fleet-telemetry/issues/515).
+
+Recommended patterns:
+
+1. **Static / directory locations (no wake):** Keep your own Supercharger (and destination charger) directory, or use a licensed map/charging-data provider. Match sites to the vehicle using the last known `Location` from Fleet Telemetry (requires `vehicle_location` scope) instead of calling `nearby_charging_sites` while asleep.
+2. **Live nearby sites + stall availability:** Call `nearby_charging_sites` only when the vehicle is already awake (check connectivity via Fleet Telemetry connectivity events or `GET /api/1/vehicles/{vin}`). Prefer [Fleet API best practices](https://developer.tesla.com/docs/fleet-api/getting-started/best-practices): do not wake solely to refresh a site list.
+3. **Active navigation context:** If the driver has a route set, Fleet Telemetry can stream `DestinationLocation` / `DestinationName` (firmware 2024.26+). That is the selected destination, not a full Supercharger catalog. `SuperchargerSessionTripPlanner` is a boolean session flag, not location data.
+4. **Public charging partner programs:** For partner/OCPI-style charging integrations (invitation-based), see Tesla's [Charging / roaming](https://developer.tesla.com/docs/charging/roaming) docs — separate from Fleet Telemetry and from `nearby_charging_sites`.
+
+There is no industry-standard change to this open-source server that can invent Supercharger coordinates while the vehicle is asleep. Applications should separate **vehicle telemetry** (this repo) from **charging-site directory** data (cached or third-party).
+
 ### Install on Kubernetes with Helm Chart (recommended)
 For ease of installation and operation, run Fleet Telemetry on Kubernetes or a similar environment. Helm Charts help define, install, and upgrade applications on Kubernetes. A reference helm chart is available [here](https://github.com/teslamotors/helm-charts/blob/main/charts/fleet-telemetry/README.md).
 
