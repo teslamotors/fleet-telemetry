@@ -52,6 +52,56 @@ var _ = Describe("Payload", func() {
 			Expect(result["BatteryHeaterOn"]).To(Equal(true))
 		})
 
+		It("keeps unrecognized field numbers distinct instead of collapsing them", func() {
+			// A vehicle running firmware newer than this build can report field numbers
+			// that are absent from the compiled Field enum. Previously every such field
+			// resolved to the empty name, so they all shared one map key and only the
+			// last one survived.
+			now := timestamppb.Now()
+			payload := &protos.Payload{
+				Data: []*protos.Datum{
+					{
+						Key:   protos.Field(64001),
+						Value: &protos.Value{Value: &protos.Value_StringValue{StringValue: "first"}},
+					},
+					{
+						Key:   protos.Field(64002),
+						Value: &protos.Value{Value: &protos.Value_StringValue{StringValue: "second"}},
+					},
+					{
+						Key:   protos.Field_VehicleSpeed,
+						Value: &protos.Value{Value: &protos.Value_FloatValue{FloatValue: 42}},
+					},
+				},
+				Vin:       "TEST123",
+				CreatedAt: now,
+			}
+			result := transformers.PayloadToMap(payload, false, "", logger)
+
+			Expect(result).ToNot(HaveKey(""), "unrecognized fields must not share the empty key")
+			Expect(result[transformers.UnknownFieldNamePrefix+"64001"]).To(Equal("first"))
+			Expect(result[transformers.UnknownFieldNamePrefix+"64002"]).To(Equal("second"))
+			// Recognized fields are unaffected.
+			Expect(result["VehicleSpeed"]).To(Equal(float32(42)))
+		})
+
+		It("still names recognized fields, including field number zero", func() {
+			payload := &protos.Payload{
+				Data: []*protos.Datum{
+					{
+						Key:   protos.Field_Unknown,
+						Value: &protos.Value{Value: &protos.Value_StringValue{StringValue: "zero"}},
+					},
+				},
+				Vin:       "TEST123",
+				CreatedAt: timestamppb.Now(),
+			}
+			result := transformers.PayloadToMap(payload, false, "", logger)
+			// Field 0 is a real enum member named "Unknown"; it must not be renamed.
+			Expect(result["Unknown"]).To(Equal("zero"))
+			Expect(result).ToNot(HaveKey(transformers.UnknownFieldNamePrefix + "0"))
+		})
+
 		DescribeTable("converting datum to key-value pairs",
 			func(datum *protos.Datum, includeTypes bool, expectedKey string, expectedValue interface{}) {
 				payload := &protos.Payload{
