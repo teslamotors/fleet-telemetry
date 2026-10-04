@@ -431,6 +431,7 @@ enum BuckleStatus {
     BuckleStatusUnlatched = 1;
     BuckleStatusLatched = 2;
     BuckleStatusFaulted = 3;
+    BuckleStatusUnlatchedOrFault = 4; // Observed on production passenger seat sensors
 }
 
 enum CarTypeValue {
