@@ -57,23 +57,37 @@ var (
 // ZMQ publisher socket.
 const MonitorSocketAddr = "inproc://zmq_socket_monitor.rep"
 
+// recordChanBufferSize bounds how many records can wait for the send loop
+// before Produce applies backpressure to its caller.
+const recordChanBufferSize = 1000
+
 // Producer implements the telemetry.Producer interface by publishing to a
 // bound zmq socket.
 type Producer struct {
 	namespace          string
 	ctx                context.Context
+	cancel             context.CancelFunc
 	sock               *zmq4.Socket
 	logger             *logrus.Logger
 	airbrakeHandler    *airbrake.Handler
 	ackChan            chan (*telemetry.Record)
 	reliableAckTxTypes map[string]interface{}
+	recordChan         chan *telemetry.Record
+	wg                 sync.WaitGroup
+	closeOnce          sync.Once
 }
 
 // Produce the record to the socket.
 func (p *Producer) Produce(rec *telemetry.Record) {
-	if p.ctx.Err() != nil {
-		return
+	select {
+	case p.recordChan <- rec:
+	case <-p.ctx.Done():
 	}
+}
+
+// send writes a single record to the socket.
+// It must only ever be called from sendLoop, which owns the socket.
+func (p *Producer) send(rec *telemetry.Record) {
 	nBytes, err := p.sock.SendMessage(telemetry.BuildTopicName(p.namespace, rec.TxType), rec.Payload())
 	if err != nil {
 		metricsRegistry.errorCount.Inc(map[string]string{"record_type": rec.TxType})
@@ -85,21 +99,37 @@ func (p *Producer) Produce(rec *telemetry.Record) {
 	metricsRegistry.publishCount.Inc(map[string]string{"record_type": rec.TxType})
 }
 
+// sendLoop is the single goroutine that owns and writes to the socket.
+func (p *Producer) sendLoop() {
+	defer p.wg.Done()
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case rec := <-p.recordChan:
+			p.send(rec)
+		}
+	}
+}
+
 // ReportError to airbrake and logger
 func (p *Producer) ReportError(message string, err error, logInfo logrus.LogInfo) {
 	p.airbrakeHandler.ReportLogMessage(logrus.ERROR, message, err, logInfo)
 	p.logger.ErrorLog(message, err, logInfo)
 }
 
-// Close the underlying socket.
+// Close stops the send loop and then closes the underlying socket.
 func (p *Producer) Close() error {
-	if p.sock != nil {
-		if err := p.sock.Close(); err != nil {
-			return err
+	var err error
+	p.closeOnce.Do(func() {
+		p.cancel()
+		p.wg.Wait()
+		if p.sock != nil {
+			err = p.sock.Close()
+			p.sock = nil
 		}
-	}
-	p.sock = nil
-	return nil
+	})
+	return err
 }
 
 // ProcessReliableAck sends to ackChan if reliable ack is configured
@@ -175,15 +205,24 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 		return
 	}
 
-	return &Producer{
+	ctx, cancel := context.WithCancel(ctx)
+
+	p := &Producer{
 		namespace:          namespace,
 		ctx:                ctx,
+		cancel:             cancel,
 		sock:               sock,
 		logger:             logger,
 		airbrakeHandler:    airbrakeHandler,
 		ackChan:            ackChan,
 		reliableAckTxTypes: reliableAckTxTypes,
-	}, nil
+		recordChan:         make(chan *telemetry.Record, recordChanBufferSize),
+	}
+
+	p.wg.Add(1)
+	go p.sendLoop()
+
+	return p, nil
 }
 
 // logSocketInBackground logs the socket activity in the background.
