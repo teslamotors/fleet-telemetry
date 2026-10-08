@@ -481,9 +481,9 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 		}
 	}
 	if !test && producers[telemetry.MQTT] != nil {
-		if err := producers[telemetry.MQTT].(*mqtt.Producer).Connect(); err != nil {
-			return nil, nil, err
-		}
+		// Connect retries in the background with backoff; an unreachable
+		// broker must not prevent server startup (see issue #443).
+		_ = producers[telemetry.MQTT].(*mqtt.Producer).Connect()
 	}
 
 	return producers, dispatchProducerRules, nil
