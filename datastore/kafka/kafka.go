@@ -73,15 +73,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bo
 // Produce asynchronously sends the record payload to kafka
 func (p *Producer) Produce(entry *telemetry.Record) {
 	topic := telemetry.BuildTopicName(p.namespace, entry.TxType)
-
-	msg := &kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value:          entry.Payload(),
-		Key:            []byte(entry.Vin),
-		Headers:        headersFromRecord(entry),
-		Timestamp:      time.Now(),
-		Opaque:         entry,
-	}
+	msg := buildMessage(entry, topic)
 
 	// Note: confluent kafka supports the concept of one channel per connection, so we could add those here and get rid of reliableAckWorkers
 	// ex.: https://github.com/confluentinc/confluent-kafka-go/blob/master/examples/producer_custom_channel_example/producer_custom_channel_example.go#L79
@@ -98,6 +90,21 @@ func (p *Producer) Produce(entry *telemetry.Record) {
 func (p *Producer) ReportError(message string, err error, logInfo logrus.LogInfo) {
 	p.airbrakeHandler.ReportLogMessage(logrus.ERROR, message, err, logInfo)
 	p.logger.ErrorLog(message, err, logInfo)
+}
+
+// buildMessage assembles the kafka message for a record. The record's vin is
+// the message key, so all of a vehicle's records hash to the same partition
+// and stay ordered relative to each other with librdkafka's default
+// partitioner. Set `partitioner` in the kafka config to override.
+func buildMessage(entry *telemetry.Record, topic string) *kafka.Message {
+	return &kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		Value:          entry.Payload(),
+		Key:            []byte(entry.Vin),
+		Headers:        headersFromRecord(entry),
+		Timestamp:      time.Now(),
+		Opaque:         entry,
+	}
 }
 
 func headersFromRecord(record *telemetry.Record) (headers []kafka.Header) {

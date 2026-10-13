@@ -31,7 +31,8 @@ var (
 )
 
 // Record is a structs that represents the telemetry records vehicles send to the backend
-// vin is used as kafka produce partitioning key by default, can be configured to random
+// vin is used as the kafka message key, keeping each vehicle's records on one
+// partition; override with the `partitioner` setting in the kafka config
 type Record struct {
 	ProduceTime            time.Time
 	ReceivedTimestamp      int64
