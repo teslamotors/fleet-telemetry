@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus/hooks/test"
 
@@ -52,6 +53,10 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 	err = json.NewDecoder(configFile).Decode(&config)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.RateLimit != nil {
+		config.RateLimit.MessageIntervalTimeSecond = time.Duration(config.RateLimit.MessageInterval) * time.Second
 	}
 
 	log, _ := test.NewNullLogger()

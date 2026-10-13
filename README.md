@@ -93,7 +93,8 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
   },
   "rate_limit": {
     "enabled": bool,
-    "message_limit": int - ex.: 1000
+    "message_limit": int - ex.: 1000,
+    "message_interval_time": int - rate limit interval in seconds, ex.: 30
   },
   "records": { // list of records and their dispatchers, currently: alerts, errors, and V(vehicle data)
     "alerts": [
