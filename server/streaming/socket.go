@@ -264,6 +264,7 @@ func (sm *SocketManager) ParseAndProcessRecord(serializer *telemetry.BinarySeria
 			sm.logger.ErrorLog("unknown_message_type_error", err, logInfo)
 			metricsRegistry.unknownMessageTypeErrorCount.Inc(map[string]string{"msg_type": string(typedError.GuessedType)})
 			sm.respondToVehicle(record, nil) // respond to the client message was accepted so they are not resending it over and over
+			return
 		default:
 			sm.respondToVehicle(record, err)
 			return

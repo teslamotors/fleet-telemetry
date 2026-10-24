@@ -84,6 +84,9 @@ var _ = Describe("Socket test", func() {
 			Expect(envelope.MessageType()).To(Equal(tesla.MessageFlatbuffersStreamAck))
 			lastLogEntry := hook.LastEntry()
 			Expect(lastLogEntry.Message).To(ContainSubstring("unknown_message_type_error"))
+
+			// the message must not fall through to the dispatch path
+			Expect(sm.RecordsStats).To(BeEmpty())
 		})
 
 		It("returns error for unknown topic and unmatched sender", func() {
