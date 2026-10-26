@@ -181,6 +181,7 @@ func (record *Record) applyProtoRecordTransforms() error {
 		message.Vin = record.Vin
 		transformLocation(message)
 		transformScientificNotation(message)
+		transformLegacyAutomaticEmergencyBraking(message, record.DeviceClientVersion)
 		record.PayloadBytes, err = proto.Marshal(message)
 		record.protoMessage = message
 		return err
@@ -235,6 +236,29 @@ func transformLocation(message *protos.Payload) {
 			// There can be only one Field_Location Datum in the proto; abort once we've seen it.
 			return
 		}
+	}
+}
+
+// transformLegacyAutomaticEmergencyBraking shifts AEB values from device
+// client 1.3.0 onto the current enum. That client sends Unavailable,
+// Standby, Enabled, Standstill, and Unknown as 0 through 4.
+func transformLegacyAutomaticEmergencyBraking(message *protos.Payload, deviceClientVersion string) {
+	if deviceClientVersion != "1.3.0" {
+		return
+	}
+	for _, datum := range message.GetData() {
+		if datum.GetKey() != protos.Field_AutomaticEmergencyBrakingState {
+			continue
+		}
+		enumValue, ok := datum.GetValue().GetValue().(*protos.Value_AutomaticEmergencyBrakingStateValue)
+		if !ok {
+			continue
+		}
+		n := int32(enumValue.AutomaticEmergencyBrakingStateValue)
+		if n < 0 || n > 4 {
+			continue
+		}
+		enumValue.AutomaticEmergencyBrakingStateValue = protos.AutomaticEmergencyBrakingStateValue((n + 1) % 5)
 	}
 }
 

@@ -300,6 +300,15 @@ enum Field {
 
   Cabin12vPortKeepOn = 270; // Semi-truck only
   Cabin48vPortKeepOn = 271; // Semi-truck only
+
+  // fields 272-277 are first available in firmware versions 2026.32.300 and 2026.38.6
+
+  AccessoryRail = 272;
+  PowerTransferStatus = 273;
+  AutomaticEmergencyBrakingState = 274;
+  RollingResistanceCoefficient = 275;
+  LifetimeDcChargeEnergyKwh = 276;
+  SemiVehicleMassKg = 277; // Semi-truck only
 }
 
 // ChargingState is deprecated and not used
@@ -441,6 +450,8 @@ enum CarTypeValue {
     CarTypeModelY = 4;
     CarTypeSemiTruck = 5;
     CarTypeCybertruck = 6;
+    CarTypeSemiTruckV2 = 7;
+    CarTypeCybercab = 8;
 }
 
 enum ChargePortValue {
@@ -679,6 +690,27 @@ enum CabinPortKeepOnState {
   CabinPortKeepOnStateOn = 2;
 }
 
+enum AutomaticEmergencyBrakingStateValue {
+  AutomaticEmergencyBrakingStateUnknown = 0;
+  AutomaticEmergencyBrakingStateUnavailable = 1;
+  AutomaticEmergencyBrakingStateStandby = 2;
+  AutomaticEmergencyBrakingStateEnabled = 3;
+  AutomaticEmergencyBrakingStateStandstill = 4;
+}
+
+enum PowerTransferStatusValue {
+  PowerTransferStatusUnknown = 0;
+  PowerTransferStatusStandby = 1;
+  PowerTransferStatusFaulted = 2;
+  PowerTransferStatusEmergencyShutdown = 3;
+  PowerTransferStatusExtEvseTestAllowed = 4;
+  PowerTransferStatusExtPrechargeAllowed = 5;
+  PowerTransferStatusChargeEnabling = 6;
+  PowerTransferStatusChargeEnabled = 7;
+  PowerTransferStatusGracefulShutdown = 8;
+  PowerTransferStatusBlocked = 9;
+}
+
 enum TurnSignalState {
   TurnSignalStateUnknown = 0;
   TurnSignalStateOff = 1;
@@ -773,6 +805,8 @@ message Value {
     MediaStatus media_status_value = 53;
     SunroofInstalledState sunroof_installed_state_value = 54;
     CabinPortKeepOnState cabin_port_keep_on_value = 55;
+    PowerTransferStatusValue power_transfer_status_value = 57;
+    AutomaticEmergencyBrakingStateValue automatic_emergency_braking_state_value = 60;
   }
 }
 
