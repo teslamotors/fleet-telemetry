@@ -381,6 +381,81 @@ var _ = Describe("Socket handler test", func() {
 	})
 })
 
+var _ = Describe("legacy AEB enum", func() {
+	It("shifts device client 1.3.0 onto the current enum", func() {
+		Expect(aebState(aebRecord("1.3.0", 0))).To(Equal(protos.AutomaticEmergencyBrakingStateValue_AutomaticEmergencyBrakingStateUnavailable))
+		Expect(aebState(aebRecord("1.3.0", 4))).To(Equal(protos.AutomaticEmergencyBrakingStateValue_AutomaticEmergencyBrakingStateUnknown))
+	})
+
+	It("leaves any other device client version unchanged", func() {
+		Expect(aebState(aebRecord("1.4.0", 0))).To(Equal(protos.AutomaticEmergencyBrakingStateValue_AutomaticEmergencyBrakingStateUnknown))
+		Expect(aebState(aebRecord("1.10.0", 0))).To(Equal(protos.AutomaticEmergencyBrakingStateValue_AutomaticEmergencyBrakingStateUnknown))
+		Expect(aebState(aebRecord("", 0))).To(Equal(protos.AutomaticEmergencyBrakingStateValue_AutomaticEmergencyBrakingStateUnknown))
+	})
+
+	It("leaves an invalid value unchanged", func() {
+		record := aebRecordWithDatum("1.3.0", &protos.Datum{
+			Key:   protos.Field_AutomaticEmergencyBrakingState,
+			Value: &protos.Value{Value: &protos.Value_Invalid{Invalid: true}},
+		})
+		data := &protos.Payload{}
+		Expect(proto.Unmarshal(record.Payload(), data)).NotTo(HaveOccurred())
+		for _, datum := range data.Data {
+			if datum.GetKey() == protos.Field_AutomaticEmergencyBrakingState {
+				_, ok := datum.GetValue().GetValue().(*protos.Value_Invalid)
+				Expect(ok).To(BeTrue())
+				return
+			}
+		}
+		Fail("missing AEB datum")
+	})
+})
+
+func aebRecord(version string, n int32) *telemetry.Record {
+	return aebRecordWithDatum(version, &protos.Datum{
+		Key: protos.Field_AutomaticEmergencyBrakingState,
+		Value: &protos.Value{Value: &protos.Value_AutomaticEmergencyBrakingStateValue{
+			AutomaticEmergencyBrakingStateValue: protos.AutomaticEmergencyBrakingStateValue(n),
+		}},
+	})
+}
+
+func aebRecordWithDatum(version string, datum *protos.Datum) *telemetry.Record {
+	logger, _ := logrus.NoOpLogger()
+	serializer := telemetry.NewBinarySerializer(
+		&telemetry.RequestIdentity{
+			DeviceID:            "42",
+			SenderID:            "vehicle_device.42",
+			DeviceClientVersion: version,
+		},
+		map[string][]telemetry.Producer{"D4": nil},
+		logger,
+	)
+	message := messages.StreamMessage{
+		TXID:         []byte("1234"),
+		SenderID:     []byte("vehicle_device.42"),
+		MessageTopic: []byte("V"),
+		Payload:      generatePayload("cybertruck", "42", nil, datum),
+	}
+	raw, err := message.ToBytes()
+	Expect(err).NotTo(HaveOccurred())
+	record, err := telemetry.NewRecord(serializer, raw, "1", false)
+	Expect(err).NotTo(HaveOccurred())
+	return record
+}
+
+func aebState(record *telemetry.Record) protos.AutomaticEmergencyBrakingStateValue {
+	data := &protos.Payload{}
+	Expect(proto.Unmarshal(record.Payload(), data)).NotTo(HaveOccurred())
+	for _, datum := range data.Data {
+		if datum.GetKey() == protos.Field_AutomaticEmergencyBrakingState {
+			return datum.GetValue().GetAutomaticEmergencyBrakingStateValue()
+		}
+	}
+	Fail("missing AEB datum")
+	return 0
+}
+
 func generatePayload(vehicleName string, vin string, timestamp *timestamppb.Timestamp, extraData ...*protos.Datum) []byte {
 	var data []*protos.Datum
 	data = append(data, stringDatum(protos.Field_VehicleName, vehicleName))
