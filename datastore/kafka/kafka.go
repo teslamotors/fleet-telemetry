@@ -25,6 +25,8 @@ type Producer struct {
 	deliveryChan       chan kafka.Event
 	ackChan            chan (*telemetry.Record)
 	reliableAckTxTypes map[string]interface{}
+	done               chan struct{}
+	closeOnce          sync.Once
 }
 
 // Metrics stores metrics reported from this package
@@ -62,6 +64,7 @@ func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bo
 		deliveryChan:       make(chan kafka.Event),
 		ackChan:            ackChan,
 		reliableAckTxTypes: reliableAckTxTypes,
+		done:               make(chan struct{}),
 	}
 
 	go producer.handleProducerEvents()
@@ -111,7 +114,13 @@ func headersFromRecord(record *telemetry.Record) (headers []kafka.Header) {
 }
 
 func (p *Producer) handleProducerEvents() {
-	for e := range p.deliveryChan {
+	for {
+		var e kafka.Event
+		select {
+		case <-p.done:
+			return
+		case e = <-p.deliveryChan:
+		}
 		switch ev := e.(type) {
 		case kafka.Error:
 			p.logError(fmt.Errorf("producer_error %v", ev))
@@ -136,7 +145,12 @@ func (p *Producer) handleProducerEvents() {
 
 // Close the producer
 func (p *Producer) Close() error {
-	p.kafkaProducer.Close()
+	p.closeOnce.Do(func() {
+		// Close the kafka producer first: it may still send delivery reports
+		// to deliveryChan while shutting down, so the handler must keep reading.
+		p.kafkaProducer.Close()
+		close(p.done)
+	})
 	return nil
 }
 
@@ -157,7 +171,13 @@ func (p *Producer) logError(err error) {
 func (p *Producer) reportProducerMetrics() {
 	interval := 5 * time.Second
 	t := time.NewTicker(interval)
-	for range t.C {
+	defer t.Stop()
+	for {
+		select {
+		case <-p.done:
+			return
+		case <-t.C:
+		}
 		total := p.kafkaProducer.Len()
 		eventsCount := len(p.kafkaProducer.Events())
 		metricsRegistry.producerQueueSize.Set(int64(total), map[string]string{"type": "total"})
