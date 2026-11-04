@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus/hooks/test"
 
@@ -71,6 +72,19 @@ func loadApplicationConfig(configFilePath string) (*Config, error) {
 func validateConfig(config *Config) error {
 	if len(config.VinsToTrack()) > maxVinsToTrack {
 		return fmt.Errorf("set the value of `vins_signal_tracking_enabled` less than %d unique vins", maxVinsToTrack)
+	}
+	if config.RateLimit != nil {
+		if config.RateLimit.MessageInterval > 0 && config.RateLimit.MessageIntervalTimeSecond == 0 {
+			config.RateLimit.MessageIntervalTimeSecond = time.Duration(config.RateLimit.MessageInterval) * time.Second
+		}
+		if config.RateLimit.Enabled {
+			if config.RateLimit.MessageLimit <= 0 {
+				return fmt.Errorf("rate_limit: message_limit must be greater than 0")
+			}
+			if config.RateLimit.MessageIntervalTimeSecond <= 0 {
+				return fmt.Errorf("rate_limit: message_interval_time must be greater than 0")
+			}
+		}
 	}
 	return nil
 }
