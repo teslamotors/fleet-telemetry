@@ -62,6 +62,41 @@ const TestSmallConfig = `
 }
 `
 
+const TestMQTTConfig = `
+{
+	"host": "127.0.0.1",
+	"port": 443,
+	"status_port": 8080,
+	"namespace": "tesla_telemetry",
+	"mqtt": {
+		"broker": "my-server.emqxsl.com:8883",
+		"client_id": "tesla-fleet-telemetry",
+		"username": "tesla-user",
+		"password": "my-password",
+		"topic_base": "tesla/telemetry",
+		"qos": 0,
+		"retained": false,
+		"connect_timeout_ms": 30000,
+		"publish_timeout_ms": 2500,
+		"disconnect_timeout_ms": 250,
+		"connect_retry_interval_ms": 10000,
+		"keep_alive_seconds": 30,
+		"tls": {
+			"enabled": true,
+			"ca": "/etc/mqtt-certs/emqxsl-ca.crt"
+		}
+	},
+	"records": {
+		"V": ["mqtt"]
+	},
+	"tls": {
+		"ca_file": "tesla.ca",
+		"server_cert": "your_own_cert.crt",
+		"server_key": "your_own_key.key"
+	}
+}
+`
+
 const BadVinsConfig = `
 {
 	"host": "127.0.0.1",

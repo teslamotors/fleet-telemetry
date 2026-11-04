@@ -32,5 +32,23 @@
     "tls": {
         "server_cert": "/etc/certs/server/tls.crt",
         "server_key": "/etc/certs/server/tls.key"
+    },
+    "mqtt": {
+        "broker": "my-server.emqxsl.com:8883",
+        "client_id": "tesla-fleet-telemetry",
+        "username": "tesla-user",
+        "password": "my-password",
+        "topic_base": "tesla/telemetry",
+        "qos": 0,
+        "retained": false,
+        "connect_timeout_ms": 30000,
+        "publish_timeout_ms": 2500,
+        "disconnect_timeout_ms": 250,
+        "connect_retry_interval_ms": 10000,
+        "keep_alive_seconds": 30,
+        "tls": {
+            "enabled": true,
+            "ca": "/etc/mqtt-certs/emqxsl-ca.crt"
+        }
     }
 }
