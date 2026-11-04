@@ -17,6 +17,9 @@ import (
 
 var (
 	defaultTimeout = 5 * time.Second
+	// maxConnectRetryBackoff caps the exponential backoff between MQTT
+	// connection retries.
+	maxConnectRetryBackoff = time.Minute
 )
 
 // Producer is a telemetry.Producer that sends records to an MQTT broker.
@@ -123,16 +126,60 @@ func NewProducer(ctx context.Context, config *Config, metrics metrics.MetricColl
 	}, nil
 }
 
-// Connect performs health check and returns error if connection is not established
+// Connect establishes a connection to the MQTT broker.
+//
+// An initial connection attempt is made synchronously. If it fails (e.g. the
+// broker is unreachable at startup), the failure is reported and a background
+// goroutine keeps retrying with exponential backoff until the connection
+// succeeds or the producer's context is cancelled. Connect always returns nil
+// so that an unreachable broker does not kill the server process at startup
+// (see issue #443). The paho client is additionally configured with
+// AutoReconnect, so established connections heal themselves after later drops.
 func (p *Producer) Connect() error {
+	if err := p.connectOnce(); err != nil {
+		p.ReportError("mqtt_connect_error", err, logrus.LogInfo{"broker": p.config.Broker})
+		go p.connectWithRetry()
+		return nil
+	}
+	p.logger.ActivityLog("mqtt_connected", logrus.LogInfo{"broker": p.config.Broker})
+	return nil
+}
+
+// connectOnce performs a single connection attempt and returns an error if the
+// connection is not established within the timeout.
+func (p *Producer) connectOnce() error {
 	token := p.client.Connect()
 	if !token.WaitTimeout(defaultTimeout) {
 		return fmt.Errorf("connection attempt timed out after %v", defaultTimeout)
 	}
-	if err := token.Error(); err != nil {
-		return err
+	return token.Error()
+}
+
+// connectWithRetry retries connecting to the broker in the background with
+// exponential backoff, starting at the configured connect retry interval and
+// capped at maxConnectRetryBackoff. It stops once a connection succeeds or the
+// producer context is cancelled. Retry failures are logged without hitting
+// Airbrake to avoid alert spam during an extended broker outage.
+func (p *Producer) connectWithRetry() {
+	backoff := time.Duration(p.config.ConnectRetryInterval) * time.Millisecond
+	if backoff <= 0 {
+		backoff = DefaultConnectRetryInterval * time.Millisecond
 	}
-	return nil
+	for {
+		select {
+		case <-p.ctx.Done():
+			p.logger.ActivityLog("mqtt_connect_retry_stopped", logrus.LogInfo{"broker": p.config.Broker})
+			return
+		case <-time.After(backoff):
+		}
+		if err := p.connectOnce(); err != nil {
+			p.logger.ErrorLog("mqtt_connect_retry_failed", err, logrus.LogInfo{"broker": p.config.Broker, "retry_in": backoff.String()})
+			backoff = min(backoff*2, maxConnectRetryBackoff)
+			continue
+		}
+		p.logger.ActivityLog("mqtt_connected", logrus.LogInfo{"broker": p.config.Broker})
+		return
+	}
 }
 
 // Produce sends a record to the MQTT broker.
