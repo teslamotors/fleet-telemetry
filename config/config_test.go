@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"io"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -244,6 +246,80 @@ var _ = Describe("Test full application config", func() {
 			options, err := redis.options()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(options.Password).To(Equal("env-password"))
+		})
+
+		It("unmarshals numeric timeouts as seconds", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": 5,
+				"pool": {
+					"read_timeout": 3,
+					"write_timeout": 4,
+					"pool_timeout": 6,
+					"conn_max_idle_time": 60,
+					"conn_max_lifetime": 300
+				}
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(redis.PublishTimeout).To(Equal(5 * time.Second))
+			Expect(redis.Pool).NotTo(BeNil())
+			Expect(redis.Pool.ReadTimeout).To(Equal(3 * time.Second))
+			Expect(redis.Pool.WriteTimeout).To(Equal(4 * time.Second))
+			Expect(redis.Pool.PoolTimeout).To(Equal(6 * time.Second))
+			Expect(redis.Pool.ConnMaxIdleTime).To(Equal(60 * time.Second))
+			Expect(redis.Pool.ConnMaxLifetime).To(Equal(300 * time.Second))
+
+			options, err := redis.options()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(options.ReadTimeout).To(Equal(3 * time.Second))
+			Expect(options.WriteTimeout).To(Equal(4 * time.Second))
+			Expect(options.PoolTimeout).To(Equal(6 * time.Second))
+			Expect(options.ConnMaxIdleTime).To(Equal(60 * time.Second))
+			Expect(options.ConnMaxLifetime).To(Equal(300 * time.Second))
+		})
+
+		It("unmarshals duration string timeouts", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": "500ms",
+				"pool": {
+					"read_timeout": "2s",
+					"write_timeout": "2500ms",
+					"pool_timeout": "10s",
+					"conn_max_idle_time": "1m",
+					"conn_max_lifetime": "5m"
+				}
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(redis.PublishTimeout).To(Equal(500 * time.Millisecond))
+			Expect(redis.Pool).NotTo(BeNil())
+			Expect(redis.Pool.ReadTimeout).To(Equal(2 * time.Second))
+			Expect(redis.Pool.WriteTimeout).To(Equal(2500 * time.Millisecond))
+			Expect(redis.Pool.PoolTimeout).To(Equal(10 * time.Second))
+			Expect(redis.Pool.ConnMaxIdleTime).To(Equal(1 * time.Minute))
+			Expect(redis.Pool.ConnMaxLifetime).To(Equal(5 * time.Minute))
+
+			options, err := redis.options()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(options.ReadTimeout).To(Equal(2 * time.Second))
+			Expect(options.WriteTimeout).To(Equal(2500 * time.Millisecond))
+			Expect(options.PoolTimeout).To(Equal(10 * time.Second))
+			Expect(options.ConnMaxIdleTime).To(Equal(1 * time.Minute))
+			Expect(options.ConnMaxLifetime).To(Equal(5 * time.Minute))
+		})
+
+		It("returns an error for invalid duration format", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": "invalid-duration"
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 

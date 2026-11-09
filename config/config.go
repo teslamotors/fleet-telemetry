@@ -5,12 +5,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed" //Used for default CAs
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -188,6 +190,119 @@ type RedisPool struct {
 	PoolTimeout     time.Duration `json:"pool_timeout,omitempty"`
 	ConnMaxIdleTime time.Duration `json:"conn_max_idle_time,omitempty"`
 	ConnMaxLifetime time.Duration `json:"conn_max_lifetime,omitempty"`
+}
+
+func parseDuration(v interface{}) (time.Duration, error) {
+	switch val := v.(type) {
+	case nil:
+		return 0, nil
+	case float64:
+		return time.Duration(val * float64(time.Second)), nil
+	case int64:
+		return time.Duration(val) * time.Second, nil
+	case int:
+		return time.Duration(val) * time.Second, nil
+	case json.Number:
+		if i, err := val.Int64(); err == nil {
+			return time.Duration(i) * time.Second, nil
+		}
+		f, err := val.Float64()
+		if err != nil {
+			return 0, err
+		}
+		return time.Duration(f * float64(time.Second)), nil
+	case string:
+		if val == "" {
+			return 0, nil
+		}
+		if d, err := time.ParseDuration(val); err == nil {
+			return d, nil
+		}
+		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			return time.Duration(f * float64(time.Second)), nil
+		}
+		return 0, fmt.Errorf("invalid duration string: %q", val)
+	default:
+		return 0, fmt.Errorf("unsupported duration type: %T", v)
+	}
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Redis to parse duration fields
+// expressed as seconds (int/float) or duration strings (e.g., "5s").
+func (r *Redis) UnmarshalJSON(data []byte) error {
+	type Alias Redis
+	aux := &struct {
+		PublishTimeout interface{} `json:"publish_timeout,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	if aux.PublishTimeout != nil {
+		d, err := parseDuration(aux.PublishTimeout)
+		if err != nil {
+			return fmt.Errorf("invalid publish_timeout: %w", err)
+		}
+		r.PublishTimeout = d
+	}
+	return nil
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for RedisPool to parse duration fields
+// expressed as seconds (int/float) or duration strings (e.g., "5s", "5m").
+func (p *RedisPool) UnmarshalJSON(data []byte) error {
+	type Alias RedisPool
+	aux := &struct {
+		ReadTimeout     interface{} `json:"read_timeout,omitempty"`
+		WriteTimeout    interface{} `json:"write_timeout,omitempty"`
+		PoolTimeout     interface{} `json:"pool_timeout,omitempty"`
+		ConnMaxIdleTime interface{} `json:"conn_max_idle_time,omitempty"`
+		ConnMaxLifetime interface{} `json:"conn_max_lifetime,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(p),
+	}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	if aux.ReadTimeout != nil {
+		d, err := parseDuration(aux.ReadTimeout)
+		if err != nil {
+			return fmt.Errorf("invalid read_timeout: %w", err)
+		}
+		p.ReadTimeout = d
+	}
+	if aux.WriteTimeout != nil {
+		d, err := parseDuration(aux.WriteTimeout)
+		if err != nil {
+			return fmt.Errorf("invalid write_timeout: %w", err)
+		}
+		p.WriteTimeout = d
+	}
+	if aux.PoolTimeout != nil {
+		d, err := parseDuration(aux.PoolTimeout)
+		if err != nil {
+			return fmt.Errorf("invalid pool_timeout: %w", err)
+		}
+		p.PoolTimeout = d
+	}
+	if aux.ConnMaxIdleTime != nil {
+		d, err := parseDuration(aux.ConnMaxIdleTime)
+		if err != nil {
+			return fmt.Errorf("invalid conn_max_idle_time: %w", err)
+		}
+		p.ConnMaxIdleTime = d
+	}
+	if aux.ConnMaxLifetime != nil {
+		d, err := parseDuration(aux.ConnMaxLifetime)
+		if err != nil {
+			return fmt.Errorf("invalid conn_max_lifetime: %w", err)
+		}
+		p.ConnMaxLifetime = d
+	}
+	return nil
 }
 
 func (r *Redis) options() (*goredis.UniversalOptions, error) {
