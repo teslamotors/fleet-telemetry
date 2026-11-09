@@ -46,6 +46,7 @@ type SocketManager struct {
 	metricsCollector       metrics.MetricCollector
 	stopChan               chan struct{}
 	writeChan              chan SocketMessage
+	writerDone             chan struct{}
 	transmitDecodedRecords bool
 	vinsSignalTracking     map[string]struct{}
 }
@@ -96,6 +97,7 @@ func NewSocketManager(ctx context.Context, requestIdentity *telemetry.RequestIde
 		requestInfo:            requestLogInfo,
 		writeChan:              make(chan SocketMessage, 1000),
 		stopChan:               make(chan struct{}),
+		writerDone:             make(chan struct{}),
 		requestIdentity:        requestIdentity,
 		transmitDecodedRecords: config.TransmitDecodedRecords,
 		vinsSignalTracking:     config.VinsToTrack(),
@@ -307,12 +309,16 @@ func (sm *SocketManager) respondToVehicle(record *telemetry.Record, err error) {
 	}
 
 	sm.logger.Log(logrus.DEBUG, "message_respond", logInfo)
-	sm.writeChan <- SocketMessage{sm.MsgType, record.Txid, response}
+	select {
+	case sm.writeChan <- SocketMessage{sm.MsgType, record.Txid, response}:
+	case <-sm.writerDone:
+		sm.logger.Log(logrus.DEBUG, "writer_done_dropped_response", logInfo)
+	}
 }
 
 func (sm *SocketManager) writer() {
 	defer func() {
-
+		close(sm.writerDone)
 		sm.logger.Log(logrus.DEBUG, "writer_done", nil)
 		_ = sm.Ws.SetReadDeadline(time.Now().Add(ReadWriteExitDeadline))
 	}()
