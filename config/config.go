@@ -192,33 +192,79 @@ type RedisPool struct {
 	ConnMaxLifetime time.Duration `json:"conn_max_lifetime,omitempty"`
 }
 
+const maxAllowedDuration = 24 * time.Hour
+
 func parseDuration(v interface{}) (time.Duration, error) {
 	switch val := v.(type) {
 	case nil:
 		return 0, nil
 	case float64:
+		if val < 0 {
+			// Negative sentinels (e.g. -1 for no timeout, -2 for no deadline in go-redis) pass through unscaled
+			return time.Duration(val), nil
+		}
+		if val > float64(maxAllowedDuration/time.Second) {
+			return 0, fmt.Errorf("duration %v exceeds maximum allowed (%v); note that numeric timeouts are now interpreted in seconds rather than nanoseconds", val, maxAllowedDuration)
+		}
 		return time.Duration(val * float64(time.Second)), nil
 	case int64:
+		if val < 0 {
+			return time.Duration(val), nil
+		}
+		if time.Duration(val)*time.Second > maxAllowedDuration {
+			return 0, fmt.Errorf("duration %d exceeds maximum allowed (%v); note that numeric timeouts are now interpreted in seconds rather than nanoseconds", val, maxAllowedDuration)
+		}
 		return time.Duration(val) * time.Second, nil
 	case int:
+		if val < 0 {
+			return time.Duration(val), nil
+		}
+		if time.Duration(val)*time.Second > maxAllowedDuration {
+			return 0, fmt.Errorf("duration %d exceeds maximum allowed (%v); note that numeric timeouts are now interpreted in seconds rather than nanoseconds", val, maxAllowedDuration)
+		}
 		return time.Duration(val) * time.Second, nil
 	case json.Number:
 		if i, err := val.Int64(); err == nil {
+			if i < 0 {
+				return time.Duration(i), nil
+			}
+			if time.Duration(i)*time.Second > maxAllowedDuration {
+				return 0, fmt.Errorf("duration %s exceeds maximum allowed (%v); note that numeric timeouts are now interpreted in seconds rather than nanoseconds", val, maxAllowedDuration)
+			}
 			return time.Duration(i) * time.Second, nil
 		}
 		f, err := val.Float64()
 		if err != nil {
 			return 0, err
 		}
+		if f < 0 {
+			return time.Duration(f), nil
+		}
+		if f > float64(maxAllowedDuration/time.Second) {
+			return 0, fmt.Errorf("duration %s exceeds maximum allowed (%v); note that numeric timeouts are now interpreted in seconds rather than nanoseconds", val, maxAllowedDuration)
+		}
 		return time.Duration(f * float64(time.Second)), nil
 	case string:
 		if val == "" {
 			return 0, nil
 		}
+		if strings.EqualFold(val, "none") {
+			// "none" string alias maps to go-redis sentinel -1 (no timeout)
+			return -1, nil
+		}
 		if d, err := time.ParseDuration(val); err == nil {
+			if d > maxAllowedDuration {
+				return 0, fmt.Errorf("duration %q exceeds maximum allowed (%v)", val, maxAllowedDuration)
+			}
 			return d, nil
 		}
 		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			if f < 0 {
+				return time.Duration(f), nil
+			}
+			if f > float64(maxAllowedDuration/time.Second) {
+				return 0, fmt.Errorf("duration %q exceeds maximum allowed (%v); note that numeric timeouts are now interpreted in seconds rather than nanoseconds", val, maxAllowedDuration)
+			}
 			return time.Duration(f * float64(time.Second)), nil
 		}
 		return 0, fmt.Errorf("invalid duration string: %q", val)

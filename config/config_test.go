@@ -321,6 +321,37 @@ var _ = Describe("Test full application config", func() {
 			err := json.Unmarshal(jsonConfig, &redis)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("preserves negative sentinels for go-redis (-1, -2, none)", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": "none",
+				"pool": {
+					"read_timeout": -1,
+					"write_timeout": -2,
+					"pool_timeout": "-1"
+				}
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(redis.PublishTimeout).To(Equal(time.Duration(-1)))
+			Expect(redis.Pool.ReadTimeout).To(Equal(time.Duration(-1)))
+			Expect(redis.Pool.WriteTimeout).To(Equal(time.Duration(-2)))
+			Expect(redis.Pool.PoolTimeout).To(Equal(time.Duration(-1)))
+		})
+
+		It("rejects durations exceeding 24h to prevent int64 overflow and catch old nanosecond configs", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": 5000000000
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("exceeds maximum allowed"))
+			Expect(err.Error()).To(ContainSubstring("interpreted in seconds rather than nanoseconds"))
+		})
 	})
 
 	Context("VinsToTrack", func() {
