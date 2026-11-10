@@ -88,8 +88,9 @@ For ease of installation and operation, run Fleet Telemetry on Kubernetes or a s
     "db": int - optional,
     "subscriber_set_prefix": string - optional; names the per-VIN subscriber sorted set. When empty, the sorted set is not consulted,
     "publish_vin_topics": bool - additionally publish each record to the VIN channel namespace_topic_{vin},
+    "publish_timeout": int or duration string - optional; seconds as int (e.g. 5) or duration string (e.g. "5s"),
     "tls": { "ca_file": string, "server_cert": string, "server_key": string }, // optional
-    "pool": { "pool_size": int, "min_idle_conns": int, "conn_max_lifetime": int } // optional
+    "pool": { "pool_size": int, "min_idle_conns": int, "conn_max_lifetime": int or duration string } // optional (durations support seconds as int e.g. 300 or string e.g. "5m")
   },
   "rate_limit": {
     "enabled": bool,
