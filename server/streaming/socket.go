@@ -46,6 +46,7 @@ type SocketManager struct {
 	metricsCollector       metrics.MetricCollector
 	stopChan               chan struct{}
 	writeChan              chan SocketMessage
+	writerDone             chan struct{}
 	transmitDecodedRecords bool
 	vinsSignalTracking     map[string]struct{}
 }
@@ -96,6 +97,7 @@ func NewSocketManager(ctx context.Context, requestIdentity *telemetry.RequestIde
 		requestInfo:            requestLogInfo,
 		writeChan:              make(chan SocketMessage, 1000),
 		stopChan:               make(chan struct{}),
+		writerDone:             make(chan struct{}),
 		requestIdentity:        requestIdentity,
 		transmitDecodedRecords: config.TransmitDecodedRecords,
 		vinsSignalTracking:     config.VinsToTrack(),
@@ -307,12 +309,45 @@ func (sm *SocketManager) respondToVehicle(record *telemetry.Record, err error) {
 	}
 
 	sm.logger.Log(logrus.DEBUG, "message_respond", logInfo)
-	sm.writeChan <- SocketMessage{sm.MsgType, record.Txid, response}
+	select {
+	case sm.writeChan <- SocketMessage{sm.MsgType, record.Txid, response}:
+	case <-sm.writerDone:
+		sm.logger.Log(logrus.DEBUG, "writer_done_dropped_response", logInfo)
+	}
+}
+
+// tryRespondToVehicle attempts to enqueue a response to the vehicle without blocking.
+// It returns true if the message was enqueued, or false if the channel was full or the writer exited.
+// Used by shared goroutines like Server.handleAcks to avoid head-of-line blocking on slow or stalled clients.
+func (sm *SocketManager) tryRespondToVehicle(record *telemetry.Record, err error) bool {
+	var response []byte
+	logInfo := logrus.LogInfo{"txid": record.Txid, "device_id": sm.requestIdentity.DeviceID}
+	if err != nil {
+		sm.logger.ErrorLog("unexpected_record", err, logInfo)
+		metricsRegistry.unexpectedRecordErrorCount.Inc(map[string]string{})
+		response = record.Error(errors.New("incorrect message format"))
+		logInfo["response_type"] = "error"
+	} else {
+		logInfo["response_type"] = "ack"
+		response = record.Ack()
+	}
+
+	sm.logger.Log(logrus.DEBUG, "message_respond", logInfo)
+	select {
+	case sm.writeChan <- SocketMessage{sm.MsgType, record.Txid, response}:
+		return true
+	case <-sm.writerDone:
+		sm.logger.Log(logrus.DEBUG, "writer_done_dropped_response", logInfo)
+		return false
+	default:
+		sm.logger.Log(logrus.WARN, "write_channel_full_dropped_ack", logInfo)
+		return false
+	}
 }
 
 func (sm *SocketManager) writer() {
 	defer func() {
-
+		close(sm.writerDone)
 		sm.logger.Log(logrus.DEBUG, "writer_done", nil)
 		_ = sm.Ws.SetReadDeadline(time.Now().Add(ReadWriteExitDeadline))
 	}()
