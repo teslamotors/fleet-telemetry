@@ -142,6 +142,15 @@ var _ = Describe("Payload", func() {
 					"booleanValue": true,
 				},
 			),
+			Entry("SemiCruiseActive boolean with types excluded",
+				&protos.Datum{
+					Key:   protos.Field_SemiCruiseActive,
+					Value: &protos.Value{Value: &protos.Value_BooleanValue{BooleanValue: true}},
+				},
+				excludeTypes,
+				"SemiCruiseActive",
+				true,
+			),
 			Entry("ShiftState with enums as strings and types excluded",
 				&protos.Datum{
 					Key:   protos.Field_Gear,
