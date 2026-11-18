@@ -12,6 +12,11 @@ import (
 )
 
 func (p *Producer) processVehicleFields(rec *telemetry.Record, payload *protos.Payload) ([]pahomqtt.Token, error) {
+	for i, datum := range payload.Data {
+		if datum == nil || datum.Value == nil || datum.Value.Value == nil {
+			return nil, fmt.Errorf("vehicle field at index %d has no value", i)
+		}
+	}
 	var tokens []pahomqtt.Token
 	convertedPayload := p.payloadToMap(payload)
 	for key, value := range convertedPayload {
