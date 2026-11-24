@@ -3,6 +3,8 @@ package mqtt_test
 import (
 	"context"
 	"encoding/json"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
@@ -489,6 +491,149 @@ var _ = Describe("MQTTProducer", func() {
 			// Check that an error was logged
 			Expect(loggerHook.LastEntry().Message).To(Equal("mqtt_publish_error"))
 
+		})
+	})
+
+	Describe("Connect", func() {
+		var connectAttempts atomic.Int64
+		var attemptMu sync.Mutex
+		var attemptTimes []time.Time
+
+		resetConnectState := func() {
+			connectAttempts.Store(0)
+			attemptMu.Lock()
+			attemptTimes = nil
+			attemptMu.Unlock()
+		}
+
+		// failThenSucceedClient returns a mock whose Connect succeeds only
+		// after succeedAfter failed attempts, recording each attempt's time.
+		failThenSucceedClient := func(succeedAfter int64) *MockMQTTClient {
+			return &MockMQTTClient{
+				ConnectFunc: func() pahomqtt.Token {
+					n := connectAttempts.Add(1)
+					attemptMu.Lock()
+					attemptTimes = append(attemptTimes, time.Now())
+					attemptMu.Unlock()
+					if n > succeedAfter {
+						return &MockToken{
+							WaitTimeoutFunc: func(_ time.Duration) bool { return true },
+							WaitFunc:        func() bool { return true },
+							ErrorFunc:       func() error { return nil },
+						}
+					}
+					// Simulate an unreachable broker: the connect token never
+					// completes within the timeout.
+					return &MockToken{
+						WaitTimeoutFunc: func(_ time.Duration) bool { return false },
+						WaitFunc:        func() bool { return false },
+						ErrorFunc:       func() error { return pahomqtt.TimedOut },
+					}
+				},
+				IsConnectedFunc: func() bool { return true },
+			}
+		}
+
+		newTestProducer := func(ctx context.Context) *mqtt.Producer {
+			producer, err := mqtt.NewProducer(
+				ctx,
+				mockConfig,
+				mockCollector,
+				"test_namespace",
+				mockAirbrake,
+				nil,
+				nil,
+				mockLogger,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			return producer.(*mqtt.Producer)
+		}
+
+		It("returns nil without retrying when the broker connects on the first attempt", func() {
+			resetConnectState()
+			mqtt.PahoNewClient = func(_ *pahomqtt.ClientOptions) pahomqtt.Client {
+				return failThenSucceedClient(0)
+			}
+
+			producer := newTestProducer(context.Background())
+			Expect(producer.Connect()).To(Succeed())
+
+			Expect(connectAttempts.Load()).To(Equal(int64(1)))
+			Consistently(func() int64 { return connectAttempts.Load() }, 200*time.Millisecond, 20*time.Millisecond).Should(Equal(int64(1)))
+			Expect(loggerHook.LastEntry().Message).To(Equal("mqtt_connected"))
+		})
+
+		It("returns nil and retries in the background until the broker becomes reachable", func() {
+			resetConnectState()
+			mqtt.PahoNewClient = func(_ *pahomqtt.ClientOptions) pahomqtt.Client {
+				return failThenSucceedClient(2)
+			}
+			mockConfig.ConnectRetryInterval = 50
+
+			producer := newTestProducer(context.Background())
+
+			// Must not fail startup: returns nil even though the broker is down.
+			Expect(producer.Connect()).To(Succeed())
+			Expect(connectAttempts.Load()).To(Equal(int64(1)))
+			Expect(loggerHook.LastEntry().Message).To(Equal("mqtt_connect_error"))
+
+			// Background retries keep firing until the third attempt succeeds...
+			Eventually(func() int64 { return connectAttempts.Load() }, 5*time.Second, 10*time.Millisecond).Should(BeNumerically(">=", 3))
+			Eventually(func() string { return loggerHook.LastEntry().Message }, 5*time.Second).Should(Equal("mqtt_connected"))
+
+			// ...and stop once connected.
+			Consistently(func() int64 { return connectAttempts.Load() }, 300*time.Millisecond, 20*time.Millisecond).Should(Equal(int64(3)))
+		})
+
+		It("backs off exponentially between connection retries", func() {
+			resetConnectState()
+			mqtt.PahoNewClient = func(_ *pahomqtt.ClientOptions) pahomqtt.Client {
+				return failThenSucceedClient(1 << 30) // never succeeds
+			}
+			mockConfig.ConnectRetryInterval = 50
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			producer := newTestProducer(ctx)
+			Expect(producer.Connect()).To(Succeed())
+
+			Eventually(func() int64 { return connectAttempts.Load() }, 5*time.Second, 10*time.Millisecond).Should(BeNumerically(">=", 4))
+			cancel()
+
+			attemptMu.Lock()
+			times := append([]time.Time(nil), attemptTimes...)
+			attemptMu.Unlock()
+
+			gaps := []time.Duration{
+				times[1].Sub(times[0]),
+				times[2].Sub(times[1]),
+				times[3].Sub(times[2]),
+			}
+			// Backoff starts at the configured 50ms retry interval and doubles.
+			Expect(gaps[0]).To(BeNumerically(">=", 20*time.Millisecond))
+			Expect(gaps[1]).To(BeNumerically(">", gaps[0]))
+			Expect(gaps[1]).To(BeNumerically(">=", 60*time.Millisecond))
+			Expect(gaps[2]).To(BeNumerically(">", gaps[1]))
+			Expect(gaps[2]).To(BeNumerically(">=", 140*time.Millisecond))
+		})
+
+		It("stops retrying when the producer context is cancelled", func() {
+			resetConnectState()
+			mqtt.PahoNewClient = func(_ *pahomqtt.ClientOptions) pahomqtt.Client {
+				return failThenSucceedClient(1 << 30) // never succeeds
+			}
+			mockConfig.ConnectRetryInterval = 50
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			producer := newTestProducer(ctx)
+			Expect(producer.Connect()).To(Succeed())
+			Expect(connectAttempts.Load()).To(Equal(int64(1)))
+
+			cancel()
+			Consistently(func() int64 { return connectAttempts.Load() }, 300*time.Millisecond, 20*time.Millisecond).Should(Equal(int64(1)))
+			Eventually(func() string { return loggerHook.LastEntry().Message }, 5*time.Second).Should(Equal("mqtt_connect_retry_stopped"))
 		})
 	})
 })
