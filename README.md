@@ -13,6 +13,10 @@ By configuring `fleet_telemetry_config`, individual owners and fleet operators c
 
 ## Configuring and running the service
 
+This diagram shows a summary of steps taken during configuration and how the system will operate.
+
+![](doc/system_overview.png)
+
 ### Setup steps
 
 1. Create a developer application via [developer.tesla.com](https://developer.tesla.com).
