@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"io"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -244,6 +246,111 @@ var _ = Describe("Test full application config", func() {
 			options, err := redis.options()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(options.Password).To(Equal("env-password"))
+		})
+
+		It("unmarshals numeric timeouts as seconds", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": 5,
+				"pool": {
+					"read_timeout": 3,
+					"write_timeout": 4,
+					"pool_timeout": 6,
+					"conn_max_idle_time": 60,
+					"conn_max_lifetime": 300
+				}
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(redis.PublishTimeout).To(Equal(5 * time.Second))
+			Expect(redis.Pool).NotTo(BeNil())
+			Expect(redis.Pool.ReadTimeout).To(Equal(3 * time.Second))
+			Expect(redis.Pool.WriteTimeout).To(Equal(4 * time.Second))
+			Expect(redis.Pool.PoolTimeout).To(Equal(6 * time.Second))
+			Expect(redis.Pool.ConnMaxIdleTime).To(Equal(60 * time.Second))
+			Expect(redis.Pool.ConnMaxLifetime).To(Equal(300 * time.Second))
+
+			options, err := redis.options()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(options.ReadTimeout).To(Equal(3 * time.Second))
+			Expect(options.WriteTimeout).To(Equal(4 * time.Second))
+			Expect(options.PoolTimeout).To(Equal(6 * time.Second))
+			Expect(options.ConnMaxIdleTime).To(Equal(60 * time.Second))
+			Expect(options.ConnMaxLifetime).To(Equal(300 * time.Second))
+		})
+
+		It("unmarshals duration string timeouts", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": "500ms",
+				"pool": {
+					"read_timeout": "2s",
+					"write_timeout": "2500ms",
+					"pool_timeout": "10s",
+					"conn_max_idle_time": "1m",
+					"conn_max_lifetime": "5m"
+				}
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(redis.PublishTimeout).To(Equal(500 * time.Millisecond))
+			Expect(redis.Pool).NotTo(BeNil())
+			Expect(redis.Pool.ReadTimeout).To(Equal(2 * time.Second))
+			Expect(redis.Pool.WriteTimeout).To(Equal(2500 * time.Millisecond))
+			Expect(redis.Pool.PoolTimeout).To(Equal(10 * time.Second))
+			Expect(redis.Pool.ConnMaxIdleTime).To(Equal(1 * time.Minute))
+			Expect(redis.Pool.ConnMaxLifetime).To(Equal(5 * time.Minute))
+
+			options, err := redis.options()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(options.ReadTimeout).To(Equal(2 * time.Second))
+			Expect(options.WriteTimeout).To(Equal(2500 * time.Millisecond))
+			Expect(options.PoolTimeout).To(Equal(10 * time.Second))
+			Expect(options.ConnMaxIdleTime).To(Equal(1 * time.Minute))
+			Expect(options.ConnMaxLifetime).To(Equal(5 * time.Minute))
+		})
+
+		It("returns an error for invalid duration format", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": "invalid-duration"
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("preserves negative sentinels for go-redis (-1, -2, none)", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": "none",
+				"pool": {
+					"read_timeout": -1,
+					"write_timeout": -2,
+					"pool_timeout": "-1"
+				}
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(redis.PublishTimeout).To(Equal(time.Duration(-1)))
+			Expect(redis.Pool.ReadTimeout).To(Equal(time.Duration(-1)))
+			Expect(redis.Pool.WriteTimeout).To(Equal(time.Duration(-2)))
+			Expect(redis.Pool.PoolTimeout).To(Equal(time.Duration(-1)))
+		})
+
+		It("rejects durations exceeding 24h to prevent int64 overflow and catch old nanosecond configs", func() {
+			jsonConfig := []byte(`{
+				"addrs": ["redis:6379"],
+				"publish_timeout": 5000000000
+			}`)
+			var redis Redis
+			err := json.Unmarshal(jsonConfig, &redis)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("exceeds maximum allowed"))
+			Expect(err.Error()).To(ContainSubstring("interpreted in seconds rather than nanoseconds"))
 		})
 	})
 
