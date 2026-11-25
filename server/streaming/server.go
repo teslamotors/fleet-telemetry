@@ -37,6 +37,10 @@ var (
 
 const (
 	connectitivityTopic = "connectivity"
+
+	// DefaultReadHeaderTimeout limits request-header and TLS-handshake reads.
+	// Long-lived WebSocket connections are not subject to this deadline.
+	DefaultReadHeaderTimeout = 10 * time.Second
 )
 
 // ServerMetrics stores metrics reported from this package
@@ -81,7 +85,11 @@ func InitServer(c *config.Config, airbrakeHandler *airbrake.Handler, producerRul
 	mux.HandleFunc("/", socketServer.ServeBinaryWs(c))
 	mux.Handle("/status", socketServer.airbrakeHandler.WithReporting(http.HandlerFunc(socketServer.Status())))
 
-	server := &http.Server{Addr: fmt.Sprintf("%v:%v", c.Host, c.Port), Handler: serveHTTPWithLogs(mux, logger)}
+	server := &http.Server{
+		Addr:              fmt.Sprintf("%v:%v", c.Host, c.Port),
+		Handler:           serveHTTPWithLogs(mux, logger),
+		ReadHeaderTimeout: DefaultReadHeaderTimeout,
+	}
 	go socketServer.handleAcks()
 	return server, socketServer, nil
 }
