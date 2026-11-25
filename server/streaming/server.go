@@ -43,6 +43,7 @@ const (
 type ServerMetrics struct {
 	reliableAckCount     adapter.Counter
 	reliableAckMissCount adapter.Counter
+	reliableAckDropCount adapter.Counter
 }
 
 // Server stores server resources
@@ -91,10 +92,19 @@ func (s *Server) handleAcks() {
 		reliableAckSource := string(s.reliableAckSources[record.TxType])
 		if record.Serializer != nil {
 			if socket := s.registry.GetSocket(record.SocketID); socket != nil {
-				serverMetricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": record.TxType, "dispatcher": reliableAckSource})
-				socket.respondToVehicle(record, nil)
+				if socket.tryRespondToVehicle(record, nil) {
+					if serverMetricsRegistry.reliableAckCount != nil {
+						serverMetricsRegistry.reliableAckCount.Inc(map[string]string{"record_type": record.TxType, "dispatcher": reliableAckSource})
+					}
+				} else {
+					if serverMetricsRegistry.reliableAckDropCount != nil {
+						serverMetricsRegistry.reliableAckDropCount.Inc(map[string]string{"record_type": record.TxType, "dispatcher": reliableAckSource})
+					}
+				}
 			} else {
-				serverMetricsRegistry.reliableAckMissCount.Inc(map[string]string{"record_type": record.TxType, "dispatcher": reliableAckSource})
+				if serverMetricsRegistry.reliableAckMissCount != nil {
+					serverMetricsRegistry.reliableAckMissCount.Inc(map[string]string{"record_type": record.TxType, "dispatcher": reliableAckSource})
+				}
 			}
 		}
 	}
@@ -262,6 +272,12 @@ func registerServerMetrics(metricsCollector metrics.MetricCollector) {
 	serverMetricsRegistry.reliableAckMissCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
 		Name:   "reliable_ack_miss",
 		Help:   "The number of missing reliable acknowledgements.",
+		Labels: []string{"record_type", "dispatcher"},
+	})
+
+	serverMetricsRegistry.reliableAckDropCount = metricsCollector.RegisterCounter(adapter.CollectorOptions{
+		Name:   "reliable_ack_drop",
+		Help:   "The number of dropped reliable acknowledgements.",
 		Labels: []string{"record_type", "dispatcher"},
 	})
 }
