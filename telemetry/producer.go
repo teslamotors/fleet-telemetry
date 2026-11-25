@@ -14,6 +14,10 @@ const (
 	Pubsub Dispatcher = "pubsub"
 	// Kafka registers a kafka dispatcher
 	Kafka Dispatcher = "kafka"
+	// SNS registers an SNS publisher
+	SNS Dispatcher = "sns"
+	// SQS registers an SQS publisher
+	SQS Dispatcher = "sqs"
 	// Kinesis registers a kinesis publisher
 	Kinesis Dispatcher = "kinesis"
 	// Logger registers a simple logger

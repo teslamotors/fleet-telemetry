@@ -27,6 +27,8 @@ import (
 	"github.com/teslamotors/fleet-telemetry/datastore/mqtt"
 	redisdatastore "github.com/teslamotors/fleet-telemetry/datastore/redis"
 	"github.com/teslamotors/fleet-telemetry/datastore/simple"
+	snsdatastore "github.com/teslamotors/fleet-telemetry/datastore/sns"
+	sqsdatastore "github.com/teslamotors/fleet-telemetry/datastore/sqs"
 	"github.com/teslamotors/fleet-telemetry/datastore/zmq"
 	logrus "github.com/teslamotors/fleet-telemetry/logger"
 	"github.com/teslamotors/fleet-telemetry/metrics"
@@ -68,6 +70,12 @@ type Config struct {
 
 	// Kinesis is a configuration for AWS Kinesis
 	Kinesis *Kinesis `json:"kinesis,omitempty"`
+
+	// SQS configures AWS SQS delivery.
+	SQS *SQS `json:"sqs,omitempty"`
+
+	// SNS configures AWS SNS delivery.
+	SNS *SNS `json:"sns,omitempty"`
 
 	// Pubsub is a configuration for the Google Pubsub
 	Pubsub *Pubsub `json:"pubsub,omitempty"`
@@ -153,6 +161,47 @@ type Kinesis struct {
 	MaxRetries   *int              `json:"max_retries,omitempty"`
 	OverrideHost string            `json:"override_host"`
 	Streams      map[string]string `json:"streams,omitempty"`
+}
+
+// SQS configures delivery to Standard SQS queues.
+type SQS struct {
+	MaxRetries       *int              `json:"max_retries,omitempty"`
+	OverrideHost     string            `json:"override_host,omitempty"`
+	Queues           map[string]string `json:"queues,omitempty"`
+	PublishTimeoutMS *int              `json:"publish_timeout_ms,omitempty"`
+}
+
+func (s *SQS) options() (int, time.Duration, error) {
+	return awsPublishOptions("sqs", s.MaxRetries, s.PublishTimeoutMS)
+}
+
+// SNS configures delivery to Standard SNS topics.
+type SNS struct {
+	MaxRetries       *int              `json:"max_retries,omitempty"`
+	OverrideHost     string            `json:"override_host,omitempty"`
+	Topics           map[string]string `json:"topics,omitempty"`
+	PublishTimeoutMS *int              `json:"publish_timeout_ms,omitempty"`
+}
+
+func (s *SNS) options() (int, time.Duration, error) {
+	return awsPublishOptions("sns", s.MaxRetries, s.PublishTimeoutMS)
+}
+
+func awsPublishOptions(service string, maxRetries, publishTimeoutMS *int) (int, time.Duration, error) {
+	retries, timeoutMS := 1, 10000
+	if maxRetries != nil {
+		retries = *maxRetries
+	}
+	if publishTimeoutMS != nil {
+		timeoutMS = *publishTimeoutMS
+	}
+	if retries < 0 {
+		return 0, 0, fmt.Errorf("%s max_retries must not be negative", service)
+	}
+	if timeoutMS <= 0 || int64(timeoutMS) > int64((1<<63-1)/time.Millisecond) {
+		return 0, 0, fmt.Errorf("%s publish_timeout_ms must be positive and fit in time.Duration", service)
+	}
+	return retries, time.Duration(timeoutMS) * time.Millisecond, nil
 }
 
 // Redis is a configuration for the Redis pub/sub producer.
@@ -422,6 +471,44 @@ func (c *Config) ConfigureProducers(airbrakeHandler *airbrake.Handler, logger *l
 		producers[telemetry.Kinesis] = kinesis
 	}
 
+	if recordNames, ok := requiredDispatchers[telemetry.SQS]; ok {
+		if c.SQS == nil {
+			return nil, nil, errors.New("expected SQS to be configured")
+		}
+		retries, timeout, err := c.SQS.options()
+		if err != nil {
+			return nil, nil, err
+		}
+		queues, err := c.CreateSQSQueueMapping(recordNames)
+		if err != nil {
+			return nil, nil, err
+		}
+		producer, err := sqsdatastore.NewProducer(retries, queues, c.SQS.OverrideHost, timeout, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.SQS], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.SQS] = producer
+	}
+
+	if recordNames, ok := requiredDispatchers[telemetry.SNS]; ok {
+		if c.SNS == nil {
+			return nil, nil, errors.New("expected SNS to be configured")
+		}
+		retries, timeout, err := c.SNS.options()
+		if err != nil {
+			return nil, nil, err
+		}
+		topics, err := c.CreateSNSTopicMapping(recordNames)
+		if err != nil {
+			return nil, nil, err
+		}
+		producer, err := snsdatastore.NewProducer(retries, topics, c.SNS.OverrideHost, timeout, c.MetricCollector, airbrakeHandler, c.AckChan, reliableAckSources[telemetry.SNS], logger)
+		if err != nil {
+			return nil, nil, err
+		}
+		producers[telemetry.SNS] = producer
+	}
+
 	if _, ok := requiredDispatchers[telemetry.ZMQ]; ok {
 		if c.ZMQ == nil {
 			return nil, nil, errors.New("expected ZMQ to be configured")
@@ -558,6 +645,50 @@ func (c *Config) CreateKinesisStreamMapping(recordNames []string) map[string]str
 		}
 	}
 	return streamMapping
+}
+
+// CreateSQSQueueMapping selects queue names for the required record types.
+// Environment overrides configuration; absent names default to namespace_recordType.
+func (c *Config) CreateSQSQueueMapping(recordNames []string) (map[string]string, error) {
+	queues := make(map[string]string, len(recordNames))
+	for _, recordName := range recordNames {
+		var name string
+		var configured bool
+		if c.SQS != nil {
+			name, configured = c.SQS.Queues[recordName]
+		}
+		if override := os.Getenv("SQS_QUEUE_" + strings.ToUpper(recordName)); override != "" {
+			name, configured = override, true
+		}
+		if !configured {
+			name = telemetry.BuildTopicName(c.Namespace, recordName)
+		}
+		if err := sqsdatastore.ValidateQueueName(name); err != nil {
+			return nil, fmt.Errorf("sqs queue for record type %q: %w", recordName, err)
+		}
+		queues[recordName] = name
+	}
+	return queues, nil
+}
+
+// CreateSNSTopicMapping selects explicit topic ARNs for the required record types.
+// Environment overrides configuration; SNS topics have no namespace fallback.
+func (c *Config) CreateSNSTopicMapping(recordNames []string) (map[string]string, error) {
+	topics := make(map[string]string, len(recordNames))
+	for _, recordName := range recordNames {
+		var topic string
+		if c.SNS != nil {
+			topic = c.SNS.Topics[recordName]
+		}
+		if override := os.Getenv("SNS_TOPIC_" + strings.ToUpper(recordName)); override != "" {
+			topic = override
+		}
+		if err := snsdatastore.ValidateTopicARN(topic); err != nil {
+			return nil, fmt.Errorf("sns topic for record type %q: %w", recordName, err)
+		}
+		topics[recordName] = topic
+	}
+	return topics, nil
 }
 
 // CreateAirbrakeNotifier intializes an airbrake notifier with standard configs
