@@ -67,6 +67,22 @@ var _ = Describe("Socket handler test", func() {
 		}
 	})
 
+	It("sets ReadHeaderTimeout on the HTTP server", func() {
+		logger, _ := logrus.NoOpLogger()
+		conf := &config.Config{
+			MetricCollector: noop.NewCollector(),
+		}
+
+		registry := streaming.NewSocketRegistry()
+		producerRules = make(map[string][]telemetry.Producer)
+		server, _, err := streaming.InitServer(conf, airbrake.NewAirbrakeHandler(nil), producerRules, logger, registry)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(server.ReadHeaderTimeout).To(Equal(streaming.DefaultReadHeaderTimeout))
+		// Leave ReadTimeout and WriteTimeout unset so long-lived WebSockets stay open.
+		Expect(server.ReadTimeout).To(BeZero())
+		Expect(server.WriteTimeout).To(BeZero())
+	})
+
 	It("ServeBinaryWs closes connection when TLS state is missing", func() {
 		logger, _ := logrus.NoOpLogger()
 		conf := &config.Config{
