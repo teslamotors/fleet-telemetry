@@ -64,7 +64,9 @@ func NewProducer(config *kafka.ConfigMap, namespace string, prometheusEnabled bo
 		reliableAckTxTypes: reliableAckTxTypes,
 	}
 
-	go producer.handleProducerEvents()
+	go producer.handleProducerEvents(producer.deliveryChan)
+	// client-level errors (e.g. all brokers down) are only sent to Events(), not to deliveryChan
+	go producer.handleProducerEvents(kafkaProducer.Events())
 	go producer.reportProducerMetrics()
 	producer.logger.ActivityLog("kafka_registered", logrus.LogInfo{"namespace": namespace})
 	return producer, nil
@@ -110,8 +112,8 @@ func headersFromRecord(record *telemetry.Record) (headers []kafka.Header) {
 	return
 }
 
-func (p *Producer) handleProducerEvents() {
-	for e := range p.deliveryChan {
+func (p *Producer) handleProducerEvents(events chan kafka.Event) {
+	for e := range events {
 		switch ev := e.(type) {
 		case kafka.Error:
 			p.logError(fmt.Errorf("producer_error %v", ev))
